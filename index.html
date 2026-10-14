@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мэр: Хроники распила</title>
+    <!-- Подключаем Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+
+    <!-- Верхняя панель: Шкалы Тамагочи -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
+        <div class="max-w-xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
+            <div class="bg-slate-700/50 p-2 rounded-lg">
+                <div class="text-slate-400 text-xs">Деньги / Офшоры</div>
+                <div id="stat-money" class="text-green-400 font-bold text-lg">1.5 млн ₽</div>
+            </div>
+            <div class="bg-slate-700/50 p-2 rounded-lg">
+                <div class="text-slate-400 text-xs">Аппетит жены</div>
+                <div id="stat-wife" class="text-pink-400 font-bold text-lg">50%</div>
+            </div>
+            <div class="bg-slate-700/50 p-2 rounded-lg">
+                <div class="text-slate-400 text-xs">Паранойя (Следствие)</div>
+                <div id="stat-threat" class="text-yellow-400 font-bold text-lg">10%</div>
+            </div>
+            <div class="bg-slate-700/50 p-2 rounded-lg">
+                <div class="text-slate-400 text-xs">Здоровье мэра</div>
+                <div id="stat-health" class="text-red-400 font-bold text-lg">90%</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной блок игры: Карточка дня -->
+    <main class="max-w-xl w-full mx-auto p-4 flex-1 flex flex-col justify-center">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2" id="day-counter">День 1</div>
+            
+            <h2 id="event-title" class="text-xl font-bold mb-3 text-white">Утренний кофе в кабинете</h2>
+            <p id="event-desc" class="text-slate-300 mb-6 leading-relaxed">
+                Загрузка ситуации...
+            </p>
+
+            <div id="choices-container" class="space-y-3">
+                <!-- Кнопки генерируются динамически через JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Подвал -->
+    <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
+        Мэр: Хроники распила &bull; GitHub Edition v0.2
+    </footer>
+
+    <!-- Подключаем игровую логику -->
+    <script src="game.js"></script>
+</body>
+</html>
