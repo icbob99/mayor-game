@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,23 +10,33 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
-    <!-- Верхняя панель: Шкалы Тамагочи -->
+    <!-- Верхняя панель: Переключатель языков и Шкалы Тамагочи -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
+        <div class="max-w-xl mx-auto flex justify-between items-center mb-3">
+            <h1 class="text-sm font-bold text-slate-400">🏛️ Мэр: Хроники распила</h1>
+            <!-- Переключатель языка -->
+            <div class="flex space-x-2 text-xs">
+                <button onclick="setLanguage('ru')" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-white font-bold transition">RU</button>
+                <button onclick="setLanguage('he')" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-white font-bold transition">HE</button>
+                <button onclick="setLanguage('en')" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-white font-bold transition">EN</button>
+            </div>
+        </div>
+
         <div class="max-w-xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div class="text-slate-400 text-xs">Деньги / Офшоры</div>
+                <div id="label-money" class="text-slate-400 text-xs">Деньги / Офшоры</div>
                 <div id="stat-money" class="text-green-400 font-bold text-lg">1.5 млн ₽</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div class="text-slate-400 text-xs">Аппетит жены</div>
+                <div id="label-wife" class="text-slate-400 text-xs">Аппетит жены</div>
                 <div id="stat-wife" class="text-pink-400 font-bold text-lg">50%</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div class="text-slate-400 text-xs">Паранойя (Следствие)</div>
-                <div id="stat-threat" class="text-yellow-400 font-bold text-lg">10%</div>
+                <div id="label-threat" class="text-slate-400 text-xs">Угроза (Лахав 433)</div>
+                <div id="stat-threat" class="text-yellow-400 font-bold text-lg">15%</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div class="text-slate-400 text-xs">Здоровье мэра</div>
+                <div id="label-health" class="text-slate-400 text-xs">Здоровье мэра</div>
                 <div id="stat-health" class="text-red-400 font-bold text-lg">90%</div>
             </div>
         </div>
@@ -37,7 +47,7 @@
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
             <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2" id="day-counter">День 1</div>
             
-            <h2 id="event-title" class="text-xl font-bold mb-3 text-white">Утренний кофе в кабинете</h2>
+            <h2 id="event-title" class="text-xl font-bold mb-3 text-white">Загрузка...</h2>
             <p id="event-desc" class="text-slate-300 mb-6 leading-relaxed">
                 Загрузка ситуации...
             </p>
@@ -50,10 +60,11 @@
 
     <!-- Подвал -->
     <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
-        Мэр: Хроники распила &bull; GitHub Edition v0.2
+        Мэр: Хроники распила &bull; i18n Edition
     </footer>
 
-    <!-- Подключаем игровую логику -->
+    <!-- Подключаем данные и игровую логику -->
+    <script src="gameData.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

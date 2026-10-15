@@ -3,51 +3,50 @@ let state = {
     day: 1,
     money: 1500000,
     wife: 50,
-    threat: 10,
-    health: 90
+    threat: 15,
+    health: 90,
+    lang: 'ru', // Текущий язык по умолчанию
+    currentEventIndex: 0 // Запоминаем текущую карточку
 };
 
-// База данных карточек (ситуаций)
-const events = [
-    {
-        title: "Ремонт дорог и сумочка",
-        desc: "Подрядчик по ремонту дорог заносит конверт с откатом за победу в конкурсе. Жена при этом намекает, что сумочка от Chanel сама себя не купит.",
-        choices: [
-            { text: "🧳 Взять всё! Шикуем.", money: +3000000, wife: +20, threat: +15, health: -2 },
-            { text: "👜 Взять умеренно (на сумочку хватит)", money: +1000000, wife: +5, threat: +5, health: 0 },
-            { text: "❌ Отказаться, затянуть пояса", money: 0, wife: -25, threat: -5, health: -5 }
-        ]
-    },
-    {
-        title: "Наезд Telegram-канала",
-        desc: "Анонимный канал опубликовал расследование про загородную дачу мэра, оформленную на тещу-пенсионерку.",
-        choices: [
-            { text: "💰 Занести авторам канала, чтобы удалили пост", money: -800000, wife: 0, threat: -5, health: -3 },
-            { text: "⚖️ Подать в суд через карманного адвоката", money: -300000, wife: 0, threat: -10, health: -8 },
-            { text: "🤫 Сделать вид, что ничего не происходит", money: 0, wife: -10, threat: +20, health: -10 }
-        ]
-    },
-    {
-        title: "Каприз молодой жены",
-        desc: "Супруга требует срочно купить виллу на южном берегу, потому что «все подруги уже там, а я сижу в этой серой мэрии».",
-        choices: [
-            { text: "🏝️ Купить виллу (тратим все сбережения)", money: -4000000, wife: +40, threat: +10, health: -5 },
-            { text: "🚗 Откупиться новой дорогой иномаркой", money: -1500000, wife: +20, threat: +5, health: -2 },
-            { text: "🗣️ Устроить скандал: 'Бюджет трещит, потерпи!'", money: 0, wife: -30, threat: 0, health: -15 }
-        ]
+// Функция смены языка
+function setLanguage(lang) {
+    state.lang = lang;
+    
+    // Меняем направление текста для иврита (RTL)
+    const htmlRoot = document.getElementById('html-root');
+    if (lang === 'he') {
+        htmlRoot.setAttribute('dir', 'rtl');
+    } else {
+        htmlRoot.setAttribute('dir', 'ltr');
     }
-];
+
+    updateUI();
+    // Чтобы при смене языка карточка не перепрыгивала, просто обновляем тексты текущей
+    renderCurrentEvent(); 
+}
 
 function updateUI() {
-    document.getElementById('stat-money').innerText = state.money.toLocaleString() + ' ₽';
+    const t = gameData.translations[state.lang];
+
+    // Обновляем подписи шкал
+    document.getElementById('label-money').innerText = t.money;
+    document.getElementById('label-wife').innerText = t.wife;
+    document.getElementById('label-threat').innerText = t.threat;
+    document.getElementById('label-health').innerText = t.health;
+
+    // Обновляем значения
+    document.getElementById('stat-money').innerText = state.money.toLocaleString() + ' ₪';
     document.getElementById('stat-wife').innerText = state.wife + '%';
     document.getElementById('stat-threat').innerText = state.threat + '%';
     document.getElementById('stat-health').innerText = state.health + '%';
-    document.getElementById('day-counter').innerText = `День ${state.day}`;
+    
+    document.getElementById('day-counter').innerText = `${t.day} ${state.day}`;
 }
 
 function handleChoice(choiceIndex) {
-    const currentEvent = events[(state.day - 1) % events.length];
+    // Берем текущее событие по сохраненному индексу
+    const currentEvent = gameData.events[state.currentEventIndex];
     const choice = currentEvent.choices[choiceIndex];
 
     state.money += choice.money;
@@ -56,18 +55,19 @@ function handleChoice(choiceIndex) {
     state.health = Math.max(0, Math.min(100, state.health + choice.health));
     state.day++;
 
+    // Условия поражения (используем одинарные кавычки для защиты от ошибок в тексте)
     if (state.threat >= 100) {
-        alert("🚨 АРЕСТ! К вам в кабинет с обыском ворвался спецназ. Игра окончена!");
+        alert(state.lang === 'he' ? '🚨 מעצר! הימ"מ פרץ למשרד!' : state.lang === 'en' ? '🚨 ARREST! Lahav 433 raided your office!' : '🚨 АРЕСТ! К вам в кабинет ворвался спецназ Лахав 433!');
         resetGame();
         return;
     }
     if (state.wife <= 0) {
-        alert("💔 ЖЕНА УШЕЛА! Забрала половину офшоров и слила все пароли следственному комитету. Конец карьеры.");
+        alert(state.lang === 'he' ? '💔 אשתו עזבה! לקחה חצי מהחשבונות.' : state.lang === 'en' ? '💔 WIFE LEFT! She took half your offshore accounts.' : '💔 ЖЕНА УШЕЛА! Забрала половину офшоров и слила всё в полицию.');
         resetGame();
         return;
     }
     if (state.health <= 0) {
-        alert("❤️‍🩹 ИНФАРКТ! Мэр не выдержал нервотрепки на рабочем месте.");
+        alert(state.lang === 'he' ? '❤️‍🩹 התקף לב! ראש העיר לא עמד בלחץ.' : state.lang === 'en' ? '❤️‍🩹 HEART ATTACK! The mayor couldn\'t handle the stress.' : '❤️‍🩹 ИНФАРКТ! Мэр не выдержал проверок и нервотрепки.');
         resetGame();
         return;
     }
@@ -76,9 +76,21 @@ function handleChoice(choiceIndex) {
 }
 
 function loadNextEvent() {
-    const currentEvent = events[(state.day - 1) % events.length];
-    document.getElementById('event-title').innerText = currentEvent.title;
-    document.getElementById('event-desc').innerText = currentEvent.desc;
+    // Умный рандом: выбираем случайную карточку, но не ту, что была вчера
+    let nextIndex;
+    do {
+        nextIndex = Math.floor(Math.random() * gameData.events.length);
+    } while (nextIndex === state.currentEventIndex && gameData.events.length > 1);
+    
+    state.currentEventIndex = nextIndex;
+    renderCurrentEvent();
+}
+
+function renderCurrentEvent() {
+    const currentEvent = gameData.events[state.currentEventIndex];
+    
+    document.getElementById('event-title').innerText = currentEvent.title[state.lang];
+    document.getElementById('event-desc').innerText = currentEvent.desc[state.lang];
 
     const container = document.getElementById('choices-container');
     container.innerHTML = '';
@@ -86,7 +98,7 @@ function loadNextEvent() {
     currentEvent.choices.forEach((choice, index) => {
         const btn = document.createElement('button');
         btn.className = "w-full text-left bg-slate-700 hover:bg-slate-600 p-4 rounded-xl transition border border-slate-600 font-medium cursor-pointer";
-        btn.innerHTML = choice.text;
+        btn.innerHTML = choice.text[state.lang];
         btn.onclick = () => handleChoice(index);
         container.appendChild(btn);
     });
@@ -95,7 +107,7 @@ function loadNextEvent() {
 }
 
 function resetGame() {
-    state = { day: 1, money: 1500000, wife: 50, threat: 10, health: 90 };
+    state = { day: 1, money: 1500000, wife: 50, threat: 15, health: 90, lang: state.lang, currentEventIndex: 0 };
     loadNextEvent();
 }
 
