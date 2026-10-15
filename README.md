@@ -1,4 +1,4 @@
-# Mayor: Chronicles of Embezzlement (Мэр: Хроники распила)
+# Mayor: Chronicles of Embezzlement
 
 A satirical web-based browser game inspired by classic Tamagotchi mechanics and real-world corruption scandals. Balance your offshore accounts, keep your demanding young wife happy, manage your health, and try not to get arrested by law enforcement.
 

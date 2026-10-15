@@ -6,6 +6,11 @@
     "health": "Mayor's Health",
     "day": "DAY"
   },
+  "alerts": {
+    "arrest": "🚨 ARREST! The police raided you this morning.",
+    "wife_left": "💔 WIFE LEFT! You failed to meet her financial expectations.",
+    "heart_attack": "❤️‍🩹 HEART ATTACK! Your heart couldn’t handle the strain."
+  },
   "events": {
     "bench_tender": {
       "title": "Park Benches Tender",

@@ -1,70 +1,75 @@
 <!DOCTYPE html>
-<html lang="ru" id="html-root">
+<html lang="en" id="html-root">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мэр: Хроники распила</title>
-    <!-- Подключаем Tailwind CSS -->
+    <title>Mayor: Chronicles of Embezzlement</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+    
+    <link href="css/style.css" rel="stylesheet">
 </head>
+
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
-    <!-- Верхняя панель: Переключатель языков и Шкалы Тамагочи -->
+    <!-- Top bar: language switcher and Tamagotchi-style stats -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
         <div class="max-w-xl mx-auto flex justify-between items-center mb-3">
-            <h1 class="text-sm font-bold text-slate-400">🏛️ Мэр: Хроники распила</h1>
-            <!-- Переключатель языка -->
-            <div class="flex space-x-2 text-xs">
-                <button onclick="setLanguage('ru')" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-white font-bold transition">RU</button>
-                <button onclick="setLanguage('he')" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-white font-bold transition">HE</button>
-                <button onclick="setLanguage('en')" class="bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-white font-bold transition">EN</button>
+            <h1 class="text-sm font-bold text-slate-400">🏛️ Mayor: Chronicles of Embezzlement</h1>
+            <!-- Language switcher -->
+           <div id="lang-selector" class="flex gap-2 text-xs">
+                <button id="btn-ru" onclick="setLang('ru')" class="px-3 py-1 rounded font-bold bg-indigo-600 text-white transition">RU</button>
+                <button id="btn-he" onclick="setLang('he')" class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition">HE</button>
+                <button id="btn-en" onclick="setLang('en')" class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition">EN</button>
             </div>
         </div>
 
         <div class="max-w-xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div id="label-money" class="text-slate-400 text-xs">Деньги / Офшоры</div>
-                <div id="stat-money" class="text-green-400 font-bold text-lg">1.5 млн ₽</div>
+                <div id="label-money" class="text-slate-400 text-xs">Money / Offshore</div>
+                <div id="stat-money" class="text-green-400 font-bold text-lg">1.5M ₪</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div id="label-wife" class="text-slate-400 text-xs">Аппетит жены</div>
+                <div id="label-wife" class="text-slate-400 text-xs">Wife's Appetite</div>
                 <div id="stat-wife" class="text-pink-400 font-bold text-lg">50%</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div id="label-threat" class="text-slate-400 text-xs">Угроза (Лахав 433)</div>
+                <div id="label-threat" class="text-slate-400 text-xs">Threat (Lahav 433)</div>
                 <div id="stat-threat" class="text-yellow-400 font-bold text-lg">15%</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div id="label-health" class="text-slate-400 text-xs">Здоровье мэра</div>
+                <div id="label-health" class="text-slate-400 text-xs">Mayor's Health</div>
                 <div id="stat-health" class="text-red-400 font-bold text-lg">90%</div>
             </div>
         </div>
     </header>
 
-    <!-- Основной блок игры: Карточка дня -->
+    <!-- Main game block: Day card -->
     <main class="max-w-xl w-full mx-auto p-4 flex-1 flex flex-col justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2" id="day-counter">День 1</div>
-            
-            <h2 id="event-title" class="text-xl font-bold mb-3 text-white">Загрузка...</h2>
+            <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2" id="day-counter">Day 1
+            </div>
+
+            <h2 id="event-title" class="text-xl font-bold mb-3 text-white">Loading...</h2>
             <p id="event-desc" class="text-slate-300 mb-6 leading-relaxed">
-                Загрузка ситуации...
+                Loading the situation...
             </p>
 
             <div id="choices-container" class="space-y-3">
-                <!-- Кнопки генерируются динамически через JS -->
+                <!-- Buttons are generated dynamically through JS -->
             </div>
         </div>
     </main>
 
-    <!-- Подвал -->
+    <!-- Footer -->
     <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
-        Мэр: Хроники распила &bull; i18n Edition
+        Mayor: Chronicles of Embezzlement &bull; i18n Edition
     </footer>
 
     <!-- Подключаем данные и игровую логику -->
-    <script src="gameData.js"></script>
-    <script src="game.js"></script>
+    <script src="app/gameData.js"></script>
+    <script src="app/game.js"></script>
 </body>
+
 </html>
