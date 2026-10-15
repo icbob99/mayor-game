@@ -1,0 +1,65 @@
+{
+  "ui": {
+    "money": "Money / Offshores",
+    "wife": "Wife's Appetite",
+    "threat": "Threat (Lahav 433)",
+    "health": "Mayor's Health",
+    "day": "DAY"
+  },
+  "events": {
+    "bench_tender": {
+      "title": "Park Benches Tender",
+      "desc": "A contractor offers a kickback to win a tender for 'luxury' park benches. Meanwhile, your wife is hinting about a new penthouse.",
+      "choices": [
+        "🧳 Take it all! Give the job to your cousin",
+        "👜 Take a moderate cut through a shell company",
+        "❌ Refuse and hold a fair and honest tender"
+      ]
+    },
+    "tama_38": {
+      "title": "TAMA 38 Shenanigans",
+      "desc": "A developer asks you to turn a blind eye to three 'extra' floors in a downtown TAMA 38 project. He promises a solid deposit to a Swiss bank.",
+      "choices": [
+        "🏗️ Sign the permit blindly",
+        "🌳 Force him to build a park in exchange for the floors",
+        "🛑 Block the construction (developer is furious)"
+      ]
+    },
+    "shelters_budget": {
+      "title": "Bomb Shelters Budget",
+      "desc": "The state allocated a huge budget to renovate old bomb shelters. Your brother-in-law suddenly opened an armored doors company.",
+      "choices": [
+        "🚪 Give the entire tender to your brother-in-law",
+        "🛠️ Give him a partial cut, do the rest honestly",
+        "🛡️ Conduct a strict independent audit"
+      ]
+    },
+    "state_comptroller": {
+      "title": "State Comptroller Audit",
+      "desc": "A surprise audit from the State Comptroller hits the municipality. The auditors demand access to last year's accounting books.",
+      "choices": [
+        "💰 Bribe the chief auditor",
+        "🔥 Arrange an 'accidental' fire in the archives",
+        "🐐 Throw a low-level clerk under the bus"
+      ]
+    },
+    "shabbat_blackmail": {
+      "title": "Coalition Crisis (Shabbat)",
+      "desc": "Religious parties threaten to dismantle the coalition unless you close all parks and businesses on Shabbat. Your wife loves Saturday strolls.",
+      "choices": [
+        "🕍 Give in and close everything (wife is furious)",
+        "🤝 Compromise: close downtown, open in the suburbs",
+        "🖕 Tell them to get lost: we are a secular city!"
+      ]
+    },
+    "lawyer_visit": {
+      "title": "Visit from a Fixer Lawyer",
+      "desc": "A well-known fixer lawyer offers to 'lose' a couple of unpleasant files on you in Lahav 433 for a hefty fee.",
+      "choices": [
+        "💼 Pay 500,000 ₪ and sleep peacefully",
+        "🤝 Ask for a discount (pay 200,000 ₪)",
+        "❌ Kick him out: 'I am an honest mayor!'"
+      ]
+    }
+  }
+}

@@ -1,52 +1,84 @@
-// Игровое состояние
 let state = {
-    day: 1,
-    money: 1500000,
+    money: 1000000,
     wife: 50,
     threat: 15,
     health: 90,
-    lang: 'ru', // Текущий язык по умолчанию
-    currentEventIndex: 0 // Запоминаем текущую карточку
+    day: 1,
+    lang: 'ru',
+    currentEventIndex: -1
 };
 
-// Функция смены языка
-function setLanguage(lang) {
-    state.lang = lang;
-    
-    // Меняем направление текста для иврита (RTL)
-    const htmlRoot = document.getElementById('html-root');
-    if (lang === 'he') {
-        htmlRoot.setAttribute('dir', 'rtl');
-    } else {
-        htmlRoot.setAttribute('dir', 'ltr');
-    }
+let currentTexts = null; // Здесь будет храниться загруженный JSON текущего языка
 
+// Загрузка JSON словаря
+async function loadDictionary(lang) {
+    try {
+        const response = await fetch(`locales/\${lang}.json`);
+        currentTexts = await response.json();
+    } catch (error) {
+        console.error("Ошибка загрузки словаря! Если открываешь файл локально (file://), fetch может не сработать из-за CORS. Нужен локальный сервер (например, Live Server в VS Code).", error);
+        alert("Ошибка загрузки языкового файла.");
+    }
+}
+
+async function setLang(lang) {
+    state.lang = lang;
+    document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
+    
+    // Выделение активной кнопки языка
+    document.querySelectorAll('#lang-selector button').forEach(btn => {
+        btn.classList.remove('bg-indigo-600');
+        btn.classList.add('bg-slate-700');
+    });
+    document.getElementById(`btn-\${lang}`).classList.add('bg-indigo-600');
+    document.getElementById(`btn-\${lang}`).classList.remove('bg-slate-700');
+
+    await loadDictionary(lang); // Ждем загрузки файла
+    
     updateUI();
-    // Чтобы при смене языка карточка не перепрыгивала, просто обновляем тексты текущей
-    renderCurrentEvent(); 
+    if (state.currentEventIndex !== -1) {
+        renderCurrentEvent();
+    }
 }
 
 function updateUI() {
-    const t = gameData.translations[state.lang];
+    if (!currentTexts) return;
 
-    // Обновляем подписи шкал
-    document.getElementById('label-money').innerText = t.money;
-    document.getElementById('label-wife').innerText = t.wife;
-    document.getElementById('label-threat').innerText = t.threat;
-    document.getElementById('label-health').innerText = t.health;
+    document.getElementById('label-money').innerText = currentTexts.ui.money;
+    document.getElementById('label-wife').innerText = currentTexts.ui.wife;
+    document.getElementById('label-threat').innerText = currentTexts.ui.threat;
+    document.getElementById('label-health').innerText = currentTexts.ui.health;
 
-    // Обновляем значения
     document.getElementById('stat-money').innerText = state.money.toLocaleString() + ' ₪';
     document.getElementById('stat-wife').innerText = state.wife + '%';
     document.getElementById('stat-threat').innerText = state.threat + '%';
     document.getElementById('stat-health').innerText = state.health + '%';
+    document.getElementById('day-counter').innerText = `${currentTexts.ui.day}${state.day}`;
+}
+
+function renderCurrentEvent() {
+    if (!currentTexts) return;
+
+    const logicEvent = gameLogicEvents[state.currentEventIndex];
+    const textEvent = currentTexts.events[logicEvent.id];
     
-    document.getElementById('day-counter').innerText = `${t.day} ${state.day}`;
+    document.getElementById('event-title').innerText = textEvent.title;
+    document.getElementById('event-desc').innerText = textEvent.desc;
+
+    const container = document.getElementById('choices-container');
+    container.innerHTML = '';
+
+    logicEvent.choices.forEach((choice, index) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left bg-slate-700 hover:bg-slate-600 p-4 rounded-xl transition border border-slate-600 font-medium cursor-pointer";
+        btn.innerHTML = textEvent.choices[index];
+        btn.onclick = () => handleChoice(index);
+        container.appendChild(btn);
+    });
 }
 
 function handleChoice(choiceIndex) {
-    // Берем текущее событие по сохраненному индексу
-    const currentEvent = gameData.events[state.currentEventIndex];
+    const currentEvent = gameLogicEvents[state.currentEventIndex];
     const choice = currentEvent.choices[choiceIndex];
 
     state.money += choice.money;
@@ -55,19 +87,18 @@ function handleChoice(choiceIndex) {
     state.health = Math.max(0, Math.min(100, state.health + choice.health));
     state.day++;
 
-    // Условия поражения (используем одинарные кавычки для защиты от ошибок в тексте)
     if (state.threat >= 100) {
-        alert(state.lang === 'he' ? '🚨 מעצר! הימ"מ פרץ למשרד!' : state.lang === 'en' ? '🚨 ARREST! Lahav 433 raided your office!' : '🚨 АРЕСТ! К вам в кабинет ворвался спецназ Лахав 433!');
+        alert(state.lang === 'he' ? '🚨 מעצר!' : '🚨 АРЕСТ!');
         resetGame();
         return;
     }
     if (state.wife <= 0) {
-        alert(state.lang === 'he' ? '💔 אשתו עזבה! לקחה חצי מהחשבונות.' : state.lang === 'en' ? '💔 WIFE LEFT! She took half your offshore accounts.' : '💔 ЖЕНА УШЕЛА! Забрала половину офшоров и слила всё в полицию.');
+        alert(state.lang === 'he' ? '💔 אשתו עזבה!' : '💔 ЖЕНА УШЛА!');
         resetGame();
         return;
     }
     if (state.health <= 0) {
-        alert(state.lang === 'he' ? '❤️‍🩹 התקף לב! ראש העיר לא עמד בלחץ.' : state.lang === 'en' ? '❤️‍🩹 HEART ATTACK! The mayor couldn\'t handle the stress.' : '❤️‍🩹 ИНФАРКТ! Мэр не выдержал проверок и нервотрепки.');
+        alert(state.lang === 'he' ? '❤️‍🩹 התקף לב!' : '❤️‍🩹 ИНФАРКТ!');
         resetGame();
         return;
     }
@@ -76,40 +107,28 @@ function handleChoice(choiceIndex) {
 }
 
 function loadNextEvent() {
-    // Умный рандом: выбираем случайную карточку, но не ту, что была вчера
     let nextIndex;
     do {
-        nextIndex = Math.floor(Math.random() * gameData.events.length);
-    } while (nextIndex === state.currentEventIndex && gameData.events.length > 1);
+        nextIndex = Math.floor(Math.random() * gameLogicEvents.length);
+    } while (nextIndex === state.currentEventIndex && gameLogicEvents.length > 1);
     
     state.currentEventIndex = nextIndex;
     renderCurrentEvent();
 }
 
-function renderCurrentEvent() {
-    const currentEvent = gameData.events[state.currentEventIndex];
-    
-    document.getElementById('event-title').innerText = currentEvent.title[state.lang];
-    document.getElementById('event-desc').innerText = currentEvent.desc[state.lang];
-
-    const container = document.getElementById('choices-container');
-    container.innerHTML = '';
-
-    currentEvent.choices.forEach((choice, index) => {
-        const btn = document.createElement('button');
-        btn.className = "w-full text-left bg-slate-700 hover:bg-slate-600 p-4 rounded-xl transition border border-slate-600 font-medium cursor-pointer";
-        btn.innerHTML = choice.text[state.lang];
-        btn.onclick = () => handleChoice(index);
-        container.appendChild(btn);
-    });
-
-    updateUI();
-}
-
-function resetGame() {
-    state = { day: 1, money: 1500000, wife: 50, threat: 15, health: 90, lang: state.lang, currentEventIndex: 0 };
+async function resetGame() {
+    state.money = 1000000;
+    state.wife = 50;
+    state.threat = 15;
+    state.health = 90;
+    state.day = 1;
+    state.currentEventIndex = -1;
+    await setLang(state.lang);
     loadNextEvent();
 }
 
-// Стартовый запуск игры
-loadNextEvent();
+// Старт игры
+window.onload = async () => {
+    await setLang('ru');
+    loadNextEvent();
+};
