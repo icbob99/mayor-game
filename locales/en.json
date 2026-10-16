@@ -4,12 +4,14 @@
     "wife": "Wife's Appetite",
     "threat": "Threat (Lahav 433)",
     "health": "Mayor's Health",
-    "day": "DAY"
+    "day": "DAY",
+    "rating": "Public Approval"
   },
   "alerts": {
     "arrest": "🚨 ARREST! The police raided you this morning.",
     "wife_left": "💔 WIFE LEFT! You failed to meet her financial expectations.",
-    "heart_attack": "❤️‍🩹 HEART ATTACK! Your heart couldn’t handle the strain."
+    "heart_attack": "❤️‍🩹 HEART ATTACK! Your heart couldn’t handle the strain.",
+    "elections_lost": "🗳️ ELECTIONS LOST! With 1.2% of the votes, you lost your seat to the opposition."
   },
   "events": {
     "bench_tender": {
@@ -111,15 +113,6 @@
         "🌞 Blame freak weather and global climate change",
         "💸 Urgently hire your brother-in-law's firm without a tender at inflated rates",
         "🥾 Put on rain boots for the cameras and dig the drain yourself"
-      ]
-    },
-    "shabbat_parking": {
-      "title": "Shabbat Parking Hell",
-      "desc": "Secular neighborhood residents are furious: streets are blocked so badly an ambulance can't pass. The opposition demands a towing crackdown.",
-      "choices": [
-        "🚜 Dispatch inspectors and tow trucks early morning",
-        "🙈 Do nothing — don't ruin people's Shabbat",
-        "🅿️ Paint blue-and-white curbs right under the Rabbi's windows"
       ]
     }
   }
