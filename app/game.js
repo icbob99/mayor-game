@@ -85,6 +85,12 @@ function renderCurrentEvent() {
 }
 
 function handleChoice(choiceIndex) {
+    // Включаем аудио-контекст и музыку при первом взаимодействии
+    initAudio();
+    startBgMusic();
+    
+    playClickSound();
+
     const currentEvent = gameLogicEvents[state.currentEventIndex];
     const choice = currentEvent.choices[choiceIndex];
 
@@ -95,23 +101,27 @@ function handleChoice(choiceIndex) {
     state.rating = Math.max(0, Math.min(100, state.rating + (choice.rating || 0)));
     state.day++;
 
-    // Алерты теперь берутся из загруженного JSON, логика ничего не знает о языках
+    // Проверки поражения...
     if (state.threat >= 100) {
+        playSirenSound();
         alert(currentTexts.alerts.arrest);
         resetGame();
         return;
     }
     if (state.wife <= 0) {
+        playLoseSound();
         alert(currentTexts.alerts.wife_left);
         resetGame();
         return;
     }
     if (state.health <= 0) {
+        playLoseSound();
         alert(currentTexts.alerts.heart_attack);
         resetGame();
         return;
     }
     if (state.rating <= 0) {
+        playLoseSound();
         alert(currentTexts.alerts.elections_lost);
         resetGame();
         return;

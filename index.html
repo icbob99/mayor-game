@@ -26,6 +26,10 @@
                 <button id="btn-en" onclick="setLang('en')"
                     class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition">EN</button>
             </div>
+            <button id="btn-audio" onclick="toggleAudio()"
+                class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition text-xs flex items-center gap-1">
+                🔊 <span id="audio-status">ON</span>
+            </button>
         </div>
 
         <div class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-2 text-center text-sm">
@@ -75,6 +79,7 @@
     </footer>
 
     <!-- Подключаем данные и игровую логику -->
+    <script src="app/audio.js"></script>
     <script src="app/gameData.js"></script>
     <script src="app/game.js"></script>
 </body>
