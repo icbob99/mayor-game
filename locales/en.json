@@ -65,6 +65,62 @@
         "🤝 Ask for a discount (pay 200,000 ₪)",
         "❌ Kick him out: 'I am an honest mayor!'"
       ]
+    },
+    "garbage_extortion": {
+      "title": "Garbage Extortion",
+      "desc": "Tough guys from Qalansawe showed up at the waste management tender, hinting that without their 'protection', garbage trucks might get flat tires.",
+      "choices": [
+        "👮 Go to the police (official report)",
+        "🤝 Agree and hand over the cleanup contract",
+        "🗣️ Pretend you don't speak Arabic",
+        "⚔️ Play them: invite rivals from Tayibe instead"
+      ]
+    },
+    "neighbor_mayor_amuta": {
+      "title": "Brotherly Help to a Colleague",
+      "desc": "The mayor of Hadera panics: ahead of the elections, he urgently needs an 'amuta' (nonprofit) for donations and asks for campaign backing.",
+      "choices": [
+        "💰 Go all in through a dummy foundation",
+        "🪙 Give a small token amount just to keep up appearances",
+        "🛑 Politely refuse (no budget available)",
+        "📰 Leak kompromat on him to a local Telegram channel"
+      ]
+    },
+    "shitty_burger": {
+      "title": "The White Burger Scandal",
+      "desc": "Inspectors found highly questionable meat at *White Burger*, owned by your main campaign donor. They are demanding an immediate shutdown.",
+      "choices": [
+        "🥩 Issue a retroactive license on the house",
+        "📸 PR stunt: devour a burger in front of the cameras",
+        "❌ Shut the joint down and ditch the donor"
+      ]
+    },
+    "shabbat_parking": {
+      "title": "Shabbat Parking Hell",
+      "desc": "Secular neighborhood residents are furious: streets are blocked so badly an ambulance can't pass. The opposition demands a towing crackdown.",
+      "choices": [
+        "🚜 Dispatch inspectors and tow trucks early morning",
+        "🙈 Do nothing — don't ruin people's Shabbat",
+        "🅿️ Paint blue-and-white curbs right under the Rabbi's windows"
+      ]
+    },
+    "flooded_street": {
+      "title": "Weizmann Street Flood",
+      "desc": "The first serious rain hit, and central Weizmann Street is completely underwater. The drainage maintenance budget vanished, and local news is roasting you.",
+      "choices": [
+        "🌞 Blame freak weather and global climate change",
+        "💸 Urgently hire your brother-in-law's firm without a tender at inflated rates",
+        "🥾 Put on rain boots for the cameras and dig the drain yourself"
+      ]
+    },
+    "shabbat_parking": {
+      "title": "Shabbat Parking Hell",
+      "desc": "Secular neighborhood residents are furious: streets are blocked so badly an ambulance can't pass. The opposition demands a towing crackdown.",
+      "choices": [
+        "🚜 Dispatch inspectors and tow trucks early morning",
+        "🙈 Do nothing — don't ruin people's Shabbat",
+        "🅿️ Paint blue-and-white curbs right under the Rabbi's windows"
+      ]
     }
   }
 }
