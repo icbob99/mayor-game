@@ -5,7 +5,9 @@
     "threat": "Threat (Lahav 433)",
     "health": "Mayor's Health",
     "day": "DAY",
-    "rating": "Public Approval"
+    "rating": "Public Approval",
+    "loading_title": "Loading...",
+    "loading_desc": "Loading the situation..."
   },
   "alerts": {
     "arrest": "🚨 ARREST! The police raided you this morning.",

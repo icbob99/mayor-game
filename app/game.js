@@ -7,12 +7,14 @@ let state = {
     day: 1,
     lang: 'ru',
     currentEventIndex: -1,
-    eventQueue: [] // [{ eventId: '...', triggerDay: N }]
+    eventQueue: []
 };
 
 let currentTexts = null;
+let languageRequestId = 0;
 
 async function setLang(lang) {
+    const requestId = ++languageRequestId;
     state.lang = lang;
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
 
@@ -31,8 +33,11 @@ async function setLang(lang) {
     try {
         const response = await fetch(`locales/${lang}.json`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        currentTexts = await response.json();
+        const texts = await response.json();
+        if (requestId !== languageRequestId) return;
+        currentTexts = texts;
     } catch (error) {
+        if (requestId !== languageRequestId) return;
         console.error("Ошибка загрузки языкового пакета", error);
         return;
     }
@@ -58,6 +63,12 @@ function updateUI() {
     document.getElementById('stat-health').innerText = state.health + '%';
     document.getElementById('stat-rating').innerText = state.rating + '%';
     document.getElementById('day-counter').innerText = `${currentTexts.ui.day} ${state.day}`;
+
+    if (state.currentEventIndex === -1) {
+        document.getElementById('event-title').innerText = currentTexts.ui.loading_title;
+        document.getElementById('event-desc').innerText = currentTexts.ui.loading_desc;
+        document.getElementById('choices-container').innerHTML = '';
+    }
 }
 
 function renderCurrentEvent() {
@@ -65,6 +76,18 @@ function renderCurrentEvent() {
 
     const logicEvent = gameLogicEvents[state.currentEventIndex];
     const textEvent = currentTexts.events[logicEvent.id];
+
+    if (!textEvent) {
+        console.error(`Ошибка: Не найден текст для события с id "${logicEvent.id}" в locales/${state.lang}.json`);
+        return;
+    }
+
+    updateUI();
+
+    const avatarElem = document.getElementById('event-avatar');
+    if (avatarElem) {
+        avatarElem.innerText = logicEvent.avatar || '🏛️';
+    }
 
     document.getElementById('event-title').innerText = textEvent.title;
     document.getElementById('event-desc').innerText = textEvent.desc;
@@ -79,14 +102,12 @@ function renderCurrentEvent() {
         btn.onclick = () => handleChoice(index);
         container.appendChild(btn);
     });
-
-    updateUI();
 }
 
 function handleChoice(choiceIndex) {
-    initAudio();
-    startBgMusic();
-    playClickSound();
+    if (typeof initAudio === 'function') initAudio();
+    if (typeof startBgMusic === 'function') startBgMusic();
+    if (typeof playClickSound === 'function') playClickSound();
 
     const currentEvent = gameLogicEvents[state.currentEventIndex];
     const choice = currentEvent.choices[choiceIndex];
@@ -96,8 +117,7 @@ function handleChoice(choiceIndex) {
     state.threat = Math.max(0, Math.min(100, state.threat + choice.threat));
     state.health = Math.max(0, Math.min(100, state.health + choice.health));
     state.rating = Math.max(0, Math.min(100, state.rating + (choice.rating || 0)));
-    
-    // Запись отложенного события в очередь
+
     if (choice.nextEvent) {
         state.eventQueue.push({
             eventId: choice.nextEvent.id,
@@ -108,25 +128,25 @@ function handleChoice(choiceIndex) {
     state.day++;
 
     if (state.threat >= 100) {
-        playSirenSound();
+        if (typeof playSirenSound === 'function') playSirenSound();
         alert(currentTexts.alerts.arrest);
         resetGame();
         return;
     }
     if (state.wife <= 0) {
-        playLoseSound();
+        if (typeof playLoseSound === 'function') playLoseSound();
         alert(currentTexts.alerts.wife_left);
         resetGame();
         return;
     }
     if (state.health <= 0) {
-        playLoseSound();
+        if (typeof playLoseSound === 'function') playLoseSound();
         alert(currentTexts.alerts.heart_attack);
         resetGame();
         return;
     }
     if (state.rating <= 0) {
-        playLoseSound();
+        if (typeof playLoseSound === 'function') playLoseSound();
         alert(currentTexts.alerts.elections_lost);
         resetGame();
         return;
@@ -149,12 +169,12 @@ function loadNextEvent() {
         }
     }
 
-    // 2. Иначе выбираем случайное событие (но не реактивное)
+    // 2. Иначе выбираем случайное событие (исключая отложенные isFollowUp)
     let nextIndex;
     do {
         nextIndex = Math.floor(Math.random() * gameLogicEvents.length);
     } while (
-        (nextIndex === state.currentEventIndex || gameLogicEvents[nextIndex].isFollowUp) && 
+        (nextIndex === state.currentEventIndex || gameLogicEvents[nextIndex].isFollowUp) &&
         gameLogicEvents.length > 1
     );
 
@@ -177,5 +197,5 @@ async function resetGame() {
 
 window.onload = async () => {
     await setLang('ru');
-    loadNextEvent();
+    loadNextEvent(); // Вызываем выбор и отрисовку карточки сразу после загрузки словаря
 };
