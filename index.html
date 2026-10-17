@@ -15,7 +15,7 @@
 
     <!-- Top bar: language switcher and Tamagotchi-style stats -->
     <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
-        <div class="max-w-xl mx-auto flex justify-between items-center mb-3">
+        <div class="max-w-xl mx-auto flex flex-wrap justify-between items-center gap-2 mb-3">
             <h1 class="text-sm font-bold text-slate-400">🏛️ Mayor: Chronicles of Embezzlement</h1>
             <!-- Language switcher -->
             <div id="lang-selector" class="flex gap-2 text-xs">
@@ -29,6 +29,11 @@
             <button id="btn-audio" onclick="toggleAudio()"
                 class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition text-xs flex items-center gap-1">
                 🔊 <span id="audio-status">ON</span>
+            </button>
+            <button id="btn-shop" onclick="toggleShop(true)"
+                class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow">
+                <span>🛒</span>
+                <span id="label-btn-shop">Магазин</span>
             </button>
         </div>
 
@@ -111,6 +116,31 @@
             </button>
         </div>
     </div>
+
+    <!-- Shop Modal -->
+    <div id="shop-modal" role="dialog" aria-modal="true" aria-labelledby="shop-title"
+        onclick="if (event.target === this) toggleShop(false)"
+        class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
+        <div class="bg-slate-800 border border-slate-700 max-w-lg w-full rounded-2xl p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                <h3 id="shop-title" class="text-xl font-bold text-white flex items-center gap-2">🛒 Теневой магазин</h3>
+                <button id="shop-dismiss-btn" onclick="toggleShop(false)" aria-label="Close shop"
+                    class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+            </div>
+
+            <div id="shop-items-container" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                <!-- Perks are generated dynamically -->
+            </div>
+
+            <div class="mt-6 pt-3 border-t border-slate-700 flex justify-end">
+                <button onclick="toggleShop(false)" id="shop-close-btn"
+                    class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-5 rounded-xl transition cursor-pointer">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
         Mayor: Chronicles of Embezzlement &bull; i18n Edition
