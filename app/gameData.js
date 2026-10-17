@@ -159,5 +159,14 @@ const gameLogicEvents = [
             { money: -500000, wife: 0, threat: -10, health: 0, rating: 15 },
             { money: 0, wife: 0, threat: 15, health: -10, rating: -25 }
         ]
+    },
+    {
+        id: "friday_country_club",
+        avatar: "🏊‍♂️",
+        choices: [
+            { money: 400000, wife: 10, threat: 10, health: 5, rating: 15 },
+            { money: -50000, wife: 0, threat: -5, health: 10, rating: 20 },
+            { money: 0, wife: -10, threat: 0, health: -5, rating: -10 }
+        ]
     }
 ];

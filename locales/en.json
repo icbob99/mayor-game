@@ -201,6 +201,15 @@
         "🛠️ Allocate emergency budget for full repair (-500,000 ₪)",
         "🙈 Claim it's just 'routine maintenance' (0 ₪)"
       ]
+    },
+    "friday_country_club": {
+      "title": "Friday Country Club Morning",
+      "desc": "Every Friday at 8:00 AM you sit by the Country Club pool. A queue of locals forms with 'small personal requests'.",
+      "choices": [
+        "☕ Settle local businessmen's issues for 'campaign donations' (+400,000 ₪)",
+        "🤝 Help regular citizens with tax/school issues using city funds (-50,000 ₪)",
+        "🚫 Put up a 'Mayor is Off-Duty' sign and head to the sauna (0 ₪)"
+      ]
     }
   }
 }
