@@ -117,5 +117,47 @@ const gameLogicEvents = [
             { money: -300000, wife: +20, threat: +10, health: -10, rating: +5 },
             { money: -20000, wife: -15, threat: -5, health: -15, rating: +30 }
         ]
+    },
+    {
+        id: "arnona_scandal",
+        avatar: "📜",
+        choices: [
+            { money: 1500000, wife: 0, threat: 20, health: -5, rating: -15 },
+            { money: 300000, wife: 0, threat: 5, health: 0, rating: -5 },
+            { money: 0, wife: 0, threat: -5, health: 0, rating: 10 }
+        ]
+    },
+    {
+        id: "beach_kiosk",
+        avatar: "🏖️",
+        choices: [
+            { money: 800000, wife: 10, threat: 15, health: 0, rating: -10 },
+            { money: -200000, wife: -5, threat: -5, health: 0, rating: 15 }
+        ]
+    },
+    {
+        id: "electric_scooters",
+        avatar: "🛴",
+        choices: [
+            { money: 600000, wife: 0, threat: 10, health: 0, rating: -15 },
+            { money: 0, wife: 0, threat: -5, health: 5, rating: 20 },
+            { money: -100000, wife: 0, threat: 0, health: -5, rating: 5 }
+        ]
+    },
+    {
+        id: "stadium_naming",
+        avatar: "🏟️",
+        choices: [
+            { money: 2000000, wife: 15, threat: 25, health: 0, rating: -20 },
+            { money: 0, wife: -10, threat: -10, health: 0, rating: 25 }
+        ]
+    },
+    {
+        id: "sewage_overflow",
+        avatar: "🌊",
+        choices: [
+            { money: -500000, wife: 0, threat: -10, health: 0, rating: 15 },
+            { money: 0, wife: 0, threat: 15, health: -10, rating: -25 }
+        ]
     }
 ];

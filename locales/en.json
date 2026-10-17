@@ -159,6 +159,48 @@
         "💼 Spend 300,000 ₪ on \"friendly bloggers\" to clean up the media landscape",
         "🤐 Keep quiet (your approval rating crashes, and Lahav 433 takes an interest)"
       ]
+    },
+    "arnona_scandal": {
+      "title": "Arnona Tax Scandal",
+      "desc": "Reporters found that your campaign donor gets an 80% property tax (Arnona) discount.",
+      "choices": [
+        "🤫 Hush it up through city lawyers (+1.5M ₪)",
+        "📉 Reduce discount to 30% for show (+300,000 ₪)",
+        "⚖️ Cancel discount and demand full payment (0 ₪)"
+      ]
+    },
+    "beach_kiosk": {
+      "title": "Public Beach Land Grab",
+      "desc": "A beach restaurant owner illegally seized 200m of public coastline for paid sunbeds.",
+      "choices": [
+        "🍹 Take a bribe and a permanent VIP table (+800,000 ₪)",
+        "🚜 Send city bulldozers to demolish illegal structures (-200,000 ₪)"
+      ]
+    },
+    "electric_scooters": {
+      "title": "Electric Scooter Chaos",
+      "desc": "Residents are furious about e-scooters cluttering sidewalks and knocking over pedestrians.",
+      "choices": [
+        "🛴 Charge operators heavy annual licensing fees (+600,000 ₪)",
+        "🚫 Ban rental e-scooters in the city center completely (0 ₪)",
+        "🅿️ Paint designated parking zones (-100,000 ₪)"
+      ]
+    },
+    "stadium_naming": {
+      "title": "Stadium Naming Rights",
+      "desc": "An oligarch wants to rename the municipal stadium after his holding company.",
+      "choices": [
+        "💰 Sign a 10-year deal and pocket the fee (+2M ₪)",
+        "🏛️ Keep the historic municipal name (0 ₪)"
+      ]
+    },
+    "sewage_overflow": {
+      "title": "Main Sewage Pipe Burst",
+      "desc": "The main sewer line burst, flooding the seafront promenade with wastewater.",
+      "choices": [
+        "🛠️ Allocate emergency budget for full repair (-500,000 ₪)",
+        "🙈 Claim it's just 'routine maintenance' (0 ₪)"
+      ]
     }
   }
 }
