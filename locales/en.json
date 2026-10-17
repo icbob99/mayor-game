@@ -17,6 +17,16 @@
     "shop_cooldown": "Wait",
     "shop_days": "d.",
     "shop_maxed": "Maxed",
+    "btn_achievements": "Achievements",
+    "achievements_title": "Achievements",
+    "achievements_close": "Close achievements",
+    "achievement_unlocked": "Achievement unlocked",
+    "achievements": {
+      "offshore_king": { "name": "Offshore King", "desc": "Accumulate ₪5,000,000" },
+      "untouchable": { "name": "Untouchable", "desc": "Reduce threat to 0%" },
+      "happy_wife": { "name": "Retail Therapy", "desc": "Raise your wife's appetite to 100%" },
+      "survivor": { "name": "Town Hall Elder", "desc": "Survive for 30 days" }
+    },
     "perks": {
       "police_bribe": { "name": "Insider in Police", "desc": "-20% Threat (7-day cooldown)", "price": 1500000 },
       "wife_spa": { "name": "Italian Spa Retreat", "desc": "+30% Wife's Appetite", "price": 800000 },
@@ -209,6 +219,14 @@
         "☕ Settle local businessmen's issues for 'campaign donations' (+400,000 ₪)",
         "🤝 Help regular citizens with tax/school issues using city funds (-50,000 ₪)",
         "🚫 Put up a 'Mayor is Off-Duty' sign and head to the sauna (0 ₪)"
+      ]
+    },
+    "country_cctv_raid": {
+      "title": "Country Club CCTV Raid",
+      "desc": "Lahav 433 investigators arrive at the Country Club and demand the surveillance servers from last Friday.",
+      "choices": [
+        "💾 Burn the server rack and blame a 'short circuit' (-300,000 ₪)",
+        "😬 Hand over the flash drive and hope for the best (+25% Threat)"
       ]
     }
   }

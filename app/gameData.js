@@ -167,6 +167,18 @@ const gameLogicEvents = [
             { money: 400000, wife: 10, threat: 10, health: 5, rating: 15 },
             { money: -50000, wife: 0, threat: -5, health: 10, rating: 20 },
             { money: 0, wife: -10, threat: 0, health: -5, rating: -10 }
+        ],
+        chains: {
+            0: { nextEventId: "country_cctv_raid", delayDays: 3 }
+        }
+    },
+    {
+        id: "country_cctv_raid",
+        avatar: "📹",
+        isFollowUp: true,
+        choices: [
+            { money: -300000, wife: 0, threat: -15, health: -5, rating: 0 },
+            { money: 0, wife: 0, threat: 25, health: -10, rating: -20 }
         ]
     }
 ];

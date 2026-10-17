@@ -35,6 +35,9 @@
                 <span>🛒</span>
                 <span id="label-btn-shop">Магазин</span>
             </button>
+            <button id="btn-achievements" onclick="toggleAchievements(true)"
+                class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow"
+                aria-label="Achievements">🏆</button>
         </div>
 
         <div class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-2 text-center text-sm">
@@ -138,6 +141,20 @@
                     Закрыть
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievements-modal" role="dialog" aria-modal="true" aria-labelledby="achievements-title"
+        onclick="if (event.target === this) toggleAchievements(false)"
+        class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
+        <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                <h3 id="achievements-title" class="text-xl font-bold text-white flex items-center gap-2">🏆 Достижения</h3>
+                <button id="achievements-dismiss-btn" onclick="toggleAchievements(false)" aria-label="Close achievements"
+                    class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+            </div>
+            <div id="achievements-list" class="space-y-3 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
 
