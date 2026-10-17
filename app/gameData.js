@@ -49,24 +49,44 @@ const gameLogicEvents = [
             { money: 0, wife: -5, threat: +15, health: -5, rating: +5 }
         ]
     },
+    // 1. Исходный рэкет
     {
         id: "garbage_extortion",
         choices: [
-            { money: -50000, wife: 0, threat: +15, health: -5, rating: +10 },
+            { money: -50000, wife: 0, threat: +15, health: -5, rating: +10, nextEvent: { id: "burning_trucks", delay: 3 } }, // Полиция -> Месть
             { money: -300000, wife: +15, threat: -15, health: 0, rating: -20 },
-            { money: 0, wife: -10, threat: +10, health: -10, rating: -10 },
+            { money: 0, wife: -10, threat: +10, health: -10, rating: -10, nextEvent: { id: "burning_trucks", delay: 2 } },  // Притворился -> Месть
             { money: -100000, wife: +5, threat: +25, health: -10, rating: +5 }
         ]
     },
+    // 2. Отложенное событие рэкета (Follow-up)
+    {
+        id: "burning_trucks",
+        isFollowUp: true,
+        choices: [
+            { money: -800000, wife: 0, threat: -10, health: -5, rating: +15 }, // Купить новые мусоровозы из бюджета
+            { money: 0, wife: -20, threat: +20, health: -15, rating: -30 }     // Игнорировать (город утопает в мусоре)
+        ]
+    },
+    // 3. Предвыборная амута
     {
         id: "neighbor_mayor_amuta",
         choices: [
             { money: -500000, wife: +25, threat: +30, health: -10, rating: -15 },
             { money: -100000, wife: +5, threat: +10, health: 0, rating: -5 },
             { money: 0, wife: -10, threat: -5, health: +5, rating: 0 },
-            { money: 0, wife: +10, threat: -20, health: +10, rating: +15 }
+            { money: 0, wife: +10, threat: -20, health: +10, rating: +15, nextEvent: { id: "kompromat_retaliation", delay: 3 } } // Слив -> Ответка
         ]
     },
+    // 4. Отложенное событие амуты (Follow-up)
+    {
+        id: "kompromat_retaliation",
+        isFollowUp: true,
+        choices: [
+            { money: -300000, wife: -10, threat: -15, health: -10, rating: +10 }, // Подкупить СМИ и опровергнуть
+            { money: 0, wife: -30, threat: +15, health: -20, rating: -25 }        // Молчать (скандал набирает обороты)
+        ]
+    }
     {
         id: "shitty_burger",
         choices: [

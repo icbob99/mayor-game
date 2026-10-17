@@ -6,7 +6,8 @@ let state = {
     rating: 50,
     day: 1,
     lang: 'ru',
-    currentEventIndex: -1
+    currentEventIndex: -1,
+    eventQueue: [] // [{ eventId: '...', triggerDay: N }]
 };
 
 let currentTexts = null;
@@ -15,7 +16,6 @@ async function setLang(lang) {
     state.lang = lang;
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
 
-    // Обновляем визуальное состояние кнопок
     const buttons = document.querySelectorAll('#lang-selector button');
     buttons.forEach(btn => {
         btn.classList.remove('bg-indigo-600');
@@ -29,12 +29,11 @@ async function setLang(lang) {
     }
 
     try {
-        // Путь строится относительно расположения index.html
         const response = await fetch(`locales/${lang}.json`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         currentTexts = await response.json();
     } catch (error) {
-        console.error("Не удалось загрузить языковой пакет. Запустите локальный сервер (например, Live Server в VS Code).", error);
+        console.error("Ошибка загрузки языкового пакета", error);
         return;
     }
 
@@ -85,10 +84,8 @@ function renderCurrentEvent() {
 }
 
 function handleChoice(choiceIndex) {
-    // Включаем аудио-контекст и музыку при первом взаимодействии
     initAudio();
     startBgMusic();
-    
     playClickSound();
 
     const currentEvent = gameLogicEvents[state.currentEventIndex];
@@ -99,9 +96,17 @@ function handleChoice(choiceIndex) {
     state.threat = Math.max(0, Math.min(100, state.threat + choice.threat));
     state.health = Math.max(0, Math.min(100, state.health + choice.health));
     state.rating = Math.max(0, Math.min(100, state.rating + (choice.rating || 0)));
+    
+    // Запись отложенного события в очередь
+    if (choice.nextEvent) {
+        state.eventQueue.push({
+            eventId: choice.nextEvent.id,
+            triggerDay: state.day + choice.nextEvent.delay
+        });
+    }
+
     state.day++;
 
-    // Проверки поражения...
     if (state.threat >= 100) {
         playSirenSound();
         alert(currentTexts.alerts.arrest);
@@ -131,10 +136,27 @@ function handleChoice(choiceIndex) {
 }
 
 function loadNextEvent() {
+    // 1. Проверяем очередь отложенных событий
+    const queuedIndex = state.eventQueue.findIndex(q => q.triggerDay <= state.day);
+
+    if (queuedIndex !== -1) {
+        const queuedEvent = state.eventQueue.splice(queuedIndex, 1)[0];
+        const targetIndex = gameLogicEvents.findIndex(e => e.id === queuedEvent.eventId);
+        if (targetIndex !== -1) {
+            state.currentEventIndex = targetIndex;
+            renderCurrentEvent();
+            return;
+        }
+    }
+
+    // 2. Иначе выбираем случайное событие (но не реактивное)
     let nextIndex;
     do {
         nextIndex = Math.floor(Math.random() * gameLogicEvents.length);
-    } while (nextIndex === state.currentEventIndex && gameLogicEvents.length > 1);
+    } while (
+        (nextIndex === state.currentEventIndex || gameLogicEvents[nextIndex].isFollowUp) && 
+        gameLogicEvents.length > 1
+    );
 
     state.currentEventIndex = nextIndex;
     renderCurrentEvent();
@@ -145,16 +167,15 @@ async function resetGame() {
     state.wife = 50;
     state.threat = 15;
     state.health = 90;
-    state.rating = 50; // Сбрасываем рейтинг ДО загрузки события
+    state.rating = 50;
     state.day = 1;
+    state.eventQueue = [];
     state.currentEventIndex = -1;
     await setLang(state.lang);
     loadNextEvent();
-
 }
 
 window.onload = async () => {
-    // В HTML можно оставить пустые блоки, тексты загрузятся при инициализации
     await setLang('ru');
     loadNextEvent();
 };

@@ -114,6 +114,22 @@
         "💸 Urgently hire your brother-in-law's firm without a tender at inflated rates",
         "🥾 Put on rain boots for the cameras and dig the drain yourself"
       ]
+    },
+    "burning_trucks": {
+      "title": "Burning Garbage Trucks",
+      "desc": "A few days of calm are over: three garbage trucks burned overnight at the municipal depot. The words \"Greetings from Qalansuwa\" are spray-painted on the asphalt. Half the city is drowning in waste.",
+      "choices": [
+        "🚛 Urgently allocate 800,000 ₪ from the budget to buy new vehicles",
+        "🙈 Throw up your hands: there's no money, let it stink (the public is shocked)"
+      ]
+    },
+    "kompromat_retaliation": {
+      "title": "Media Counterattack",
+      "desc": "The mayor of Hadera hasn't forgiven you for the leak. A major Telegram channel has published an investigation about your \"undeclared\" villa in Caesarea and photos of your wife at a Milan boutique.",
+      "choices": [
+        "💼 Spend 300,000 ₪ on \"friendly bloggers\" to clean up the media landscape",
+        "🤐 Keep quiet (your approval rating crashes, and Lahav 433 takes an interest)"
+      ]
     }
   }
 }
