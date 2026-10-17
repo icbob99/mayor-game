@@ -79,6 +79,38 @@
         </div>
     </main>
 
+    <!-- GameOver Modal / Overlay -->
+    <div id="game-over-screen"
+        class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div
+            class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden">
+            <div id="game-over-icon" class="text-6xl mb-4">🚨</div>
+            <h2 id="game-over-title" class="text-2xl font-bold mb-2 text-white">Игра окончена</h2>
+            <p id="game-over-reason" class="text-slate-300 mb-6 text-sm leading-relaxed"></p>
+
+            <!-- Stats Box -->
+            <div class="bg-slate-900/80 rounded-xl p-4 mb-6 border border-slate-700/50 space-y-2 text-left">
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400" id="label-stat-days">Прожито дней:</span>
+                    <span id="end-stat-days" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400" id="label-stat-offshore">Офшоры:</span>
+                    <span id="end-stat-money" class="font-bold text-emerald-400">0 ₪</span>
+                </div>
+                <hr class="border-slate-800 my-2">
+                <div class="flex justify-between text-sm items-center">
+                    <span class="text-slate-400" id="label-stat-title">Финальный титул:</span>
+                    <span id="end-stat-title" class="font-bold text-amber-400 text-right">---</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" onclick="resetGame()"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition cursor-pointer shadow-lg">
+                Начать новый срок
+            </button>
+        </div>
+    </div>
     <!-- Footer -->
     <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
         Mayor: Chronicles of Embezzlement &bull; i18n Edition

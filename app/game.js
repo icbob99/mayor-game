@@ -129,26 +129,22 @@ function handleChoice(choiceIndex) {
 
     if (state.threat >= 100) {
         if (typeof playSirenSound === 'function') playSirenSound();
-        alert(currentTexts.alerts.arrest);
-        resetGame();
+        triggerGameOver('arrest');
         return;
     }
     if (state.wife <= 0) {
         if (typeof playLoseSound === 'function') playLoseSound();
-        alert(currentTexts.alerts.wife_left);
-        resetGame();
+        triggerGameOver('wife_left');
         return;
     }
     if (state.health <= 0) {
         if (typeof playLoseSound === 'function') playLoseSound();
-        alert(currentTexts.alerts.heart_attack);
-        resetGame();
+        triggerGameOver('heart_attack');
         return;
     }
     if (state.rating <= 0) {
         if (typeof playLoseSound === 'function') playLoseSound();
-        alert(currentTexts.alerts.elections_lost);
-        resetGame();
+        triggerGameOver('elections_lost');
         return;
     }
 
@@ -182,7 +178,54 @@ function loadNextEvent() {
     renderCurrentEvent();
 }
 
+function getFinalTitle(reasonType) {
+    if (reasonType === 'arrest') return currentTexts.ui.titles.prisoner;
+    if (reasonType === 'wife') return currentTexts.ui.titles.henpecked;
+
+    if (state.money >= 10000000) {
+        return currentTexts.ui.titles.legend;
+    } else if (state.money >= 3000000) {
+        return currentTexts.ui.titles.master;
+    } else {
+        return currentTexts.ui.titles.rookie;
+    }
+}
+
+function triggerGameOver(reasonType) {
+
+    const screen = document.getElementById('game-over-screen');
+    if (!screen) return;
+
+    // Локализация элементов модалки
+    document.getElementById('label-stat-days').innerText = currentTexts.ui.end_days;
+    document.getElementById('label-stat-offshore').innerText = currentTexts.ui.end_offshore;
+    document.getElementById('label-stat-title').innerText = currentTexts.ui.end_title;
+    document.getElementById('btn-restart').innerText = currentTexts.ui.btn_restart;
+    document.getElementById('game-over-title').innerText = currentTexts.ui.end_game_over;
+
+    // Подстановка статистики
+    document.getElementById('end-stat-days').innerText = state.day;
+    document.getElementById('end-stat-money').innerText = state.money.toLocaleString() + ' ₪';
+    document.getElementById('end-stat-title').innerText = getFinalTitle(reasonType);
+
+    // Причина и иконка
+    const reasonText = currentTexts.alerts[reasonType];
+    document.getElementById('game-over-reason').innerText = reasonText || '';
+
+    const icons = {
+        arrest: '🚨',
+        wife_left: '💔',
+        heart_attack: '🏥',
+        elections_lost: '🗳️'
+    };
+    document.getElementById('game-over-icon').innerText = icons[reasonType] || '💀';
+
+    screen.classList.remove('hidden');
+}
+
 async function resetGame() {
+    document.getElementById('game-over-screen').classList.add('hidden');
+
     state.money = 1000000;
     state.wife = 50;
     state.threat = 15;
@@ -193,6 +236,7 @@ async function resetGame() {
     state.currentEventIndex = -1;
     await setLang(state.lang);
     loadNextEvent();
+
 }
 
 window.onload = async () => {
