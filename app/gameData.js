@@ -180,5 +180,14 @@ const gameLogicEvents = [
             { money: -300000, wife: 0, threat: -15, health: -5, rating: 0 },
             { money: 0, wife: 0, threat: 25, health: -10, rating: -20 }
         ]
+    },
+    {
+        id: "kindergarten_favor",
+        avatar: "🧸",
+        choices: [
+            { money: 300000, wife: 10, threat: 25, health: 0, rating: -15 },
+            { money: 0, wife: -5, threat: -5, health: 0, rating: -10 },
+            { money: 0, wife: -10, threat: -10, health: -5, rating: -20 }
+        ]
     }
 ];

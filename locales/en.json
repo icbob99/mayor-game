@@ -22,16 +22,44 @@
     "achievements_close": "Close achievements",
     "achievement_unlocked": "Achievement unlocked",
     "achievements": {
-      "offshore_king": { "name": "Offshore King", "desc": "Accumulate ₪5,000,000" },
-      "untouchable": { "name": "Untouchable", "desc": "Reduce threat to 0%" },
-      "happy_wife": { "name": "Retail Therapy", "desc": "Raise your wife's appetite to 100%" },
-      "survivor": { "name": "Town Hall Elder", "desc": "Survive for 30 days" }
+      "offshore_king": {
+        "name": "Offshore King",
+        "desc": "Accumulate ₪5,000,000"
+      },
+      "untouchable": {
+        "name": "Untouchable",
+        "desc": "Reduce threat to 0%"
+      },
+      "happy_wife": {
+        "name": "Retail Therapy",
+        "desc": "Raise your wife's appetite to 100%"
+      },
+      "survivor": {
+        "name": "Town Hall Elder",
+        "desc": "Survive for 30 days"
+      }
     },
     "perks": {
-      "police_bribe": { "name": "Insider in Police", "desc": "-20% Threat (7-day cooldown)", "price": 1500000 },
-      "wife_spa": { "name": "Italian Spa Retreat", "desc": "+30% Wife's Appetite", "price": 800000 },
-      "assuta_vip": { "name": "Assuta VIP Checkup", "desc": "+30% Mayor's Health", "price": 500000 },
-      "pr_agency": { "name": "PR Agency Contract", "desc": "+25% Public Approval", "price": 1000000 }
+      "police_bribe": {
+        "name": "Insider in Police",
+        "desc": "-20% Threat (7-day cooldown)",
+        "price": 1500000
+      },
+      "wife_spa": {
+        "name": "Italian Spa Retreat",
+        "desc": "+30% Wife's Appetite",
+        "price": 800000
+      },
+      "assuta_vip": {
+        "name": "Assuta VIP Checkup",
+        "desc": "+30% Mayor's Health",
+        "price": 500000
+      },
+      "pr_agency": {
+        "name": "PR Agency Contract",
+        "desc": "+25% Public Approval",
+        "price": 1000000
+      }
     },
     "end_days": "Days Survived:",
     "end_offshore": "Offshore Stash:",
@@ -227,6 +255,15 @@
       "choices": [
         "💾 Burn the server rack and blame a 'short circuit' (-300,000 ₪)",
         "😬 Hand over the flash drive and hope for the best (+25% Threat)"
+      ]
+    },
+    "kindergarten_favor": {
+      "title": "Kindergarten Favoritism",
+      "desc": "An old friend comes to your office asking to urgently transfer his kid into an elite downtown kindergarten, even though enrollment is closed.",
+      "choices": [
+        "💥 Fire the head of education, kick out another kid and make room (+300K ₪ campaign donation)",
+        "🤫 Promise 'I’ll handle it personally' and do nothing (he’ll figure it out later)",
+        "🚫 Say 'the law is the law' and kick your friend out of the office (friendship over)"
       ]
     }
   }
