@@ -2,6 +2,17 @@
 
 A satirical web-based browser game inspired by classic Tamagotchi mechanics and real-world corruption scandals. Balance your offshore accounts, keep your demanding young wife happy, manage your health, and try not to get arrested by law enforcement.
 
+## Service accounts
+
+This project uses the personal `icbob99` account for:
+
+- GitHub repository and GitHub Pages hosting;
+- Turso database access;
+- Cloudflare Worker/API hosting.
+
+Tokens and other secrets must be stored in the corresponding service's secret
+storage and must not be committed to this repository.
+
 ## Features
 * **Tamagotchi-style balancing:** Manage money, family pressure, threat level, and your mayor's health.
 * **Daily Dilemmas:** Make tough choices on bribes, media attacks, and luxury purchases.

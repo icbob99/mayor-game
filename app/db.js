@@ -1,34 +1,36 @@
-// Configure this public-content database with a read-only database token.
-// Browser code and its token are visible to every visitor.
+// Local requests use the sandbox emulator; production requests use the Worker.
 const TURSO_CONFIG = {
-    url: 'http://localhost:8080',
-    authToken: 'sandbox'
+    localApiUrl: 'http://localhost:8080/v2/pipeline',
+    workerApiUrl: 'https://mayor-game-api.icbob99.workers.dev/api/game-data',
+    // Used only by tests that replace the request endpoint.
+    url: '',
+    authToken: ''
 };
 
 async function loadGameData() {
-    if (!TURSO_CONFIG.url || !TURSO_CONFIG.authToken) {
-        throw new Error('Укажите URL и read-only токен Turso в app/db.js');
-    }
-
-    const url = new URL(TURSO_CONFIG.url.replace(/^(libsql|turso):\/\//, 'https://'));
-    if (url.protocol !== 'https:' && !(url.hostname === 'localhost' && url.protocol === 'http:')) {
-        throw new Error('Turso URL must use HTTPS outside localhost');
-    }
-    const response = await fetch(`${url.href.replace(/\/$/, '')}/v2/pipeline`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${TURSO_CONFIG.authToken}`,
-            'Content-Type': 'application/json'
-        },
-        signal: AbortSignal.timeout(15000),
-        body: JSON.stringify({
+    const hostname = typeof location === 'undefined' ? 'localhost' : location.hostname;
+    const isTestRequest = Boolean(TURSO_CONFIG.url);
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || isTestRequest;
+    const testUrl = TURSO_CONFIG.url.replace(/^(libsql|turso):\/\//, 'https://').replace(/\/$/, '');
+    const requestBody = {
             requests: [
                 { type: 'execute', stmt: { sql: 'SELECT id, avatar, choices, chains FROM events ORDER BY rowid', want_rows: true } },
                 { type: 'execute', stmt: { sql: 'SELECT lang, ui, events FROM locales ORDER BY rowid', want_rows: true } },
                 { type: 'close' }
             ]
-        })
-    });
+        };
+    const response = await fetch(
+        isTestRequest ? `${testUrl}/v2/pipeline` : isLocal ? TURSO_CONFIG.localApiUrl : TURSO_CONFIG.workerApiUrl,
+        {
+            method: isLocal ? 'POST' : 'GET',
+            headers: isLocal ? {
+                'Content-Type': 'application/json',
+                ...(TURSO_CONFIG.authToken ? { Authorization: `Bearer ${TURSO_CONFIG.authToken}` } : {})
+            } : {},
+            signal: AbortSignal.timeout(15000),
+            ...(isLocal ? { body: JSON.stringify(requestBody) } : {})
+        }
+    );
     if (!response.ok) throw new Error(`Turso HTTP ${response.status}`);
 
     const { results } = await response.json();
