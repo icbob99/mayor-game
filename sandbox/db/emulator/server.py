@@ -1,0 +1,105 @@
+"""Small local Turso HTTP API emulator for manual Go Live development."""
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import json
+import sqlite3
+
+
+ROOT = Path(__file__).resolve().parents[3]
+DB_PATH = Path(__file__).with_name("game.db")
+SCHEMA_PATH = ROOT / "db" / "migrations" / "001_initial_schema.sql"
+SEED_PATH = ROOT / "db" / "seeds" / "001_game_data.sql"
+
+
+def open_database():
+    first_run = not DB_PATH.exists()
+    connection = sqlite3.connect(DB_PATH)
+    if first_run:
+        connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        connection.executescript(SEED_PATH.read_text(encoding="utf-8"))
+        connection.commit()
+    return connection
+
+
+def value_type(value):
+    if value is None:
+        return {"type": "null"}
+    if isinstance(value, bool):
+        return {"type": "integer", "value": "1" if value else "0"}
+    if isinstance(value, int):
+        return {"type": "integer", "value": str(value)}
+    if isinstance(value, float):
+        return {"type": "float", "value": str(value)}
+    return {"type": "text", "value": str(value)}
+
+
+def execute(connection, statement):
+    sql = statement.get("sql", "")
+    args = statement.get("args", [])
+    positional = [arg.get("value") for arg in args]
+    named = {
+        arg["name"].lstrip(":@$" if arg.get("name") else ""): arg["value"].get("value")
+        for arg in statement.get("named_args", [])
+    }
+    cursor = connection.execute(sql, named if named else positional)
+    rows = cursor.fetchall() if cursor.description else []
+    cols = [
+        {"name": description[0], "decltype": "TEXT"}
+        for description in (cursor.description or [])
+    ]
+    return {
+        "cols": cols,
+        "rows": [[value_type(value) for value in row] for row in rows],
+        "affected_row_count": cursor.rowcount if cursor.rowcount >= 0 else 0,
+        "last_insert_rowid": connection.execute("SELECT last_insert_rowid()").fetchone()[0],
+    }
+
+
+class Handler(BaseHTTPRequestHandler):
+    def _send(self, status, payload):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.end_headers()
+
+    def do_POST(self):
+        if self.path != "/v2/pipeline":
+            self._send(404, {"error": "Not found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(length))
+            connection = open_database()
+            results = []
+            for request in payload.get("requests", []):
+                if request.get("type") == "close":
+                    results.append({"type": "ok", "response": {"type": "close"}})
+                    continue
+                try:
+                    result = execute(connection, request["stmt"])
+                    connection.commit()
+                    results.append({"type": "ok", "response": {"type": "execute", "result": result}})
+                except Exception as error:
+                    results.append({"type": "error", "error": {"message": str(error)}})
+            connection.close()
+            self._send(200, {"baton": None, "base_url": None, "results": results})
+        except Exception as error:
+            self._send(400, {"error": str(error)})
+
+    def log_message(self, format, *args):
+        print(format % args)
+
+
+if __name__ == "__main__":
+    print("Turso emulator: http://localhost:8080/v2/pipeline")
+    ThreadingHTTPServer(("localhost", 8080), Handler).serve_forever()

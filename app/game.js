@@ -13,6 +13,8 @@ let state = {
     unlockedAchievements: []
 };
 
+let gameLogicEvents = [];
+let gameLocales = {};
 let currentTexts = null;
 let languageRequestId = 0;
 const shopPerkKeys = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
@@ -42,9 +44,8 @@ async function setLang(lang) {
     }
 
     try {
-        const response = await fetch(`locales/${lang}.json`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const texts = await response.json();
+        const texts = gameLocales[lang];
+        if (!texts) return;
         if (requestId !== languageRequestId) return;
         currentTexts = texts;
     } catch (error) {
@@ -499,6 +500,16 @@ async function resetGame() {
 }
 
 window.onload = async () => {
-    await setLang('ru');
-    loadNextEvent(); // Вызываем выбор и отрисовку карточки сразу после загрузки словаря
+    document.getElementById('event-title').innerText = 'Загрузка… / Loading… / טוען…';
+    try {
+        const data = await loadGameData();
+        gameLogicEvents = data.events;
+        gameLocales = data.locales;
+        await setLang(state.lang);
+        loadNextEvent(); // Вызываем выбор и отрисовку карточки после загрузки данных
+    } catch (error) {
+        console.error('Ошибка загрузки данных игры', error);
+        document.getElementById('event-title').innerText = 'Ошибка загрузки / Loading failed / שגיאת טעינה';
+        document.getElementById('event-desc').innerText = 'Обновите страницу. / Reload the page. / רעננו את הדף.';
+    }
 };
