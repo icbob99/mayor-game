@@ -189,5 +189,41 @@ const gameLogicEvents = [
             { money: 0, wife: -5, threat: -5, health: 0, rating: -10 },
             { money: 0, wife: -10, threat: -10, health: -5, rating: -20 }
         ]
+    },
+    {
+        id: "metro_depot",
+        avatar: "🚇",
+        choices: [
+            { money: 5000000, wife: 10, threat: -25, health: -10, rating: -20 },
+            { money: 1500000, wife: 5, threat: -10, health: -5, rating: -5 },
+            { money: 0, wife: -5, threat: -5, health: 10, rating: 25 }
+        ]
+    },
+    {
+        id: "bagrut_success",
+        avatar: "🎓",
+        choices: [
+            { money: -800000, wife: 0, threat: -10, health: 15, rating: 25 },
+            { money: 0, wife: 0, threat: 0, health: -5, rating: -10 },
+            { money: 400000, wife: 0, threat: 15, health: -10, rating: -20 }
+        ]
+    },
+    {
+        id: "park_sculptures",
+        avatar: "🗿",
+        choices: [
+            { money: 1200000, wife: 5, threat: 15, health: -5, rating: -15 },
+            { money: 0, wife: 0, threat: -5, health: 5, rating: 10 },
+            { money: -300000, wife: -5, threat: 0, health: 10, rating: 20 }
+        ]
+    },
+    {
+        id: "yom_haatzmaut",
+        avatar: "🇮🇱",
+        choices: [
+            { money: -1000000, wife: 20, threat: 0, health: 15, rating: 30 },
+            { money: 500000, wife: 10, threat: 0, health: 5, rating: 5 },
+            { money: 2500000, wife: -10, threat: 0, health: -15, rating: -35 }
+        ]
     }
 ];

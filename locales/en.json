@@ -265,6 +265,42 @@
         "🤫 Promise 'I’ll handle it personally' and do nothing (he’ll figure it out later)",
         "🚫 Say 'the law is the law' and kick your friend out of the office (friendship over)"
       ]
+    },
+    "metro_depot": {
+      "title": "Metro Depot Proposal",
+      "desc": "The Ministry of Transport wants to build a massive metro depot in your city. Contractors are thrilled, but residents are furious about the noise and construction.",
+      "choices": [
+        "🏗️ Accept the project! National priority shields from police, and contractors repay handsomely",
+        "🚜 Accept, but move the depot to the suburbs — right next to the opposition leader's villas",
+        "🚫 Block the project in court for the peace and quiet of the residents"
+      ]
+    },
+    "bagrut_success": {
+      "title": "High School Exam Reform",
+      "desc": "There is a chance to boost Bagrut exam pass rates to a record high, but the education department requests a big budget for tutors and labs.",
+      "choices": [
+        "📚 Allocate maximum budget! Student success boosts city morale and approval",
+        "🙈 Leave things as they are, let them study standard curriculum",
+        "✂️ Cut education budget and transfer savings to personal offshore"
+      ]
+    },
+    "park_sculptures": {
+      "title": "Modern Art in the City Park",
+      "desc": "Your sculptor friend offers to place abstract rusty iron statues in the main park at municipal expense.",
+      "choices": [
+        "🎨 Sign the invoice! Your friend will generously share 'artist royalties'",
+        "🚫 Reject — residents won't appreciate rusty metal on green lawns",
+        "🏛️ Announce an open contest for local young artists"
+      ]
+    },
+    "yom_haatzmaut": {
+      "title": "Independence Day Celebration",
+      "desc": "The biggest event of the year! Sponsors transferred millions for concerts and fireworks. Police don't bother anyone on holidays.",
+      "choices": [
+        "🎉 Add extra city cash and throw a massive fest! People and wife are ecstatic",
+        "🍿 Spend exactly what sponsors gave, keep a small change for yourself",
+        "🤑 Be greedy: pocket all sponsor cash and leave citizens with cheap paper flags"
+      ]
     }
   }
 }
