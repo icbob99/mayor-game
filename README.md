@@ -30,28 +30,31 @@ storage and must not be committed to this repository.
 
 ## Turso data
 
-1. Execute `db/migrations/001_initial_schema.sql`, then
-   `db/seeds/001_game_data.sql` in an empty Turso database. The seed
-   contains all 25 events and the complete Russian, English and Hebrew locales.
-   It uses plain INSERTs and is intended to run once.
-2. Set `TURSO_CONFIG.url` and `TURSO_CONFIG.authToken` in `app/db.js`.
-   The URL may start with `https://`, `libsql://` or `turso://`.
-   Use a database token created with
-   `turso db tokens create <database-name> --read-only`.
-   This static site exposes its token to visitors: use a database containing
-   only public game content, never a write-capable token.
-3. Serve `index.html` over HTTP. Startup loads both tables in one request;
+1. In an empty Turso database execute these files in order:
+   `db/migrations/001_initial_schema.sql`, `db/seeds/001_game_data.sql`,
+   `db/seeds/002_new_scenarios.sql`, `db/migrations/002_normalized_schema.sql`,
+   and `db/seeds/003_normalized_data.sql`. The normalized tables contain all
+   37 events and the complete Russian, English and Hebrew locales.
+2. Configure `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` as production
+   secrets in the Cloudflare Worker. The GitHub Pages frontend calls the
+   Worker and never receives the Turso token.
+3. Serve `index.html` over HTTP. Startup loads the normalized event, choice
+   and localization tables in one request;
    language changes and game restarts use the loaded data. A failed load
    displays an error and does not start the game; reload the page to retry.
 
-JSON storage preserves fields that have no separate column in the requested schema:
+The legacy JSON tables remain as the migration source. Runtime data is read
+from the normalized tables:
 
-| Column | Stored JSON |
+| Table | Purpose |
 | --- | --- |
 | `events.choices` | Original choices array, including `nextEvent` |
 | `events.chains` | Object containing original `chains` and/or `isFollowUp`, or `{}` |
 | `locales.ui` | Object containing original `ui` and `alerts` |
-| `locales.events` | Original translated events object |
+| `game_events` | Event identity, avatar and follow-up metadata |
+| `game_choices` | Effects and delayed next-event links |
+| `game_event_locales` | Event titles and descriptions per language |
+| `game_choice_locales` | Choice text per language |
 
 `app/db.js` restores the original object shapes. `app/gameData.js` and
 `locales/*.json` remain as migration references; the browser no longer loads them.

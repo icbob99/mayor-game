@@ -12,6 +12,8 @@ SEED_PATHS = [
     ROOT / "db" / "seeds" / "001_game_data.sql",
     ROOT / "db" / "seeds" / "002_new_scenarios.sql",
 ]
+NORMALIZED_SCHEMA_PATH = ROOT / "db" / "migrations" / "002_normalized_schema.sql"
+NORMALIZED_SEED_PATH = ROOT / "db" / "seeds" / "003_normalized_data.sql"
 
 
 def open_database():
@@ -21,6 +23,8 @@ def open_database():
         connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         for seed_path in SEED_PATHS:
             connection.executescript(seed_path.read_text(encoding="utf-8"))
+        connection.executescript(NORMALIZED_SCHEMA_PATH.read_text(encoding="utf-8"))
+        connection.executescript(NORMALIZED_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
     else:
         has_new_scenarios = connection.execute(
@@ -28,6 +32,13 @@ def open_database():
         ).fetchone()
         if not has_new_scenarios:
             connection.executescript(SEED_PATHS[-1].read_text(encoding="utf-8"))
+            connection.commit()
+        has_normalized_events = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'game_events'"
+        ).fetchone()
+        if not has_normalized_events:
+            connection.executescript(NORMALIZED_SCHEMA_PATH.read_text(encoding="utf-8"))
+            connection.executescript(NORMALIZED_SEED_PATH.read_text(encoding="utf-8"))
             connection.commit()
     return connection
 
