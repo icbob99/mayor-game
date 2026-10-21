@@ -56,8 +56,9 @@ from the normalized tables:
 | `game_event_locales` | Event titles and descriptions per language |
 | `game_choice_locales` | Choice text per language |
 
-`app/db.js` restores the original object shapes. `app/gameData.js` and
-`locales/*.json` remain as migration references; the browser no longer loads them.
+`app/db.js` restores the object shapes expected by the game. Runtime data comes
+from the normalized database tables; the old JavaScript and JSON source files
+are no longer part of the application.
 
 Run `node --test tests/database.test.cjs` with Node.js 22+ and Python 3 available.
 The checks execute the SQL in in-memory SQLite, compare every migrated field

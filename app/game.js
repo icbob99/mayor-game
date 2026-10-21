@@ -157,7 +157,7 @@ function renderShop() {
     shopPerkKeys.forEach(key => {
         const perk = currentTexts.ui.perks[key];
         if (!perk) {
-            console.error(`Ошибка: Не найден перевод перка "${key}" в locales/${state.lang}.json`);
+            console.error(`Ошибка: Не найден перевод перка "${key}" в базе данных для языка ${state.lang}`);
             return;
         }
 
@@ -224,7 +224,7 @@ function buyPerk(key) {
 
     const perk = currentTexts?.ui.perks?.[key];
     if (!perk) {
-        console.error(`Ошибка: Не найден перевод перка "${key}" в locales/${state.lang}.json`);
+        console.error(`Ошибка: Не найден перевод перка "${key}" в базе данных для языка ${state.lang}`);
         return;
     }
 
@@ -288,7 +288,7 @@ function renderAchievements() {
     ACHIEVEMENTS_DEF.forEach(achievement => {
         const info = currentTexts.ui.achievements[achievement.id];
         if (!info) {
-            console.error(`Ошибка: Не найден перевод достижения "${achievement.id}" в locales/${state.lang}.json`);
+            console.error(`Ошибка: Не найден перевод достижения "${achievement.id}" в базе данных для языка ${state.lang}`);
             return;
         }
 
@@ -322,7 +322,7 @@ function renderAchievements() {
 function showAchievementToast(achievement) {
     const info = currentTexts?.ui.achievements?.[achievement.id];
     if (!info) {
-        console.error(`Ошибка: Не найден перевод достижения "${achievement.id}" в locales/${state.lang}.json`);
+        console.error(`Ошибка: Не найден перевод достижения "${achievement.id}" в базе данных для языка ${state.lang}`);
         return;
     }
 
@@ -352,7 +352,7 @@ function renderCurrentEvent() {
     const textEvent = currentTexts.events[logicEvent.id];
 
     if (!textEvent) {
-        console.error(`Ошибка: Не найден текст для события с id "${logicEvent.id}" в locales/${state.lang}.json`);
+        console.error(`Ошибка: Не найден текст для события с id "${logicEvent.id}" в базе данных для языка ${state.lang}`);
         return;
     }
 
@@ -444,7 +444,7 @@ function loadNextEvent() {
             renderCurrentEvent();
             return;
         }
-        console.error(`Ошибка: Не найдено цепочное событие с id "${chainEvent.id}" в app/gameData.js`);
+        console.error(`Ошибка: Не найдено цепочное событие с id "${chainEvent.id}" в загруженных данных`);
     }
 
     // 1. Check the queue of delayed events.
