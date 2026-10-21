@@ -8,7 +8,10 @@ import sqlite3
 ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = Path(__file__).with_name("game.db")
 SCHEMA_PATH = ROOT / "db" / "migrations" / "001_initial_schema.sql"
-SEED_PATH = ROOT / "db" / "seeds" / "001_game_data.sql"
+SEED_PATHS = [
+    ROOT / "db" / "seeds" / "001_game_data.sql",
+    ROOT / "db" / "seeds" / "002_new_scenarios.sql",
+]
 
 
 def open_database():
@@ -16,8 +19,16 @@ def open_database():
     connection = sqlite3.connect(DB_PATH)
     if first_run:
         connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-        connection.executescript(SEED_PATH.read_text(encoding="utf-8"))
+        for seed_path in SEED_PATHS:
+            connection.executescript(seed_path.read_text(encoding="utf-8"))
         connection.commit()
+    else:
+        has_new_scenarios = connection.execute(
+            "SELECT 1 FROM events WHERE id = 'wife_dog_park' LIMIT 1"
+        ).fetchone()
+        if not has_new_scenarios:
+            connection.executescript(SEED_PATHS[-1].read_text(encoding="utf-8"))
+            connection.commit()
     return connection
 
 
