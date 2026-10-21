@@ -1,10 +1,10 @@
-// Аудио-движок на базе Web Audio API
+// Audio engine based on the Web Audio API.
 let audioCtx = null;
 let isMuted = false;
 let isMusicPlaying = false;
 let musicInterval = null;
 
-// Приглушенная фоновая тема в восточном ладу
+// A quiet background theme in an Eastern mode.
 const bgNotes = [
     220.00, 233.08, 277.18, 293.66, 329.63, 349.23, 415.30, 440.00,
     349.23, 329.63, 293.66, 277.18, 233.08
@@ -51,7 +51,7 @@ function startBgMusic() {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
-        // Мягкая волна 'sine' и минимальная громкость (0.01)
+        // Soft sine wave with minimal volume (0.01).
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
 

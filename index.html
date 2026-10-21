@@ -18,13 +18,16 @@
         <div class="max-w-xl mx-auto flex flex-wrap justify-between items-center gap-2 mb-3">
             <h1 class="text-sm font-bold text-slate-400">🏛️ Mayor: Chronicles of Embezzlement</h1>
             <!-- Language switcher -->
-            <div id="lang-selector" class="flex gap-2 text-xs">
-                <button id="btn-ru" onclick="setLang('ru')"
-                    class="px-3 py-1 rounded font-bold bg-indigo-600 text-white transition">RU</button>
-                <button id="btn-he" onclick="setLang('he')"
-                    class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition">HE</button>
-                <button id="btn-en" onclick="setLang('en')"
-                    class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition">EN</button>
+            <div id="lang-selector" class="relative text-xs">
+                <button id="lang-toggle" type="button" onclick="toggleLanguageMenu()"
+                    class="flex items-center gap-2 p-1.5 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition"
+                    title="Change language" aria-label="Change language" aria-haspopup="listbox" aria-expanded="false">
+                    <img id="lang-flag" src="assets/flags/gb.svg" alt="English" class="w-6 h-4 object-cover rounded-sm">
+                    <span id="lang-label">English</span>
+                    <span aria-hidden="true">▾</span>
+                </button>
+                <div id="lang-menu" class="hidden absolute right-0 mt-1 min-w-32 p-1 rounded-lg bg-slate-700 border border-slate-600 shadow-lg z-30"
+                    role="listbox" aria-label="Languages"></div>
             </div>
             <button id="btn-audio" onclick="toggleAudio()"
                 class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition text-xs flex items-center gap-1">
@@ -71,7 +74,7 @@
                 <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold" id="day-counter">
                     Day 1
                 </div>
-                <!-- Блок Аватара -->
+                <!-- Avatar block -->
                 <div id="event-avatar"
                     class="text-3xl bg-slate-700/60 p-2 rounded-xl border border-slate-600/50 shadow-inner">
                     🏛️
@@ -163,7 +166,7 @@
         Mayor: Chronicles of Embezzlement &bull; i18n Edition
     </footer>
 
-    <!-- Подключаем данные и игровую логику -->
+    <!-- Load data and game logic -->
     <script src="app/audio.js"></script>
     <script src="app/db.js"></script>
     <script src="app/game.js"></script>

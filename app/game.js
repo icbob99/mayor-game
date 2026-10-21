@@ -5,7 +5,7 @@ let state = {
     health: 90,
     rating: 50,
     day: 1,
-    lang: 'ru',
+    lang: 'en',
     currentEventIndex: -1,
     eventQueue: [],
     cooldowns: {},
@@ -19,6 +19,11 @@ let currentTexts = null;
 let languageRequestId = 0;
 const shopPerkKeys = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
 const shopPerkCooldownDays = 7;
+const LANGUAGE_OPTIONS = [
+    { id: 'en', label: 'English', flag: 'assets/flags/gb.svg' },
+    { id: 'ru', label: 'Русский', flag: 'assets/flags/ru.svg' },
+    { id: 'he', label: 'עברית', flag: 'assets/flags/il.webp' }
+];
 const ACHIEVEMENTS_DEF = [
     { id: 'offshore_king', icon: '💎', req: s => s.money >= 5000000 },
     { id: 'untouchable', icon: '🕵️‍♂️', req: s => s.threat === 0 },
@@ -31,7 +36,7 @@ async function setLang(lang) {
     state.lang = lang;
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
 
-    const buttons = document.querySelectorAll('#lang-selector button');
+    const buttons = document.querySelectorAll('#lang-menu button');
     buttons.forEach(btn => {
         btn.classList.remove('bg-indigo-600');
         btn.classList.add('bg-slate-700');
@@ -41,6 +46,20 @@ async function setLang(lang) {
     if (activeBtn) {
         activeBtn.classList.add('bg-indigo-600');
         activeBtn.classList.remove('bg-slate-700');
+    }
+    const selectedLanguage = LANGUAGE_OPTIONS.find(option => option.id === lang);
+    if (selectedLanguage) {
+        const flag = document.getElementById('lang-flag');
+        const label = document.getElementById('lang-label');
+        if (flag) {
+            flag.src = selectedLanguage.flag;
+            flag.alt = selectedLanguage.label;
+        }
+        if (label) label.innerText = selectedLanguage.label;
+        const menu = document.getElementById('lang-menu');
+        const toggle = document.getElementById('lang-toggle');
+        if (menu) menu.classList.add('hidden');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
     }
 
     try {
@@ -58,6 +77,27 @@ async function setLang(lang) {
     if (state.currentEventIndex !== -1) {
         renderCurrentEvent();
     }
+}
+
+function toggleLanguageMenu() {
+    const menu = document.getElementById('lang-menu');
+    const toggle = document.getElementById('lang-toggle');
+    if (!menu || !toggle) return;
+    const isHidden = menu.classList.toggle('hidden');
+    toggle.setAttribute('aria-expanded', String(!isHidden));
+}
+
+function initializeLanguageSelector() {
+    const menu = document.getElementById('lang-menu');
+    if (!menu) return;
+    menu.innerHTML = LANGUAGE_OPTIONS.map(option => `
+        <button id="btn-${option.id}" type="button" onclick="setLang('${option.id}')"
+            class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-white hover:bg-slate-600 transition"
+            role="option" aria-label="${option.label}">
+            <img src="${option.flag}" alt="" class="w-6 h-4 object-cover rounded-sm">
+            <span>${option.label}</span>
+        </button>
+    `).join('');
 }
 
 function updateUI() {
@@ -407,7 +447,7 @@ function loadNextEvent() {
         console.error(`Ошибка: Не найдено цепочное событие с id "${chainEvent.id}" в app/gameData.js`);
     }
 
-    // 1. Проверяем очередь отложенных событий
+    // 1. Check the queue of delayed events.
     const queuedIndex = state.eventQueue.findIndex(q => q.triggerDay <= state.day);
 
     if (queuedIndex !== -1) {
@@ -420,7 +460,7 @@ function loadNextEvent() {
         }
     }
 
-    // 2. Иначе выбираем случайное событие (исключая отложенные isFollowUp)
+    // 2. Otherwise choose a random event, excluding delayed follow-up events.
     let nextIndex;
     do {
         nextIndex = Math.floor(Math.random() * gameLogicEvents.length);
@@ -454,19 +494,19 @@ function triggerGameOver(reasonType) {
     const screen = document.getElementById('game-over-screen');
     if (!screen) return;
 
-    // Локализация элементов модалки
+    // Localize the modal elements.
     document.getElementById('label-stat-days').innerText = currentTexts.ui.end_days;
     document.getElementById('label-stat-offshore').innerText = currentTexts.ui.end_offshore;
     document.getElementById('label-stat-title').innerText = currentTexts.ui.end_title;
     document.getElementById('btn-restart').innerText = currentTexts.ui.btn_restart;
     document.getElementById('game-over-title').innerText = currentTexts.ui.end_game_over;
 
-    // Подстановка статистики
+    // Fill in the final statistics.
     document.getElementById('end-stat-days').innerText = state.day;
     document.getElementById('end-stat-money').innerText = state.money.toLocaleString() + ' ₪';
     document.getElementById('end-stat-title').innerText = getFinalTitle(reasonType);
 
-    // Причина и иконка
+    // Set the reason and icon.
     const reasonText = currentTexts.alerts[reasonType];
     document.getElementById('game-over-reason').innerText = reasonText || '';
 
@@ -500,13 +540,14 @@ async function resetGame() {
 }
 
 window.onload = async () => {
+    initializeLanguageSelector();
     document.getElementById('event-title').innerText = 'Загрузка… / Loading… / טוען…';
     try {
         const data = await loadGameData();
         gameLogicEvents = data.events;
         gameLocales = data.locales;
         await setLang(state.lang);
-        loadNextEvent(); // Вызываем выбор и отрисовку карточки после загрузки данных
+        loadNextEvent(); // Choose and render the first card after loading data.
     } catch (error) {
         console.error('Ошибка загрузки данных игры', error);
         document.getElementById('event-title').innerText = 'Ошибка загрузки / Loading failed / שגיאת טעינה';
