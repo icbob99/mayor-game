@@ -301,6 +301,114 @@
         "🍿 Spend exactly what sponsors gave, keep a small change for yourself",
         "🤑 Be greedy: pocket all sponsor cash and leave citizens with cheap paper flags"
       ]
+    },
+    "wife_dog_park": {
+      "title": "A Dog for the Wife",
+      "desc": "Your wife wants a dog, but there is no dog park in the neighborhood.",
+      "choices": [
+        "🐕 Do it through a friend: give the kennel construction to your man and get a pedigree dog, food voucher and trainer",
+        "🏗️ Hold a proper public tender for the dog park",
+        "🙅 Refuse: a dog is too much responsibility and simply «not her thing»"
+      ]
+    },
+    "cat_exhibition": {
+      "title": "Cat Exhibition",
+      "desc": "Your wife met a local cat-lovers club and asks you to organize a city exhibition.",
+      "choices": [
+        "🐈 Give the organization to a promoter friend for a kickback",
+        "📋 Allocate a budget and hold an open competition",
+        "🤧 Claim the mayor is allergic to fur and shut the idea down"
+      ]
+    },
+    "lgbt_parade": {
+      "title": "Pride Parade on Weizmann Street",
+      "desc": "Organizers ask permission to hold a Pride Parade on the city's central street. The issue has caused fierce debate.",
+      "choices": [
+        "🏳️‍🌈 Allow it on Weizmann! Sponsors will thank you and progressives will be thrilled",
+        "🎪 Allocate a closed venue in the industrial zone to avoid upsetting the religious",
+        "🚫 Declare: «I am straight, there will be no parade!»"
+      ]
+    },
+    "lgbt_coalition_crisis": {
+      "title": "Coalition Crisis",
+      "desc": "Your religious coalition partners are furious about the parade and demand the city's LGBT club close immediately.",
+      "choices": [
+        "🔒 Close the club and give in to the coalition",
+        "🚚 Move the club to the industrial zone at the city's expense",
+        "🏢 Open a second club in the heart of a religious neighborhood (the organizers will pay well)"
+      ]
+    },
+    "mayors_strip_club": {
+      "title": "Scandal after the Mayors' Meeting",
+      "desc": "After the annual mayors' convention, you went to celebrate at a strip club. The press found out and gave you a public beating.",
+      "choices": [
+        "🙈 Deny everything: «I was never there, it is a montage!»",
+        "⚖️ Hire a top lawyer to force the journalists to bury the story",
+        "📸 Leak compromising photos of the other mayors from that party"
+      ]
+    },
+    "mayors_revenge": {
+      "title": "The Mayors' Alliance Strikes Back",
+      "desc": "Mayors from neighboring cities discovered who leaked their strip-club photos to the press and decided to unite against you.",
+      "choices": [
+        "💸 Pay compensation into their inter-municipal fund",
+        "🛡️ Ignore their threats and block joint city projects",
+        "🎉 Throw a grand private reconciliation party with an extravagant buffet"
+      ]
+    },
+    "son_wedding": {
+      "title": "Son's Wedding",
+      "desc": "Your son is getting married. It is an excellent event and a turning point for the whole family.",
+      "choices": [
+        "🏰 Organize a lavish wedding: a cover for meetings with the right people and collecting envelopes",
+        "🕊️ Let the children organize everything themselves; the city stays out of it",
+        "🥂 Hold a modest celebration for close relatives at your own expense"
+      ]
+    },
+    "wedding_investigation": {
+      "title": "Wedding Investigation",
+      "desc": "Journalists discovered that bribes were handed to you as gifts at your son's lavish wedding.",
+      "choices": [
+        "🤝 Hire a fixer to deal with the editorial office",
+        "🔥 Set fire to the newspaper's print shop/editorial office",
+        "🙈 Ignore the investigation and claim it is slander"
+      ]
+    },
+    "father_funeral": {
+      "title": "Mourning and Father's Funeral",
+      "desc": "A family tragedy: your father has died. It is time for shiva and receiving condolences.",
+      "choices": [
+        "🕯️ Receive important people at shiva: you are grieving, police stay away, and business gets done",
+        "👥 Receive colleagues and relatives without business talk",
+        "🔒 Keep shiva private and allow only the closest family"
+      ]
+    },
+    "father_monument_offer": {
+      "title": "Monument from Developers",
+      "desc": "Influential developers who visited the shiva offer to pay for an elite monument for your father.",
+      "choices": [
+        "🪦 Accept: your father deserves the biggest monument in the cemetery",
+        "📐 Accept the help, but build a modest and moderate monument",
+        "🚫 Refuse and build the monument entirely at your own expense"
+      ]
+    },
+    "daughter_school": {
+      "title": "Daughter Starts School",
+      "desc": "Classes are being formed for the new school year. It is time to decide who your daughter will study with.",
+      "choices": [
+        "🏫 Put her in a class with the children of important people and businessmen",
+        "🎒 A regular class: all children and parents are equal here",
+        "🎓 Send her to an exclusive private school"
+      ]
+    },
+    "school_flood": {
+      "title": "School Flood",
+      "desc": "Old pipes burst at your daughter's school, completely flooding the classrooms.",
+      "choices": [
+        "🤝 The important parents from the class will fix everything quickly and donate to the repairs",
+        "🏗️ Use a municipal tender for repairs (the school closes for a month)",
+        "🛠️ Fix everything immediately with your own money"
+      ]
     }
   }
 }

@@ -225,5 +225,118 @@ const gameLogicEvents = [
             { money: 500000, wife: 10, threat: 0, health: 5, rating: 5 },
             { money: 2500000, wife: -10, threat: 0, health: -15, rating: -35 }
         ]
+    },
+    {
+        id: "wife_dog_park",
+        avatar: "🐕",
+        choices: [
+            { money: 300000, wife: 5, threat: 5, health: 5, rating: 10 },
+            { money: 0, wife: 5, threat: 0, health: 0, rating: 5 },
+            { money: 0, wife: -15, threat: 0, health: -5, rating: 0 }
+        ]
+    },
+    {
+        id: "cat_exhibition",
+        avatar: "🐈",
+        choices: [
+            { money: 400000, wife: 10, threat: 15, health: 5, rating: 15 },
+            { money: -150000, wife: 5, threat: 0, health: 0, rating: 10 },
+            { money: 0, wife: -10, threat: 0, health: 0, rating: -5 }
+        ]
+    },
+    {
+        id: "lgbt_parade",
+        avatar: "🏳️‍🌈",
+        choices: [
+            { money: 300000, wife: 10, threat: 10, health: 0, rating: 15, nextEvent: { id: "lgbt_coalition_crisis", delay: 3 } },
+            { money: 0, wife: 0, threat: 0, health: 0, rating: -5 },
+            { money: 0, wife: -15, threat: 0, health: -5, rating: -20 }
+        ]
+    },
+    {
+        id: "lgbt_coalition_crisis",
+        avatar: "🕍",
+        isFollowUp: true,
+        choices: [
+            { money: 0, wife: -10, threat: -5, health: -5, rating: -15 },
+            { money: -100000, wife: 0, threat: 0, health: 0, rating: 5 },
+            { money: 600000, wife: 10, threat: 20, health: -10, rating: -25 }
+        ]
+    },
+    {
+        id: "mayors_strip_club",
+        avatar: "💃",
+        choices: [
+            { money: 0, wife: -20, threat: 20, health: -15, rating: -30 },
+            { money: -500000, wife: 5, threat: -10, health: 0, rating: 10 },
+            { money: 200000, wife: 0, threat: -15, health: -10, rating: 0, nextEvent: { id: "mayors_revenge", delay: 4 } }
+        ]
+    },
+    {
+        id: "mayors_revenge",
+        avatar: "🤝",
+        isFollowUp: true,
+        choices: [
+            { money: -300000, wife: 0, threat: 15, health: -5, rating: -10 },
+            { money: 0, wife: -15, threat: 25, health: -10, rating: -20 },
+            { money: -150000, wife: 10, threat: -10, health: 10, rating: 15 }
+        ]
+    },
+    {
+        id: "son_wedding",
+        avatar: "💍",
+        choices: [
+            { money: 1500000, wife: 15, threat: -10, health: 5, rating: 10, nextEvent: { id: "wedding_investigation", delay: 3 } },
+            { money: 0, wife: -5, threat: 0, health: 0, rating: 5 },
+            { money: -200000, wife: 5, threat: 0, health: 0, rating: 15 }
+        ]
+    },
+    {
+        id: "wedding_investigation",
+        avatar: "📰",
+        isFollowUp: true,
+        choices: [
+            { money: -400000, wife: 0, threat: -15, health: 0, rating: 5 },
+            { money: -100000, wife: -10, threat: 30, health: -15, rating: -10 },
+            { money: 0, wife: -10, threat: 25, health: -10, rating: -20 }
+        ]
+    },
+    {
+        id: "father_funeral",
+        avatar: "🕯️",
+        choices: [
+            { money: 800000, wife: 0, threat: -15, health: -5, rating: 0 },
+            { money: 0, wife: 0, threat: -5, health: -10, rating: 5, nextEvent: { id: "father_monument_offer", delay: 4 } },
+            { money: -100000, wife: 5, threat: -10, health: -10, rating: 10 }
+        ]
+    },
+    {
+        id: "father_monument_offer",
+        avatar: "🪦",
+        isFollowUp: true,
+        choices: [
+            { money: 300000, wife: 10, threat: 15, health: 0, rating: -15 },
+            { money: 100000, wife: 5, threat: 5, health: 0, rating: 0 },
+            { money: -80000, wife: -5, threat: 0, health: 0, rating: 15 }
+        ]
+    },
+    {
+        id: "daughter_school",
+        avatar: "🎒",
+        choices: [
+            { money: 200000, wife: 10, threat: 5, health: 0, rating: -5, nextEvent: { id: "school_flood", delay: 3 } },
+            { money: 0, wife: -10, threat: 0, health: 0, rating: 20 },
+            { money: -250000, wife: 15, threat: 0, health: 5, rating: -10 }
+        ]
+    },
+    {
+        id: "school_flood",
+        avatar: "🌊",
+        isFollowUp: true,
+        choices: [
+            { money: 150000, wife: 5, threat: 10, health: 0, rating: 5 },
+            { money: 0, wife: -25, threat: 0, health: -10, rating: -20 },
+            { money: -300000, wife: 10, threat: 0, health: 5, rating: 30 }
+        ]
     }
 ];
