@@ -16,6 +16,7 @@ for name in (
     "db/seeds/002_new_scenarios.sql",
     "db/migrations/002_normalized_schema.sql",
     "db/seeds/003_normalized_data.sql",
+    "db/seeds/004_balance_update.sql",
 ):
     db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
 result = {
@@ -30,9 +31,9 @@ print(json.dumps(result))
 
     assert.deepEqual(JSON.parse(output), {
         events: 37,
-        choices: 107,
+        choices: 110,
         event_locales: 111,
-        choice_locales: 321,
+        choice_locales: 330,
         languages: 3
     });
 });

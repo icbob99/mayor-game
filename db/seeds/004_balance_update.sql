@@ -1,0 +1,81 @@
+-- Balance and card repetition updates approved in docs/game-balance.md.
+-- Existing event contexts remain unchanged.
+BEGIN TRANSACTION;
+
+-- Repeat policies
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'bench_tender';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'tama_38';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'shelters_budget';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'state_comptroller';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'shabbat_blackmail';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'lawyer_visit';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'garbage_extortion';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'burning_trucks';
+UPDATE game_events SET repeat_policy = 'twice', max_occurrences = 2 WHERE id = 'neighbor_mayor_amuta';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'kompromat_retaliation';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'shitty_burger';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'shabbat_parking';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'flooded_street';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'arnona_scandal';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'beach_kiosk';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'electric_scooters';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'stadium_naming';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'sewage_overflow';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'friday_country_club';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'country_cctv_raid';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'kindergarten_favor';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'metro_depot';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'bagrut_success';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'park_sculptures';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'yom_haatzmaut';
+UPDATE game_events SET repeat_policy = 'twice', max_occurrences = 2 WHERE id = 'wife_dog_park';
+UPDATE game_events SET repeat_policy = 'twice', max_occurrences = 2 WHERE id = 'cat_exhibition';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'lgbt_parade';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'lgbt_coalition_crisis';
+UPDATE game_events SET repeat_policy = 'unlimited', max_occurrences = NULL WHERE id = 'mayors_strip_club';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'mayors_revenge';
+UPDATE game_events SET repeat_policy = 'twice', max_occurrences = 2 WHERE id = 'son_wedding';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'wedding_investigation';
+UPDATE game_events SET repeat_policy = 'twice', max_occurrences = 2 WHERE id = 'father_funeral';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'father_monument_offer';
+UPDATE game_events SET repeat_policy = 'twice', max_occurrences = 2 WHERE id = 'daughter_school';
+UPDATE game_events SET repeat_policy = 'follow-up', max_occurrences = NULL WHERE id = 'school_flood';
+
+-- Choice effect updates and new choices
+UPDATE game_choices SET money = 0, wife = -15, health = 0, threat = -5, rating = 20 WHERE event_id = 'bench_tender' AND choice_index = 2;
+UPDATE game_choices SET money = -200000, wife = -20, health = -5, threat = -5, rating = -15 WHERE event_id = 'shabbat_blackmail' AND choice_index = 0;
+UPDATE game_choices SET money = -50000, wife = -10, health = -10, threat = 5, rating = 10 WHERE event_id = 'shabbat_blackmail' AND choice_index = 1;
+UPDATE game_choices SET money = 0, wife = 15, health = 5, threat = 0, rating = 5 WHERE event_id = 'shabbat_blackmail' AND choice_index = 2;
+UPDATE game_choices SET money = -500000, wife = 10, health = 10, threat = -25, rating = 10 WHERE event_id = 'lawyer_visit' AND choice_index = 0;
+UPDATE game_choices SET money = -250000, wife = 5, health = 5, threat = -10, rating = 5 WHERE event_id = 'lawyer_visit' AND choice_index = 1;
+UPDATE game_choices SET money = 0, wife = 15, health = -10, threat = 15, rating = 15 WHERE event_id = 'lawyer_visit' AND choice_index = 2;
+UPDATE game_choices SET money = 0, wife = 5, health = -10, threat = 5, rating = 5 WHERE event_id = 'garbage_extortion' AND choice_index = 0;
+UPDATE game_choices SET money = 300000, wife = 10, health = -10, threat = 10, rating = -10 WHERE event_id = 'garbage_extortion' AND choice_index = 1;
+UPDATE game_choices SET money = 0, wife = 0, health = -10, threat = 0, rating = 0 WHERE event_id = 'garbage_extortion' AND choice_index = 2;
+UPDATE game_choices SET money = -100000, wife = 5, health = -5, threat = 10, rating = 5 WHERE event_id = 'garbage_extortion' AND choice_index = 3;
+UPDATE game_choices SET money = -800000, wife = 0, health = -5, threat = -10, rating = 10 WHERE event_id = 'burning_trucks' AND choice_index = 0;
+UPDATE game_choices SET money = 0, wife = -10, health = -15, threat = 10, rating = -10 WHERE event_id = 'burning_trucks' AND choice_index = 1;
+UPDATE game_choices SET money = 0, wife = -15, health = -15, threat = 10, rating = -15 WHERE event_id = 'kompromat_retaliation' AND choice_index = 1;
+UPDATE game_choices SET money = -100000, wife = 10, health = -5, threat = -5, rating = 5 WHERE event_id = 'shitty_burger' AND choice_index = 0;
+UPDATE game_choices SET money = 0, wife = 0, health = 0, threat = 0, rating = 0 WHERE event_id = 'shitty_burger' AND choice_index = 1;
+UPDATE game_choices SET money = -200000, wife = 15, health = -5, threat = 5, rating = 10 WHERE event_id = 'shitty_burger' AND choice_index = 2;
+INSERT OR REPLACE INTO game_choices (event_id, choice_index, money, wife, health, threat, rating, next_event_id, delay_days) VALUES ('beach_kiosk', 2, 0, 0, -10, -10, 10, NULL, NULL);
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('beach_kiosk', 2, 'ru', '🌊 Цунами! Всё затопило, ресторан смыло, а мэр отличился на спасении утопающих');
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('beach_kiosk', 2, 'en', '🌊 Tsunami! Everything flooded, the restaurant was swept away, and the mayor distinguished himself rescuing swimmers.');
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('beach_kiosk', 2, 'he', '🌊 צונאמי! הכול הוצף, המסעדה נסחפה, וראש העיר הצטיין בחילוץ טובעים.');
+UPDATE game_choices SET money = 0, wife = 0, health = 5, threat = -5, rating = 15 WHERE event_id = 'electric_scooters' AND choice_index = 1;
+UPDATE game_choices SET money = 2000000, wife = 15, health = 0, threat = 10, rating = -10 WHERE event_id = 'stadium_naming' AND choice_index = 0;
+UPDATE game_choices SET money = 0, wife = -10, health = 0, threat = -5, rating = 10 WHERE event_id = 'stadium_naming' AND choice_index = 1;
+INSERT OR REPLACE INTO game_choices (event_id, choice_index, money, wife, health, threat, rating, next_event_id, delay_days) VALUES ('stadium_naming', 2, 1000000, 10, 5, 10, 15, NULL, NULL);
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('stadium_naming', 2, 'ru', '🏅 Назвать в честь предыдущего мэра');
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('stadium_naming', 2, 'en', '🏅 Name it after the previous mayor.');
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('stadium_naming', 2, 'he', '🏅 לקרוא לאצטדיון על שם ראש העיר הקודם.');
+INSERT OR REPLACE INTO game_choices (event_id, choice_index, money, wife, health, threat, rating, next_event_id, delay_days) VALUES ('sewage_overflow', 2, 500000, 10, 5, 10, 5, NULL, NULL);
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('sewage_overflow', 2, 'ru', '📞 Обратиться в фирму брата');
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('sewage_overflow', 2, 'en', '📞 Call the brother''s company.');
+INSERT OR REPLACE INTO game_choice_locales (event_id, choice_index, lang, text) VALUES ('sewage_overflow', 2, 'he', '📞 לפנות לחברה של האח.');
+UPDATE game_choices SET money = 300000, wife = 5, health = 0, threat = 10, rating = -5 WHERE event_id = 'kindergarten_favor' AND choice_index = 0;
+UPDATE game_choices SET money = 0, wife = 0, health = -5, threat = -5, rating = 0 WHERE event_id = 'kindergarten_favor' AND choice_index = 1;
+UPDATE game_choices SET money = -100000, wife = -5, health = -10, threat = -5, rating = 10 WHERE event_id = 'kindergarten_favor' AND choice_index = 2;
+
+COMMIT;
