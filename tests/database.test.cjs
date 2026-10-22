@@ -17,6 +17,7 @@ for name in (
     "db/migrations/002_normalized_schema.sql",
     "db/seeds/003_normalized_data.sql",
     "db/seeds/004_balance_update.sql",
+    "db/seeds/005_clean_choice_texts.sql",
 ):
     db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
 result = {
@@ -25,6 +26,7 @@ result = {
     "event_locales": db.execute("SELECT COUNT(*) FROM game_event_locales").fetchone()[0],
     "choice_locales": db.execute("SELECT COUNT(*) FROM game_choice_locales").fetchone()[0],
     "languages": db.execute("SELECT COUNT(*) FROM game_locale_ui").fetchone()[0],
+    "choice_money_hints": db.execute("SELECT COUNT(*) FROM game_choice_locales WHERE text LIKE '%₪%'").fetchone()[0],
 }
 print(json.dumps(result))
 `], { cwd: root, encoding: 'utf8' });
@@ -34,7 +36,8 @@ print(json.dumps(result))
         choices: 110,
         event_locales: 111,
         choice_locales: 330,
-        languages: 3
+        languages: 3,
+        choice_money_hints: 0
     });
 });
 

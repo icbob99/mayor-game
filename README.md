@@ -33,7 +33,8 @@ storage and must not be committed to this repository.
 1. In an empty Turso database execute these files in order:
    `db/migrations/001_initial_schema.sql`, `db/seeds/001_game_data.sql`,
    `db/seeds/002_new_scenarios.sql`, `db/migrations/002_normalized_schema.sql`,
-   `db/seeds/003_normalized_data.sql`, and `db/seeds/004_balance_update.sql`.
+   `db/seeds/003_normalized_data.sql`, `db/seeds/004_balance_update.sql`,
+   and `db/seeds/005_clean_choice_texts.sql`.
    The normalized tables contain all 37 events and the complete Russian,
    English and Hebrew locales. The final seed applies the approved balance,
    repeat policies and three additional choices.
