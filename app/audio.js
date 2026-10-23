@@ -22,20 +22,34 @@ function initAudio() {
 
 function toggleAudio() {
     isMuted = !isMuted;
-    const statusText = document.getElementById('audio-status');
-    const btn = document.getElementById('btn-audio');
-    
+    updateAudioButton();
+    if (typeof setAudioPreference === 'function') setAudioPreference(isMuted);
     if (isMuted) {
-        statusText.innerText = 'OFF';
-        btn.classList.add('opacity-50');
         stopBgMusic();
     } else {
-        statusText.innerText = 'ON';
-        btn.classList.remove('opacity-50');
         initAudio();
         startBgMusic();
         playClickSound();
     }
+}
+
+function updateAudioButton() {
+    const statusText = document.getElementById('audio-status');
+    const btn = document.getElementById('btn-audio');
+    if (!statusText || !btn) return;
+    if (isMuted) {
+        statusText.innerText = 'OFF';
+        btn.classList.add('opacity-50');
+    } else {
+        statusText.innerText = 'ON';
+        btn.classList.remove('opacity-50');
+    }
+}
+
+function applyAudioPreference(muted) {
+    isMuted = Boolean(muted);
+    updateAudioButton();
+    if (isMuted) stopBgMusic();
 }
 
 function startBgMusic() {
