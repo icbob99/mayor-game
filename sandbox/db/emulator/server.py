@@ -16,6 +16,7 @@ NORMALIZED_SCHEMA_PATH = ROOT / "db" / "migrations" / "002_normalized_schema.sql
 NORMALIZED_SEED_PATH = ROOT / "db" / "seeds" / "003_normalized_data.sql"
 BALANCE_SEED_PATH = ROOT / "db" / "seeds" / "004_balance_update.sql"
 CLEAN_TEXT_SEED_PATH = ROOT / "db" / "seeds" / "005_clean_choice_texts.sql"
+NEW_SCENARIOS_SEED_PATH = ROOT / "db" / "seeds" / "006_new_scenarios.sql"
 
 
 def open_database():
@@ -29,6 +30,7 @@ def open_database():
         connection.executescript(NORMALIZED_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(BALANCE_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(CLEAN_TEXT_SEED_PATH.read_text(encoding="utf-8"))
+        connection.executescript(NEW_SCENARIOS_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
     else:
         has_new_scenarios = connection.execute(
@@ -45,6 +47,7 @@ def open_database():
             connection.executescript(NORMALIZED_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(BALANCE_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(CLEAN_TEXT_SEED_PATH.read_text(encoding="utf-8"))
+        connection.executescript(NEW_SCENARIOS_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
     return connection
 

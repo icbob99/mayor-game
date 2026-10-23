@@ -18,6 +18,7 @@ for name in (
     "db/seeds/003_normalized_data.sql",
     "db/seeds/004_balance_update.sql",
     "db/seeds/005_clean_choice_texts.sql",
+    "db/seeds/006_new_scenarios.sql",
 ):
     db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
 result = {
@@ -32,10 +33,10 @@ print(json.dumps(result))
 `], { cwd: root, encoding: 'utf8' });
 
     assert.deepEqual(JSON.parse(output), {
-        events: 37,
-        choices: 110,
-        event_locales: 111,
-        choice_locales: 330,
+        events: 41,
+        choices: 123,
+        event_locales: 123,
+        choice_locales: 369,
         languages: 3,
         choice_money_hints: 0
     });

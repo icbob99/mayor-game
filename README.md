@@ -34,10 +34,11 @@ storage and must not be committed to this repository.
    `db/migrations/001_initial_schema.sql`, `db/seeds/001_game_data.sql`,
    `db/seeds/002_new_scenarios.sql`, `db/migrations/002_normalized_schema.sql`,
    `db/seeds/003_normalized_data.sql`, `db/seeds/004_balance_update.sql`,
-   and `db/seeds/005_clean_choice_texts.sql`.
-   The normalized tables contain all 37 events and the complete Russian,
-   English and Hebrew locales. The final seed applies the approved balance,
-   repeat policies and three additional choices.
+   `db/seeds/005_clean_choice_texts.sql`, and `db/seeds/006_new_scenarios.sql`.
+   The normalized tables contain all 41 events and the complete Russian,
+   English and Hebrew locales. The balance seed applies the approved effects
+   and repeat policies; the final scenario seed adds four events and their
+   localized choices.
 2. Configure `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` as production
    secrets in the Cloudflare Worker. The GitHub Pages frontend calls the
    Worker and never receives the Turso token.
