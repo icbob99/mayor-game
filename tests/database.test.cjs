@@ -19,6 +19,7 @@ for name in (
     "db/seeds/004_balance_update.sql",
     "db/seeds/005_clean_choice_texts.sql",
     "db/seeds/006_new_scenarios.sql",
+    "db/seeds/007_guest_stats_ui.sql",
 ):
     db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
 result = {
@@ -49,4 +50,29 @@ test('runtime reads normalized tables', () => {
     assert.match(dbSource, /FROM game_event_locales/);
     assert.match(dbSource, /FROM game_choice_locales/);
     assert.doesNotMatch(dbSource, /FROM events ORDER BY/);
+});
+
+test('guest statistics translations are present in every language', () => {
+    const output = execFileSync('python', ['-c', `
+import json, pathlib, sqlite3
+db = sqlite3.connect(":memory:")
+for name in (
+    "db/migrations/001_initial_schema.sql",
+    "db/seeds/001_game_data.sql",
+    "db/seeds/002_new_scenarios.sql",
+    "db/migrations/002_normalized_schema.sql",
+    "db/seeds/003_normalized_data.sql",
+    "db/seeds/004_balance_update.sql",
+    "db/seeds/005_clean_choice_texts.sql",
+    "db/seeds/006_new_scenarios.sql",
+    "db/seeds/007_guest_stats_ui.sql",
+):
+    db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
+keys = ["guest_stats_title", "guest_stats_games", "guest_stats_max_money", "guest_stats_achievements", "guest_stats_empty", "guest_stats_close"]
+rows = db.execute("SELECT lang, ui FROM game_locale_ui ORDER BY lang").fetchall()
+assert {lang for lang, _ in rows} == {"en", "he", "ru"}
+assert all(all(key in json.loads(ui) for key in keys) for _, ui in rows)
+print("ok")
+`], { cwd: root, encoding: 'utf8' });
+    assert.equal(output.trim(), 'ok');
 });

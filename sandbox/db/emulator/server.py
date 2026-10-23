@@ -17,11 +17,21 @@ NORMALIZED_SEED_PATH = ROOT / "db" / "seeds" / "003_normalized_data.sql"
 BALANCE_SEED_PATH = ROOT / "db" / "seeds" / "004_balance_update.sql"
 CLEAN_TEXT_SEED_PATH = ROOT / "db" / "seeds" / "005_clean_choice_texts.sql"
 NEW_SCENARIOS_SEED_PATH = ROOT / "db" / "seeds" / "006_new_scenarios.sql"
+GUEST_STATS_UI_SEED_PATH = ROOT / "db" / "seeds" / "007_guest_stats_ui.sql"
+DATABASE_READY = False
+DATABASE_REQUESTS = 0
 
 
 def open_database():
+    global DATABASE_READY, DATABASE_REQUESTS
+    DATABASE_REQUESTS += 1
+    print(f"[db] request #{DATABASE_REQUESTS}, ready={DATABASE_READY}", flush=True)
     first_run = not DB_PATH.exists()
     connection = sqlite3.connect(DB_PATH)
+    if DATABASE_READY:
+        print("[db] already initialized; no seeds or writes", flush=True)
+        return connection
+    print(f"[db] initializing database, first_run={first_run}", flush=True)
     if first_run:
         connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         for seed_path in SEED_PATHS:
@@ -31,7 +41,14 @@ def open_database():
         connection.executescript(BALANCE_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(CLEAN_TEXT_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(NEW_SCENARIOS_SEED_PATH.read_text(encoding="utf-8"))
+        has_guest_stats_ui = connection.execute(
+            "SELECT 1 FROM game_locale_ui "
+            "WHERE json_extract(ui, '$.guest_stats_title') IS NOT NULL LIMIT 1"
+        ).fetchone()
+        if not has_guest_stats_ui:
+            connection.executescript(GUEST_STATS_UI_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
+        DATABASE_READY = True
     else:
         has_new_scenarios = connection.execute(
             "SELECT 1 FROM events WHERE id = 'wife_dog_park' LIMIT 1"
@@ -48,7 +65,15 @@ def open_database():
         connection.executescript(BALANCE_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(CLEAN_TEXT_SEED_PATH.read_text(encoding="utf-8"))
         connection.executescript(NEW_SCENARIOS_SEED_PATH.read_text(encoding="utf-8"))
+        has_guest_stats_ui = connection.execute(
+            "SELECT 1 FROM game_locale_ui "
+            "WHERE json_extract(ui, '$.guest_stats_title') IS NOT NULL LIMIT 1"
+        ).fetchone()
+        if not has_guest_stats_ui:
+            connection.executescript(GUEST_STATS_UI_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
+        DATABASE_READY = True
+    print("[db] initialization complete; future requests are read-only", flush=True)
     return connection
 
 
@@ -132,5 +157,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    open_database().close()
     print("Turso emulator: http://localhost:8080/v2/pipeline")
     ThreadingHTTPServer(("localhost", 8080), Handler).serve_forever()

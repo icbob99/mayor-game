@@ -34,7 +34,8 @@ storage and must not be committed to this repository.
    `db/migrations/001_initial_schema.sql`, `db/seeds/001_game_data.sql`,
    `db/seeds/002_new_scenarios.sql`, `db/migrations/002_normalized_schema.sql`,
    `db/seeds/003_normalized_data.sql`, `db/seeds/004_balance_update.sql`,
-   `db/seeds/005_clean_choice_texts.sql`, and `db/seeds/006_new_scenarios.sql`.
+   `db/seeds/005_clean_choice_texts.sql`, `db/seeds/006_new_scenarios.sql`,
+   and `db/seeds/007_guest_stats_ui.sql`.
    The normalized tables contain all 41 events and the complete Russian,
    English and Hebrew locales. The balance seed applies the approved effects
    and repeat policies; the final scenario seed adds four events and their
@@ -46,6 +47,8 @@ storage and must not be committed to this repository.
    and localization tables in one request;
    language changes and game restarts use the loaded data. A failed load
    displays an error and does not start the game; reload the page to retry.
+   Guest game progress and statistics are stored locally in the browser and do
+   not require a database account.
 
 The legacy JSON tables remain as the migration source. Runtime data is read
 from the normalized tables:

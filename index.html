@@ -163,12 +163,43 @@
 
     <!-- Footer -->
     <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
-        Mayor: Chronicles of Embezzlement &bull; i18n Edition
+        <div>Mayor: Chronicles of Embezzlement</div>
+        <button id="btn-guest-stats" onclick="toggleGuestStats(true)"
+            class="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            aria-label="Guest statistics">📜</button>
     </footer>
+
+    <!-- Guest statistics modal -->
+    <div id="guest-stats-modal" role="dialog" aria-modal="true" aria-labelledby="guest-stats-title"
+        onclick="if (event.target === this) toggleGuestStats(false)"
+        class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
+        <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                <h3 id="guest-stats-title" class="text-xl font-bold text-white">📜 Guest statistics</h3>
+                <button id="guest-stats-dismiss-btn" onclick="toggleGuestStats(false)" aria-label="Close statistics"
+                    class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between"><span id="guest-stats-games-label" class="text-slate-400">Games played</span><strong id="guest-stats-games">0</strong></div>
+                <div class="flex justify-between"><span id="guest-stats-money-label" class="text-slate-400">Maximum money</span><strong id="guest-stats-money" class="text-emerald-400">0 ₪</strong></div>
+                <div>
+                    <div id="guest-stats-achievements-label" class="text-slate-400 mb-2">Achievements</div>
+                    <div id="guest-stats-achievements" class="space-y-2"></div>
+                </div>
+            </div>
+            <div class="mt-6 pt-3 border-t border-slate-700 flex justify-end">
+                <button onclick="toggleGuestStats(false)" id="guest-stats-close-btn"
+                    class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-5 rounded-xl transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Load data and game logic -->
     <script src="app/audio.js"></script>
     <script src="app/db.js"></script>
+    <script src="app/guest-storage.js"></script>
     <script src="app/game.js"></script>
 </body>
 

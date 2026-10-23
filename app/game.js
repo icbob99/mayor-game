@@ -10,13 +10,15 @@ let state = {
     eventQueue: [],
     cooldowns: {},
     pendingChainEvents: [],
-    unlockedAchievements: []
+    unlockedAchievements: [],
+    earnedAchievementsThisGame: []
 };
 
 let gameLogicEvents = [];
 let gameLocales = {};
 let currentTexts = null;
 let languageRequestId = 0;
+let guestStats = { gamesPlayed: 0, maxMoney: 0, achievements: {} };
 const shopPerkKeys = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
 const shopPerkCooldownDays = 7;
 const LANGUAGE_OPTIONS = [
@@ -117,6 +119,10 @@ function updateUI() {
     document.getElementById('day-counter').innerText = `${currentTexts.ui.day} ${state.day}`;
     document.getElementById('label-btn-shop').innerText = currentTexts.ui.btn_shop;
     document.getElementById('btn-achievements').setAttribute('aria-label', currentTexts.ui.btn_achievements);
+    document.getElementById('btn-guest-stats').setAttribute('aria-label', currentTexts.ui.guest_stats_title);
+    document.getElementById('guest-stats-games-label').innerText = currentTexts.ui.guest_stats_games;
+    document.getElementById('guest-stats-money-label').innerText = currentTexts.ui.guest_stats_max_money;
+    document.getElementById('guest-stats-achievements-label').innerText = currentTexts.ui.guest_stats_achievements;
 
     if (state.currentEventIndex === -1) {
         document.getElementById('event-title').innerText = currentTexts.ui.loading_title;
@@ -130,6 +136,62 @@ function updateUI() {
     if (!document.getElementById('achievements-modal').classList.contains('hidden')) {
         renderAchievements();
     }
+    if (!document.getElementById('guest-stats-modal').classList.contains('hidden')) {
+        renderGuestStats();
+    }
+}
+
+function saveGuestGame() {
+    if (typeof GuestStorage !== 'undefined') {
+        const storage = getGuestStorage();
+        GuestStorage.saveGameState(storage, state);
+        guestStats = GuestStorage.updateMaxMoney(storage, state.money);
+    }
+}
+
+function getGuestStorage() {
+    try {
+        return window.localStorage;
+    } catch {
+        return null;
+    }
+}
+
+function toggleGuestStats(show) {
+    const modal = document.getElementById('guest-stats-modal');
+    if (!modal) return;
+    if (show) {
+        renderGuestStats();
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+function renderGuestStats() {
+    if (!currentTexts?.ui) return;
+    document.getElementById('guest-stats-title').innerText = `📜 ${currentTexts.ui.guest_stats_title}`;
+    document.getElementById('guest-stats-close-btn').innerText = currentTexts.ui.guest_stats_close;
+    document.getElementById('guest-stats-dismiss-btn').setAttribute('aria-label', currentTexts.ui.guest_stats_close);
+    document.getElementById('guest-stats-games').innerText = guestStats.gamesPlayed;
+    document.getElementById('guest-stats-money').innerText = `${guestStats.maxMoney.toLocaleString()} ₪`;
+
+    const container = document.getElementById('guest-stats-achievements');
+    container.innerHTML = '';
+    const achievementCounts = Object.entries(guestStats.achievements);
+    if (!achievementCounts.length) {
+        container.innerText = currentTexts.ui.guest_stats_empty;
+        return;
+    }
+    achievementCounts.forEach(([id, count]) => {
+        const definition = ACHIEVEMENTS_DEF.find(item => item.id === id);
+        const info = currentTexts.ui.achievements?.[id];
+        if (!definition || !info) return;
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between gap-3 p-2 rounded-lg bg-slate-900/60';
+        item.innerText = `${definition.icon} ${info.name} × ${count}`;
+        container.appendChild(item);
+    });
 }
 
 function toggleShop(show) {
@@ -262,6 +324,7 @@ function buyPerk(key) {
 
     updateUI();
     checkAchievements();
+    saveGuestGame();
 }
 
 function toggleAchievements(show) {
@@ -339,6 +402,7 @@ function checkAchievements() {
     ACHIEVEMENTS_DEF.forEach(achievement => {
         if (!state.unlockedAchievements.includes(achievement.id) && achievement.req(state)) {
             state.unlockedAchievements.push(achievement.id);
+            state.earnedAchievementsThisGame.push(achievement.id);
             if (typeof playCashSound === 'function') playCashSound();
             showAchievementToast(achievement);
         }
@@ -410,6 +474,7 @@ function handleChoice(choiceIndex) {
 
     state.day++;
     checkAchievements();
+    saveGuestGame();
 
     if (state.threat >= 100) {
         triggerGameOver('arrest');
@@ -491,6 +556,15 @@ function triggerGameOver(reasonType) {
         playSirenSound();
     }
 
+    if (!state.gameOverRecorded) {
+        guestStats = GuestStorage.recordGameOver(getGuestStorage(), {
+            money: state.money,
+            unlockedAchievements: state.earnedAchievementsThisGame
+        });
+        state.gameOverRecorded = true;
+        GuestStorage.clearGameState(getGuestStorage());
+    }
+
     const screen = document.getElementById('game-over-screen');
     if (!screen) return;
 
@@ -534,8 +608,12 @@ async function resetGame() {
     state.pendingChainEvents = [];
     state.currentEventIndex = -1;
     state.cooldowns = {};
+    state.unlockedAchievements = [];
+    state.earnedAchievementsThisGame = [];
+    state.gameOverRecorded = false;
     await setLang(state.lang);
     loadNextEvent();
+    saveGuestGame();
 
 }
 
@@ -543,11 +621,15 @@ window.onload = async () => {
     initializeLanguageSelector();
     document.getElementById('event-title').innerText = 'Загрузка… / Loading… / טוען…';
     try {
+        const savedState = GuestStorage.loadGameState(getGuestStorage());
+        if (savedState) Object.assign(state, savedState);
+        guestStats = GuestStorage.loadGuestStats(getGuestStorage());
         const data = await loadGameData();
         gameLogicEvents = data.events;
         gameLocales = data.locales;
         await setLang(state.lang);
         loadNextEvent(); // Choose and render the first card after loading data.
+        saveGuestGame();
     } catch (error) {
         console.error('Ошибка загрузки данных игры', error);
         document.getElementById('event-title').innerText = 'Ошибка загрузки / Loading failed / שגיאת טעינה';
