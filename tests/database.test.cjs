@@ -20,6 +20,7 @@ for name in (
     "db/seeds/005_clean_choice_texts.sql",
     "db/seeds/006_new_scenarios.sql",
     "db/seeds/007_guest_stats_ui.sql",
+    "db/seeds/008_ukrainian_locale.sql",
 ):
     db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
 result = {
@@ -36,9 +37,9 @@ print(json.dumps(result))
     assert.deepEqual(JSON.parse(output), {
         events: 41,
         choices: 123,
-        event_locales: 123,
-        choice_locales: 369,
-        languages: 3,
+        event_locales: 164,
+        choice_locales: 492,
+        languages: 4,
         choice_money_hints: 0
     });
 });
@@ -66,11 +67,12 @@ for name in (
     "db/seeds/005_clean_choice_texts.sql",
     "db/seeds/006_new_scenarios.sql",
     "db/seeds/007_guest_stats_ui.sql",
+    "db/seeds/008_ukrainian_locale.sql",
 ):
     db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
 keys = ["guest_stats_title", "guest_stats_games", "guest_stats_max_money", "guest_stats_achievements", "guest_stats_empty", "guest_stats_close"]
 rows = db.execute("SELECT lang, ui FROM game_locale_ui ORDER BY lang").fetchall()
-assert {lang for lang, _ in rows} == {"en", "he", "ru"}
+assert {lang for lang, _ in rows} == {"en", "he", "ru", "uk"}
 assert all(all(key in json.loads(ui) for key in keys) for _, ui in rows)
 print("ok")
 `], { cwd: root, encoding: 'utf8' });

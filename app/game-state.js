@@ -25,6 +25,7 @@ const shopPerkCooldownDays = 7;
 const LANGUAGE_OPTIONS = [
     { id: 'en', label: 'English', flag: 'assets/flags/gb.svg' },
     { id: 'ru', label: 'Русский', flag: 'assets/flags/ru.svg' },
+    { id: 'uk', label: 'Українська', flag: 'assets/flags/ua.svg' },
     { id: 'he', label: 'עברית', flag: 'assets/flags/il.webp' }
 ];
 const ACHIEVEMENTS_DEF = [

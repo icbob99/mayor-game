@@ -97,7 +97,7 @@ async function loadGameData() {
     if (!events.length || !events.some(event => !event.isFollowUp)) {
         throw new Error('Turso contains no playable events');
     }
-    for (const lang of ['ru', 'en', 'he']) {
+    for (const lang of ['ru', 'en', 'uk', 'he']) {
         const texts = locales[lang];
         if (!texts?.ui || !texts.alerts || !texts.events || events.some(event =>
             !Array.isArray(event.choices) || !event.choices.length ||

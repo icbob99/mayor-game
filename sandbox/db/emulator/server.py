@@ -18,6 +18,7 @@ BALANCE_SEED_PATH = ROOT / "db" / "seeds" / "004_balance_update.sql"
 CLEAN_TEXT_SEED_PATH = ROOT / "db" / "seeds" / "005_clean_choice_texts.sql"
 NEW_SCENARIOS_SEED_PATH = ROOT / "db" / "seeds" / "006_new_scenarios.sql"
 GUEST_STATS_UI_SEED_PATH = ROOT / "db" / "seeds" / "007_guest_stats_ui.sql"
+UKRAINIAN_LOCALE_SEED_PATH = ROOT / "db" / "seeds" / "008_ukrainian_locale.sql"
 DATABASE_READY = False
 DATABASE_REQUESTS = 0
 
@@ -47,6 +48,11 @@ def open_database():
         ).fetchone()
         if not has_guest_stats_ui:
             connection.executescript(GUEST_STATS_UI_SEED_PATH.read_text(encoding="utf-8"))
+        has_ukrainian_locale = connection.execute(
+            "SELECT 1 FROM game_locale_ui WHERE lang = 'uk' LIMIT 1"
+        ).fetchone()
+        if not has_ukrainian_locale:
+            connection.executescript(UKRAINIAN_LOCALE_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
         DATABASE_READY = True
     else:
@@ -71,6 +77,11 @@ def open_database():
         ).fetchone()
         if not has_guest_stats_ui:
             connection.executescript(GUEST_STATS_UI_SEED_PATH.read_text(encoding="utf-8"))
+        has_ukrainian_locale = connection.execute(
+            "SELECT 1 FROM game_locale_ui WHERE lang = 'uk' LIMIT 1"
+        ).fetchone()
+        if not has_ukrainian_locale:
+            connection.executescript(UKRAINIAN_LOCALE_SEED_PATH.read_text(encoding="utf-8"))
         connection.commit()
         DATABASE_READY = True
     print("[db] initialization complete; future requests are read-only", flush=True)

@@ -35,9 +35,9 @@ storage and must not be committed to this repository.
    `db/seeds/002_new_scenarios.sql`, `db/migrations/002_normalized_schema.sql`,
    `db/seeds/003_normalized_data.sql`, `db/seeds/004_balance_update.sql`,
    `db/seeds/005_clean_choice_texts.sql`, `db/seeds/006_new_scenarios.sql`,
-   and `db/seeds/007_guest_stats_ui.sql`.
+   `db/seeds/007_guest_stats_ui.sql`, and `db/seeds/008_ukrainian_locale.sql`.
    The normalized tables contain all 41 events and the complete Russian,
-   English and Hebrew locales. The balance seed applies the approved effects
+   English, Ukrainian, Hebrew and Russian locales. The balance seed applies the approved effects
    and repeat policies; the final scenario seed adds four events and their
    localized choices.
 2. Configure `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` as production

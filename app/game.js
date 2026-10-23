@@ -9,6 +9,7 @@
         const data = await loadGameData();
         gameLogicEvents = data.events;
         gameLocales = data.locales;
+        if (!gameLocales[state.lang]) state.lang = 'en';
         await setLang(state.lang);
         loadNextEvent();
         saveGuestGame();

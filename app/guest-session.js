@@ -14,8 +14,11 @@
             const browserStorage = storage();
             const savedState = root.GuestStorage.loadGameState(browserStorage);
             if (savedState) Object.assign(state, savedState);
+            else if (typeof root.detectInitialLanguage === 'function') {
+                state.lang = root.detectInitialLanguage(root.navigator?.language);
+            }
             stats = root.GuestStorage.loadGuestStats(browserStorage);
-            return state;
+            return Boolean(savedState);
         },
         save(state) {
             const browserStorage = storage();
