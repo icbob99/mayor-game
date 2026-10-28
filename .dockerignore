@@ -1,0 +1,15 @@
+**
+!index.html
+!app/
+!app/**
+!css/
+!css/**
+!assets/
+!assets/**
+!cloudflare/
+!cloudflare/**
+!sandbox/
+!sandbox/Dockerfile
+!sandbox/local-worker.mjs
+!sandbox/wrangler.jsonc
+!sandbox/dev-environment.js

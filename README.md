@@ -77,11 +77,61 @@ Token setup: [Turso read-only database tokens](https://docs.turso.tech/cli/db/to
 
 ## Local sandbox
 
-Run the local Turso-compatible emulator in a separate terminal:
+Requirements: Python 3 and Docker Desktop running Linux containers. From the
+repository directory, run:
 
 ```powershell
-python sandbox/db/emulator/server.py
+python server.py
 ```
 
-It creates `sandbox/db/emulator/game.db` from the migration and seed on first
-run. Then start `Go Live`; the browser uses `http://localhost:8080` by default.
+Open **http://localhost:8787** after the script prints `Ready`.
+No separate Go Live, Node.js or database command is needed. Wrangler runs inside
+the server container; the game itself remains vanilla JavaScript in the browser.
+
+**Every run starts from scratch.** The script removes only the
+`mayor-game-dev` containers and database volume, rebuilds the game image, creates
+a fresh libSQL database and applies the existing migrations and seeds. Local
+accounts/saves added in later phases will also be erased. The database management
+port is bound to localhost:8081; production services are never contacted.
+
+Each rebuild has a new environment ID. On opening the game, its browser saves
+are cleared if that ID changed. Already-open tabs check every three seconds and
+on focus, then reset and reload. Unrelated browser storage is preserved. A normal
+page reload in the same environment keeps guest progress. These reset controls
+are injected by the Docker-only server, not the production page.
+
+The first build downloads the Node/libSQL images and Wrangler. Internet is
+required to build; the existing Tailwind CDN dependency also remains unchanged.
+If startup fails, the script reports the error instead of printing `Ready`.
+
+Stop the environment (without rebuilding):
+
+```powershell
+docker compose --project-name mayor-game-dev down
+```
+
+Inspect server/database logs:
+
+```powershell
+docker compose --project-name mayor-game-dev logs --tail 50
+```
+
+Run the unit/database checks with Node.js 22+ and Python 3:
+
+```powershell
+node --test tests/*.test.cjs
+```
+
+The Docker/browser integration test is opt-in. It builds the separate
+`mayor-game-test` environment twice (ports 8788/8082), checks the real game in
+headless Chrome, and removes only that test environment afterwards. It leaves
+the manual environment untouched. On Windows with Chrome installed:
+
+```powershell
+$env:MAYOR_DOCKER_TEST = '1'
+node --test tests/local-environment.test.cjs
+Remove-Item Env:MAYOR_DOCKER_TEST
+```
+
+Set `CHROME_PATH` if Chrome/Chromium is installed elsewhere. Browser profiles
+used by this check are temporary and separate from your own browser profile.

@@ -3,7 +3,7 @@
 
     function storage() {
         try {
-            return root.localStorage;
+            return root.LocalEnvironment ? root.LocalEnvironment.storage : root.localStorage;
         } catch {
             return null;
         }
@@ -21,11 +21,13 @@
             return Boolean(savedState);
         },
         save(state) {
+            if (root.LocalEnvironment && !root.LocalEnvironment.isCurrent()) return;
             const browserStorage = storage();
             root.GuestStorage.saveGameState(browserStorage, state);
             stats = root.GuestStorage.updateMaxMoney(browserStorage, state.money);
         },
         recordGameOver(state) {
+            if (root.LocalEnvironment && !root.LocalEnvironment.isCurrent()) return stats;
             stats = root.GuestStorage.recordGameOver(storage(), {
                 money: state.money,
                 unlockedAchievements: state.earnedAchievementsThisGame

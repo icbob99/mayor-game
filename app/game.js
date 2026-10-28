@@ -2,6 +2,7 @@
     initializeLanguageSelector();
     document.getElementById('event-title').innerText = 'Загрузка… / Loading… / טוען…';
     try {
+        if (typeof LocalEnvironment !== 'undefined') await LocalEnvironment.ready;
         GuestSession.load(state);
         if (typeof applyAudioPreference === 'function') {
             applyAudioPreference(Boolean(state.audioMuted));

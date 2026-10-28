@@ -1,0 +1,22 @@
+services:
+  db:
+    image: ghcr.io/tursodatabase/libsql-server@sha256:6dd3eb276d9d3604e4a48ac4a999a2e267814732d57d7e94c04ba71482333a67
+    platform: linux/amd64
+    environment:
+      SQLD_NODE: primary
+    ports:
+      - "127.0.0.1:${DEV_DB_PORT:-8081}:8080"
+    volumes:
+      - database:/var/lib/sqld
+  game:
+    build:
+      context: .
+      dockerfile: sandbox/Dockerfile
+    environment:
+      DEV_INSTANCE_ID: ${DEV_INSTANCE_ID:-not-started}
+    ports:
+      - "127.0.0.1:${DEV_PORT:-8787}:8787"
+    depends_on:
+      - db
+volumes:
+  database:

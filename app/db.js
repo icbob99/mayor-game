@@ -1,6 +1,5 @@
-// Local requests use the sandbox emulator; production requests use the Worker.
+// Docker serves the same Worker API locally.
 const TURSO_CONFIG = {
-    localApiUrl: 'http://localhost:8080/v2/pipeline',
     workerApiUrl: 'https://mayor-game-api.icbob99.workers.dev/api/game-data',
     // Used only by tests that replace the request endpoint.
     url: '',
@@ -8,9 +7,8 @@ const TURSO_CONFIG = {
 };
 
 async function loadGameData() {
-    const hostname = typeof location === 'undefined' ? 'localhost' : location.hostname;
     const isTestRequest = Boolean(TURSO_CONFIG.url);
-    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || isTestRequest;
+    const isDocker = typeof LocalEnvironment !== 'undefined' && !isTestRequest;
     const testUrl = TURSO_CONFIG.url.replace(/^(libsql|turso):\/\//, 'https://').replace(/\/$/, '');
     const requestBody = {
         requests: [
@@ -22,16 +20,17 @@ async function loadGameData() {
             { type: 'close' }
         ]
     };
-    const response = await fetch(
-        isTestRequest ? `${testUrl}/v2/pipeline` : isLocal ? TURSO_CONFIG.localApiUrl : TURSO_CONFIG.workerApiUrl,
+    const fetchData = isDocker ? LocalEnvironment.fetch.bind(LocalEnvironment) : fetch;
+    const response = await fetchData(
+        isDocker ? '/api/game-data' : isTestRequest ? `${testUrl}/v2/pipeline` : TURSO_CONFIG.workerApiUrl,
         {
-            method: isLocal ? 'POST' : 'GET',
-            headers: isLocal ? {
+            method: isTestRequest ? 'POST' : 'GET',
+            headers: isTestRequest ? {
                 'Content-Type': 'application/json',
                 ...(TURSO_CONFIG.authToken ? { Authorization: `Bearer ${TURSO_CONFIG.authToken}` } : {})
             } : {},
             signal: AbortSignal.timeout(15000),
-            ...(isLocal ? { body: JSON.stringify(requestBody) } : {})
+            ...(isTestRequest ? { body: JSON.stringify(requestBody) } : {})
         }
     );
     if (!response.ok) throw new Error(`Turso HTTP ${response.status}`);
