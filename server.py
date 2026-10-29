@@ -22,6 +22,7 @@ SQL_FILES = (
     'db/seeds/006_new_scenarios.sql',
     'db/seeds/007_guest_stats_ui.sql',
     'db/seeds/008_ukrainian_locale.sql',
+    'db/migrations/003_account_schema.sql',
 )
 
 
