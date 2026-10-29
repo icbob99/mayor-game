@@ -1,80 +1,85 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { execFileSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
-const root = path.resolve(__dirname, '..');
+const source = readFileSync(path.join(__dirname, '../app/data/dal.js'), 'utf8');
+const languages = ['ru', 'en', 'uk', 'he'];
+const text = value => ({ type: 'text', value });
+const integer = value => ({ type: 'integer', value: String(value) });
+const nil = { type: 'null' };
+const table = (columns, rows) => ({ type: 'ok', response: { type: 'execute', result: {
+    cols: columns.split(' ').map(name => ({ name })), rows
+} } });
 
-test('normalized database contains all game data', () => {
-    const output = execFileSync('python', ['-c', `
-import json, pathlib, sqlite3
-db = sqlite3.connect(":memory:")
-for name in (
-    "db/migrations/001_initial_schema.sql",
-    "db/seeds/001_game_data.sql",
-    "db/seeds/002_new_scenarios.sql",
-    "db/migrations/002_normalized_schema.sql",
-    "db/seeds/003_normalized_data.sql",
-    "db/seeds/004_balance_update.sql",
-    "db/seeds/005_clean_choice_texts.sql",
-    "db/seeds/006_new_scenarios.sql",
-    "db/seeds/007_guest_stats_ui.sql",
-    "db/seeds/008_ukrainian_locale.sql",
-):
-    db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
-result = {
-    "events": db.execute("SELECT COUNT(*) FROM game_events").fetchone()[0],
-    "choices": db.execute("SELECT COUNT(*) FROM game_choices").fetchone()[0],
-    "event_locales": db.execute("SELECT COUNT(*) FROM game_event_locales").fetchone()[0],
-    "choice_locales": db.execute("SELECT COUNT(*) FROM game_choice_locales").fetchone()[0],
-    "languages": db.execute("SELECT COUNT(*) FROM game_locale_ui").fetchone()[0],
-    "choice_money_hints": db.execute("SELECT COUNT(*) FROM game_choice_locales WHERE text LIKE '%₪%'").fetchone()[0],
+function rawData() {
+    return { results: [
+        table('id avatar is_follow_up repeat_policy max_occurrences', [
+            [text('tender'), text('city'), integer(0), text('unlimited'), nil],
+            [text('audit'), text('police'), integer(1), text('once'), integer(1)]
+        ]),
+        table('event_id choice_index money wife health threat rating next_event_id delay_days', [
+            [text('audit'), integer(0), integer(-500), integer(0), integer(-1), integer(-10), integer(5), nil, nil],
+            [text('tender'), integer(0), integer(1000), integer(2), integer(-3), { type: 'float', value: 2.5 }, integer(-5), text('audit'), integer(3)],
+            [text('tender'), integer(1), integer(0), integer(0), integer(0), integer(0), integer(10), nil, nil]
+        ]),
+        table('lang ui alerts', languages.map(lang =>
+            [text(lang), text(JSON.stringify({ money: lang + ' money' })), text('{"arrest":"Stop"}')]
+        )),
+        table('event_id lang title description', languages.flatMap(lang => [
+            [text('audit'), text(lang), text(lang + ' audit'), text('Investigation')],
+            [text('tender'), text(lang), text(lang + ' tender'), text('Contract')]
+        ])),
+        table('event_id choice_index lang text', languages.flatMap(lang => [
+            [text('tender'), integer(1), text(lang), text(lang + ' refuse')],
+            [text('audit'), integer(0), text(lang), text(lang + ' pay')],
+            [text('tender'), integer(0), text(lang), text(lang + ' accept')]
+        ])),
+        { type: 'ok', response: { type: 'close' } }
+    ] };
 }
-print(json.dumps(result))
-`], { cwd: root, encoding: 'utf8' });
 
-    assert.deepEqual(JSON.parse(output), {
-        events: 41,
-        choices: 123,
-        event_locales: 164,
-        choice_locales: 492,
-        languages: 4,
-        choice_money_hints: 0
+function load(fetchRawGameData) {
+    return vm.runInNewContext(source + '\nloadGameData()', { fetchRawGameData });
+}
+
+test('DAL converts Worker tables into events, effects, chains and localized choices', async () => {
+    const data = await load(async () => rawData());
+    assert.deepEqual(structuredClone(data), {
+        events: [
+            { id: 'tender', avatar: 'city', isFollowUp: false, repeatPolicy: 'unlimited', maxOccurrences: null, choices: [
+                { money: 1000, wife: 2, health: -3, threat: 2.5, rating: -5, nextEvent: { id: 'audit', delay: 3 } },
+                { money: 0, wife: 0, health: 0, threat: 0, rating: 10 }
+            ] },
+            { id: 'audit', avatar: 'police', isFollowUp: true, repeatPolicy: 'once', maxOccurrences: 1, choices: [
+                { money: -500, wife: 0, health: -1, threat: -10, rating: 5 }
+            ] }
+        ],
+        locales: Object.fromEntries(languages.map(lang => [lang, {
+            ui: { money: lang + ' money' }, alerts: { arrest: 'Stop' }, events: {
+                tender: { title: lang + ' tender', desc: 'Contract', choices: [lang + ' accept', lang + ' refuse'] },
+                audit: { title: lang + ' audit', desc: 'Investigation', choices: [lang + ' pay'] }
+            }
+        }]))
     });
 });
 
-test('runtime reads normalized tables', () => {
-    const dbSource = readFileSync(path.join(root, 'app/db.js'), 'utf8');
-    assert.match(dbSource, /FROM game_events/);
-    assert.match(dbSource, /FROM game_choices/);
-    assert.match(dbSource, /FROM game_event_locales/);
-    assert.match(dbSource, /FROM game_choice_locales/);
-    assert.doesNotMatch(dbSource, /FROM events ORDER BY/);
+test('DAL propagates data source failures', async () => {
+    const error = new Error('Connection lost');
+    await assert.rejects(load(async () => { throw error; }), actual => actual === error);
 });
 
-test('guest statistics translations are present in every language', () => {
-    const output = execFileSync('python', ['-c', `
-import json, pathlib, sqlite3
-db = sqlite3.connect(":memory:")
-for name in (
-    "db/migrations/001_initial_schema.sql",
-    "db/seeds/001_game_data.sql",
-    "db/seeds/002_new_scenarios.sql",
-    "db/migrations/002_normalized_schema.sql",
-    "db/seeds/003_normalized_data.sql",
-    "db/seeds/004_balance_update.sql",
-    "db/seeds/005_clean_choice_texts.sql",
-    "db/seeds/006_new_scenarios.sql",
-    "db/seeds/007_guest_stats_ui.sql",
-    "db/seeds/008_ukrainian_locale.sql",
-):
-    db.executescript(pathlib.Path(name).read_text(encoding="utf-8"))
-keys = ["guest_stats_title", "guest_stats_games", "guest_stats_max_money", "guest_stats_achievements", "guest_stats_empty", "guest_stats_close"]
-rows = db.execute("SELECT lang, ui FROM game_locale_ui ORDER BY lang").fetchall()
-assert {lang for lang, _ in rows} == {"en", "he", "ru", "uk"}
-assert all(all(key in json.loads(ui) for key in keys) for _, ui in rows)
-print("ok")
-`], { cwd: root, encoding: 'utf8' });
-    assert.equal(output.trim(), 'ok');
+test('DAL rejects failed queries and incomplete game data', async () => {
+    for (const [change, expected] of [
+        [raw => { raw.results.pop(); }, /Invalid Turso response/],
+        [raw => { raw.results[0] = { type: 'error', error: { message: 'Query failed' } }; }, /Query failed/],
+        [raw => { raw.results[0].response.result.rows = []; }, /no playable events/],
+        [raw => { raw.results[2].response.result.rows.pop(); }, /Incomplete game data for he/],
+        [raw => { raw.results[4].response.result.rows.pop(); }, /Incomplete game data for he/]
+    ]) {
+        const raw = rawData();
+        change(raw);
+        await assert.rejects(load(async () => raw), expected);
+    }
 });

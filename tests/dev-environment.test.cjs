@@ -84,8 +84,8 @@ test('old open tab detects a rebuilt stand and clears stale progress', async () 
 test('another tab reset prevents stale guest writes without erasing new progress', async () => {
     const b = browser({ mayorDevInstance: 'new' });
     await b.LocalEnvironment.ready;
-    vm.runInContext(readFileSync('app/guest-storage.js', 'utf8'), b);
-    vm.runInContext(readFileSync('app/guest-session.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/guest-session.js', 'utf8'), b);
     b.localStorage.setItem('mayorDevInstance', 'rebuilt');
     b.localStorage.setItem('mayorGameState', 'fresh game');
     b.GuestSession.save({ money: 999 });
@@ -98,8 +98,8 @@ test('another tab reset prevents stale guest writes without erasing new progress
 test('reset between a guest generation check and write cannot overwrite or delete new progress', async () => {
     const b = browser({ mayorDevInstance: 'new' });
     await b.LocalEnvironment.ready;
-    vm.runInContext(readFileSync('app/guest-storage.js', 'utf8'), b);
-    vm.runInContext(readFileSync('app/guest-session.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/guest-session.js', 'utf8'), b);
     const read = b.localStorage.getItem;
     b.localStorage.getItem = key => {
         const value = read(key);

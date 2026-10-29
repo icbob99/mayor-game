@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const storage = require('../app/guest-storage.js');
+const storage = require('../app/data/guest-storage.js');
 
 function createMemoryStorage(initial = {}) {
     const values = new Map(Object.entries(initial));

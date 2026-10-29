@@ -1,41 +1,5 @@
-// Docker serves the same Worker API locally.
-const TURSO_CONFIG = {
-    workerApiUrl: 'https://mayor-game-api.icbob99.workers.dev/api/game-data',
-    // Used only by tests that replace the request endpoint.
-    url: '',
-    authToken: ''
-};
-
 async function loadGameData() {
-    const isTestRequest = Boolean(TURSO_CONFIG.url);
-    const isDocker = typeof LocalEnvironment !== 'undefined' && !isTestRequest;
-    const testUrl = TURSO_CONFIG.url.replace(/^(libsql|turso):\/\//, 'https://').replace(/\/$/, '');
-    const requestBody = {
-        requests: [
-            { type: 'execute', stmt: { sql: 'SELECT id, avatar, is_follow_up, repeat_policy, max_occurrences FROM game_events ORDER BY rowid', want_rows: true } },
-            { type: 'execute', stmt: { sql: 'SELECT event_id, choice_index, money, wife, health, threat, rating, next_event_id, delay_days FROM game_choices ORDER BY event_id, choice_index', want_rows: true } },
-            { type: 'execute', stmt: { sql: 'SELECT lang, ui, alerts FROM game_locale_ui ORDER BY rowid', want_rows: true } },
-            { type: 'execute', stmt: { sql: 'SELECT event_id, lang, title, description FROM game_event_locales ORDER BY event_id, lang', want_rows: true } },
-            { type: 'execute', stmt: { sql: 'SELECT event_id, choice_index, lang, text FROM game_choice_locales ORDER BY event_id, choice_index, lang', want_rows: true } },
-            { type: 'close' }
-        ]
-    };
-    const fetchData = isDocker ? LocalEnvironment.fetch.bind(LocalEnvironment) : fetch;
-    const response = await fetchData(
-        isDocker ? '/api/game-data' : isTestRequest ? `${testUrl}/v2/pipeline` : TURSO_CONFIG.workerApiUrl,
-        {
-            method: isTestRequest ? 'POST' : 'GET',
-            headers: isTestRequest ? {
-                'Content-Type': 'application/json',
-                ...(TURSO_CONFIG.authToken ? { Authorization: `Bearer ${TURSO_CONFIG.authToken}` } : {})
-            } : {},
-            signal: AbortSignal.timeout(15000),
-            ...(isTestRequest ? { body: JSON.stringify(requestBody) } : {})
-        }
-    );
-    if (!response.ok) throw new Error(`Turso HTTP ${response.status}`);
-
-    const { results } = await response.json();
+    const { results } = await fetchRawGameData();
     if (!Array.isArray(results) || results.length !== 6) {
         throw new Error('Invalid Turso response');
     }

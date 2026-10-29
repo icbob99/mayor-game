@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { detectInitialLanguage } = require('../app/language-utils.js');
+const { detectInitialLanguage } = require('../app/ui/language-utils.js');
 
 assert.equal(detectInitialLanguage('uk-UA'), 'uk');
 assert.equal(detectInitialLanguage('ru-RU'), 'ru');

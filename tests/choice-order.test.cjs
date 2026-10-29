@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { shuffleChoiceOrder } = require('../app/choice-order.js');
+const { shuffleChoiceOrder } = require('../app/game/choice-order.js');
 
 const order = shuffleChoiceOrder(3, () => 0);
 
