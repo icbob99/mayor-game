@@ -1,5 +1,5 @@
--- P2.1: account storage only; authentication and save handling are implemented later.
--- All *_at values are UTC Unix timestamps in milliseconds, supplied explicitly.
+-- P2: account storage only; authentication and save handling are implemented later.
+-- All *_at values and write_timestamp are UTC Unix milliseconds, supplied explicitly.
 -- Writers must enable foreign_keys on every connection, not only during migration.
 PRAGMA foreign_keys = ON;
 BEGIN;
@@ -39,9 +39,19 @@ CREATE TABLE IF NOT EXISTS game_saves (
     version_guid TEXT NOT NULL,
     state_json TEXT NOT NULL CHECK (json_valid(state_json)),
     stats_json TEXT NOT NULL CHECK (json_valid(stats_json)),
+    write_timestamp INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 ) STRICT;
+
+-- Reject delayed or repeated writes even when the caller omits a timestamp predicate.
+CREATE TRIGGER IF NOT EXISTS game_saves_reject_stale_update
+BEFORE UPDATE ON game_saves
+FOR EACH ROW
+WHEN NEW.write_timestamp <= OLD.write_timestamp
+BEGIN
+    SELECT RAISE(ABORT, 'stale_save');
+END;
 
 CREATE TABLE IF NOT EXISTS game_history (
     account_id TEXT NOT NULL,
