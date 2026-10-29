@@ -1,6 +1,7 @@
 ﻿async function setLang(lang) {
     const requestId = ++languageRequestId;
     state.lang = lang;
+    document.documentElement.lang = lang;
     document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
 
     const buttons = document.querySelectorAll('#lang-menu button');
@@ -31,13 +32,16 @@
 
     try {
         const texts = gameLocales[lang];
-        if (!texts) return;
+        if (!texts) {
+            renderStartupStatus();
+            return;
+        }
         if (requestId !== languageRequestId) return;
         currentTexts = texts;
     saveGuestGame();
     } catch (error) {
         if (requestId !== languageRequestId) return;
-        console.error("Ошибка загрузки языкового пакета", error);
+        console.error(getStartupTexts(lang).languageFailed, error);
         return;
     }
 
@@ -53,6 +57,11 @@ function toggleLanguageMenu() {
     if (!menu || !toggle) return;
     const isHidden = menu.classList.toggle('hidden');
     toggle.setAttribute('aria-expanded', String(!isHidden));
+}
+
+function gameErrorText(key, id) {
+    const template = currentTexts?.alerts?.[key] || `${key}: {id} ({lang})`;
+    return template.replace('{id}', id).replace('{lang}', state.lang);
 }
 
 function initializeLanguageSelector() {

@@ -12,9 +12,6 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parent
 SQL_FILES = (
-    'db/migrations/001_initial_schema.sql',
-    'db/seeds/001_game_data.sql',
-    'db/seeds/002_new_scenarios.sql',
     'db/migrations/002_normalized_schema.sql',
     'db/seeds/003_normalized_data.sql',
     'db/seeds/004_balance_update.sql',
@@ -22,6 +19,7 @@ SQL_FILES = (
     'db/seeds/006_new_scenarios.sql',
     'db/seeds/007_guest_stats_ui.sql',
     'db/seeds/008_ukrainian_locale.sql',
+    'db/seeds/009_event_error_locale.sql',
     'db/migrations/003_account_schema.sql',
 )
 

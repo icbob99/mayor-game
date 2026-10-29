@@ -20,11 +20,13 @@
     function loadGameState(storage) {
         const state = readJson(storage, GAME_KEY);
         if (!state || typeof state !== 'object' ||
-            !['day', 'money', 'wife', 'threat', 'health', 'rating'].every(key => Number.isFinite(state[key])) ||
-            !Array.isArray(state.eventQueue) || !Array.isArray(state.pendingChainEvents)) {
+            !['day', 'money', 'wife', 'threat', 'health', 'rating'].every(key => Number.isFinite(state[key]))) {
             storage?.removeItem(GAME_KEY);
             return null;
         }
+        // Consequences last only until the game is reopened, including in old saves.
+        state.eventQueue = [];
+        delete state.pendingChainEvents;
         return state;
     }
 
@@ -42,7 +44,8 @@
 
     function saveGameState(storage, state) {
         try {
-            storage?.setItem(GAME_KEY, JSON.stringify(state));
+            const { eventQueue, ...savedState } = state;
+            storage?.setItem(GAME_KEY, JSON.stringify(savedState));
         } catch {
             // Private browsing or a full storage quota should not stop the game.
         }

@@ -62,7 +62,6 @@ async function resetGame() {
     state.rating = 50;
     state.day = 1;
     state.eventQueue = [];
-    state.pendingChainEvents = [];
     state.currentEventIndex = -1;
     state.cooldowns = {};
     state.unlockedAchievements = [];

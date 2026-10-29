@@ -22,7 +22,7 @@ function renderAchievements() {
     ACHIEVEMENTS_DEF.forEach(achievement => {
         const info = currentTexts.ui.achievements[achievement.id];
         if (!info) {
-            console.error(`Ошибка: Не найден перевод достижения "${achievement.id}" в базе данных для языка ${state.lang}`);
+            console.error(gameErrorText('achievement_text_missing', achievement.id));
             return;
         }
 
@@ -56,7 +56,7 @@ function renderAchievements() {
 function showAchievementToast(achievement) {
     const info = currentTexts?.ui.achievements?.[achievement.id];
     if (!info) {
-        console.error(`Ошибка: Не найден перевод достижения "${achievement.id}" в базе данных для языка ${state.lang}`);
+        console.error(gameErrorText('achievement_text_missing', achievement.id));
         return;
     }
 

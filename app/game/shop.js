@@ -23,7 +23,7 @@ function renderShop() {
     shopPerkKeys.forEach(key => {
         const perk = currentTexts.ui.perks[key];
         if (!perk) {
-            console.error(`Ошибка: Не найден перевод перка "${key}" в базе данных для языка ${state.lang}`);
+            console.error(gameErrorText('perk_text_missing', key));
             return;
         }
 
@@ -84,13 +84,13 @@ function renderShop() {
 
 function buyPerk(key) {
     if (!shopPerkKeys.includes(key)) {
-        console.error(`Ошибка: Неизвестный перк "${key}"`);
+        console.error(gameErrorText('perk_unknown', key));
         return;
     }
 
     const perk = currentTexts?.ui.perks?.[key];
     if (!perk) {
-        console.error(`Ошибка: Не найден перевод перка "${key}" в базе данных для языка ${state.lang}`);
+        console.error(gameErrorText('perk_text_missing', key));
         return;
     }
 

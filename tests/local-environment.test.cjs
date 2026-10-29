@@ -115,7 +115,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const query = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST',
         body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: "SELECT name FROM sqlite_master WHERE name='reset_marker'" } }, { type: 'close' }] }) });
     assert.deepEqual((await query.json()).results[0].response.result.rows, []);
-    for (const resource of ['/cloudflare/worker.js', '/server.py', '/.git/config', '/db/seeds/001_game_data.sql']) {
+    for (const resource of ['/cloudflare/worker.js', '/server.py', '/.git/config', '/db/seeds/003_normalized_data.sql']) {
         assert.equal((await fetch(base + resource)).status, 404, `${resource} must not be served as a game asset`);
     }
     const api = await fetch(base + '/api/game-data', { headers: { 'X-Dev-Instance': secondId } });

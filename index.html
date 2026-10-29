@@ -36,7 +36,7 @@
             <button id="btn-shop" onclick="toggleShop(true)"
                 class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow">
                 <span>🛒</span>
-                <span id="label-btn-shop">Магазин</span>
+                <span id="label-btn-shop"></span>
             </button>
             <button id="btn-achievements" onclick="toggleAchievements(true)"
                 class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow"
@@ -61,7 +61,7 @@
                 <div id="stat-health" class="text-red-400 font-bold text-lg">90%</div>
             </div>
             <div class="bg-slate-700/50 p-2 rounded-lg">
-                <div id="label-rating" class="text-slate-400 text-xs">Любовь народа</div>
+                <div id="label-rating" class="text-slate-400 text-xs"></div>
                 <div id="stat-rating" class="text-blue-400 font-bold text-lg">50%</div>
             </div>
         </div>
@@ -96,29 +96,29 @@
         <div
             class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden">
             <div id="game-over-icon" class="text-6xl mb-4">🚨</div>
-            <h2 id="game-over-title" class="text-2xl font-bold mb-2 text-white">Игра окончена</h2>
+            <h2 id="game-over-title" class="text-2xl font-bold mb-2 text-white"></h2>
             <p id="game-over-reason" class="text-slate-300 mb-6 text-sm leading-relaxed"></p>
 
             <!-- Stats Box -->
             <div class="bg-slate-900/80 rounded-xl p-4 mb-6 border border-slate-700/50 space-y-2 text-left">
                 <div class="flex justify-between text-sm">
-                    <span class="text-slate-400" id="label-stat-days">Прожито дней:</span>
+                    <span class="text-slate-400" id="label-stat-days"></span>
                     <span id="end-stat-days" class="font-bold text-white">0</span>
                 </div>
                 <div class="flex justify-between text-sm">
-                    <span class="text-slate-400" id="label-stat-offshore">Офшоры:</span>
+                    <span class="text-slate-400" id="label-stat-offshore"></span>
                     <span id="end-stat-money" class="font-bold text-emerald-400">0 ₪</span>
                 </div>
                 <hr class="border-slate-800 my-2">
                 <div class="flex justify-between text-sm items-center">
-                    <span class="text-slate-400" id="label-stat-title">Финальный титул:</span>
+                    <span class="text-slate-400" id="label-stat-title"></span>
                     <span id="end-stat-title" class="font-bold text-amber-400 text-right">---</span>
                 </div>
             </div>
 
             <button id="btn-restart" onclick="resetGame()"
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition cursor-pointer shadow-lg">
-                Начать новый срок
+
             </button>
         </div>
     </div>
@@ -129,7 +129,7 @@
         class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
         <div class="bg-slate-800 border border-slate-700 max-w-lg w-full rounded-2xl p-6 shadow-2xl relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
-                <h3 id="shop-title" class="text-xl font-bold text-white flex items-center gap-2">🛒 Теневой магазин</h3>
+                <h3 id="shop-title" class="text-xl font-bold text-white flex items-center gap-2">🛒 </h3>
                 <button id="shop-dismiss-btn" onclick="toggleShop(false)" aria-label="Close shop"
                     class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
             </div>
@@ -141,7 +141,7 @@
             <div class="mt-6 pt-3 border-t border-slate-700 flex justify-end">
                 <button onclick="toggleShop(false)" id="shop-close-btn"
                     class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-5 rounded-xl transition cursor-pointer">
-                    Закрыть
+
                 </button>
             </div>
         </div>
@@ -153,7 +153,7 @@
         class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
         <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
-                <h3 id="achievements-title" class="text-xl font-bold text-white flex items-center gap-2">🏆 Достижения</h3>
+                <h3 id="achievements-title" class="text-xl font-bold text-white flex items-center gap-2">🏆 </h3>
                 <button id="achievements-dismiss-btn" onclick="toggleAchievements(false)" aria-label="Close achievements"
                     class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
             </div>

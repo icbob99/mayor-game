@@ -3,7 +3,7 @@
     const logicEvent = gameLogicEvents[state.currentEventIndex];
     const textEvent = currentTexts.events[logicEvent.id];
     if (!textEvent) {
-        console.error(`Ошибка: Не найден текст для события с id "${logicEvent.id}" в базе данных для языка ${state.lang}`);
+        console.error(gameErrorText('event_text_missing', logicEvent.id));
         return;
     }
     updateUI();
@@ -45,8 +45,6 @@ function handleChoice(choiceIndex) {
     state.health = Math.max(0, Math.min(100, state.health + choice.health));
     state.rating = Math.max(0, Math.min(100, state.rating + (choice.rating || 0)));
     if (choice.nextEvent) state.eventQueue.push({ eventId: choice.nextEvent.id, triggerDay: state.day + choice.nextEvent.delay });
-    const chain = currentEvent.chains?.[choiceIndex];
-    if (chain) state.pendingChainEvents.push({ id: chain.nextEventId, triggerDay: state.day + chain.delayDays });
     state.day++;
     checkAchievements();
     saveGuestGame();
@@ -67,16 +65,6 @@ function handleChoice(choiceIndex) {
 }
 
 function loadNextEvent() {
-    const chainIndex = state.pendingChainEvents.findIndex(item => state.day >= item.triggerDay);
-    if (chainIndex !== -1) {
-        const chainEvent = state.pendingChainEvents.splice(chainIndex, 1)[0];
-        const eventIndex = gameLogicEvents.findIndex(event => event.id === chainEvent.id);
-        if (eventIndex !== -1) {
-            showEventAtIndex(eventIndex);
-            return;
-        }
-        console.error(`Ошибка: Не найдено цепочное событие с id "${chainEvent.id}" в загруженных данных`);
-    }
     const queuedIndex = state.eventQueue.findIndex(q => q.triggerDay <= state.day);
     if (queuedIndex !== -1) {
         const queuedEvent = state.eventQueue.splice(queuedIndex, 1)[0];

@@ -9,7 +9,6 @@
     currentEventIndex: -1,
     eventQueue: [],
     cooldowns: {},
-    pendingChainEvents: [],
     audioMuted: false,
     unlockedAchievements: [],
     earnedAchievementsThisGame: []

@@ -1,9 +1,19 @@
-﻿window.onload = async () => {
+let gameDataLoadFailed = false;
+
+function renderStartupStatus() {
+    const texts = getStartupTexts(state.lang);
+    document.getElementById('event-title').innerText = gameDataLoadFailed ? texts.loadFailed : texts.loading;
+    document.getElementById('event-desc').innerText = gameDataLoadFailed ? texts.reload : '';
+}
+
+window.onload = async () => {
+    state.lang = detectInitialLanguage(navigator.language);
     initializeLanguageSelector();
-    document.getElementById('event-title').innerText = 'Загрузка… / Loading… / טוען…';
+    await setLang(state.lang);
     try {
         if (typeof LocalEnvironment !== 'undefined') await LocalEnvironment.ready;
         GuestSession.load(state);
+        await setLang(state.lang);
         if (typeof applyAudioPreference === 'function') {
             applyAudioPreference(Boolean(state.audioMuted));
         }
@@ -15,8 +25,8 @@
         loadNextEvent();
         saveGuestGame();
     } catch (error) {
-        console.error('Ошибка загрузки данных игры', error);
-        document.getElementById('event-title').innerText = 'Ошибка загрузки / Loading failed / שגיאת טעינה';
-        document.getElementById('event-desc').innerText = 'Обновите страницу. / Reload the page. / רעננו את הדף.';
+        gameDataLoadFailed = true;
+        console.error(getStartupTexts(state.lang).loadFailed, error);
+        renderStartupStatus();
     }
 };

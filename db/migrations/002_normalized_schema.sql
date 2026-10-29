@@ -1,5 +1,5 @@
 -- Normalized schema for extensible events, choices and translations.
--- Run after the legacy events/locales tables have been seeded.
+-- Create directly in an empty database; no legacy tables are required.
 CREATE TABLE IF NOT EXISTS game_events (
     id TEXT PRIMARY KEY,
     avatar TEXT NOT NULL,
