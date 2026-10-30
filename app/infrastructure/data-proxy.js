@@ -18,7 +18,7 @@ async function requestGameApi(path, { method = 'GET', body, token } = {}) {
     );
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw Object.assign(new Error(`HTTP ${response.status}`), { code: data.error || 'server_unavailable', status: response.status });
+        throw Object.assign(new Error(`HTTP ${response.status}`), { code: data.error || 'server_unavailable', status: response.status, data });
     }
     return response.json();
 }

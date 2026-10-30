@@ -1,12 +1,12 @@
 import { query } from './database.js';
 
-const idleMs = 30 * 60 * 1000;
+export const idleMs = 30 * 60 * 1000;
 const encoder = new TextEncoder();
 // Cloudflare's production Web Crypto limit is 100,000 PBKDF2 iterations.
 const iterations = 100000;
 const hex = bytes => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
 const randomToken = () => hex(crypto.getRandomValues(new Uint8Array(32)));
-const tokenHash = async token => hex(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
+export const tokenHash = async token => hex(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
 
 async function derive(password, salt) {
     const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
@@ -44,6 +44,10 @@ export async function handleAuth(request, env, headers) {
             const authToken = randomToken();
             const sessionId = crypto.randomUUID();
             const hashedToken = await tokenHash(authToken);
+            // A successful identity switch retires only the token this browser already possessed.
+            const previousToken = request.headers.get('Authorization')?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
+            const previousHash = previousToken ? await tokenHash(previousToken) : null;
+            const retirePrevious = { sql: 'UPDATE auth_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL', args: [now, previousHash] };
             let account;
             let activeGameSessionId = null;
             if (route.endsWith('/register')) {
@@ -52,7 +56,8 @@ export async function handleAuth(request, env, headers) {
                 try {
                     await query(env, [
                         { sql: 'INSERT INTO accounts (id, nickname, nickname_key, password_hash, created_at) VALUES (?, ?, ?, ?, ?)', args: [account.id, nickname, nicknameKey, passwordHash, now] },
-                        { sql: 'INSERT INTO auth_sessions (id, account_id, token_hash, created_at, last_activity_at) VALUES (?, ?, ?, ?, ?)', args: [sessionId, account.id, hashedToken, now, now] }
+                        { sql: 'INSERT INTO auth_sessions (id, account_id, token_hash, created_at, last_activity_at) VALUES (?, ?, ?, ?, ?)', args: [sessionId, account.id, hashedToken, now, now] },
+                        retirePrevious
                     ], true);
                 } catch (error) {
                     if (error.code?.startsWith('SQLITE_CONSTRAINT') && error.message.includes('nickname_key')) return reply({ error: 'nickname_taken' }, 409);
@@ -65,7 +70,8 @@ export async function handleAuth(request, env, headers) {
                 account = { id: row.id, nickname: row.nickname };
                 const [, active] = await query(env, [
                     { sql: 'INSERT INTO auth_sessions (id, account_id, token_hash, created_at, last_activity_at) VALUES (?, ?, ?, ?, ?)', args: [sessionId, account.id, hashedToken, now, now] },
-                    { sql: 'SELECT id FROM active_game_sessions WHERE account_id = ?', args: [account.id] }
+                    { sql: 'SELECT id FROM active_game_sessions WHERE account_id = ?', args: [account.id] },
+                    retirePrevious
                 ], true);
                 activeGameSessionId = active[0]?.id || null;
             }

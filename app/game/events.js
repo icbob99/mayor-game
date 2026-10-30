@@ -48,7 +48,6 @@ function handleChoice(choiceIndex) {
     if (choice.nextEvent) state.eventQueue.push({ eventId: choice.nextEvent.id, triggerDay: state.day + choice.nextEvent.delay });
     state.day++;
     checkAchievements();
-    saveGuestGame();
     if (state.threat >= 100) return triggerGameOver('arrest');
     if (state.wife <= 0) {
         if (typeof playLoseSound === 'function') playLoseSound();
@@ -62,6 +61,7 @@ function handleChoice(choiceIndex) {
         if (typeof playLoseSound === 'function') playLoseSound();
         return triggerGameOver('elections_lost');
     }
+    saveGuestGame();
     loadNextEvent();
 }
 

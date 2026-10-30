@@ -142,6 +142,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal((await authRequest('activity', 'POST', null, signedIn.body.authToken)).status, 200);
     await authRequest('session', 'DELETE', null, signedIn.body.authToken);
     assert.equal((await authRequest('session', 'GET', null, signedIn.body.authToken)).status, 401);
+    await require('./save-api.integration.cjs')(base, firstId);
 
     const guestProgress = "JSON.stringify((({currentEventIndex, ...progress}) => progress)(JSON.parse(LocalEnvironment.storage.getItem('mayorGameState'))))";
     const guestBefore = await page.evaluate(guestProgress);
@@ -149,6 +150,9 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open && state.day === 1"));
     assert.equal(await page.evaluate(guestProgress), guestBefore, 'registration must preserve the guest progress');
     await page.evaluate("document.querySelector('#choices-container button').click()");
+    await page.evaluate('AccountSession.flush()');
+    assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.day)"),
+        await page.evaluate('state.day'), 'a completed move reaches the cloud');
     const mayorSaved = await page.evaluate('JSON.stringify({day:state.day,money:state.money})');
     await page.evaluate('window.beforeAuthReload = true');
     await page.call('Page.reload');
@@ -172,6 +176,36 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate("document.getElementById('auth-password').value = 'browser-password'; document.getElementById('auth-form').requestSubmit()");
     await until(() => page.evaluate("!authFormBusy && !document.getElementById('auth-dialog').open && AccountSession.canPlay()"));
     assert.equal(await page.evaluate('JSON.stringify({day:state.day,money:state.money})'), mayorSaved);
+
+    await page.evaluate('AccountSession.flush()');
+    assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.isFinished)"), true,
+        'offline completion uploads after reauthentication');
+    assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 1);
+    const finishedGame = await page.evaluate('state.gameId');
+    await page.evaluate('resetGame();');
+    await until(() => page.evaluate('state.day === 1 && !state.gameOverRecorded'));
+    assert.notEqual(await page.evaluate('state.gameId'), finishedGame);
+    await page.evaluate('AccountSession.flush()');
+    await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+    await page.evaluate("buyPerk('assuta_vip'); state.eventQueue.push({eventId:'never-restore',triggerDay:99}); saveGuestGame()");
+    const beforeGuest = await page.evaluate('JSON.stringify({gameId:state.gameId,money:state.money,cooldown:state.cooldowns.assuta_vip})');
+    await page.evaluate('becomeGuest()');
+    assert.equal(await page.evaluate('AccountSession.isMayor()'), false);
+    assert.equal(await page.evaluate('state.money'), 1000000);
+    await page.evaluate("openAuth('login')");
+    assert.equal(await page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open"), true,
+        'returning from guest uses the existing authorization even offline');
+    assert.equal(await page.evaluate('JSON.stringify({gameId:state.gameId,money:state.money,cooldown:state.cooldowns.assuta_vip})'), beforeGuest);
+    assert.equal(await page.evaluate('state.eventQueue.length'), 0);
+    await page.call('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await page.evaluate('AccountSession.flush()');
+    assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.money)"), 500000);
+    // Prove cloud restoration, rather than only restoring an existing browser copy.
+    await page.evaluate("LocalEnvironment.storage.removeItem('mayorAccount:' + AccountSession.account().id + ':cloudSave'); window.beforeCloudReload=true");
+    await page.call('Page.reload');
+    await until(() => page.evaluate("!window.beforeCloudReload && typeof AccountSession !== 'undefined' && AccountSession.isMayor() && gameLogicEvents.length > 0 && state.money === 500000"));
+    assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 1);
 
     const expired = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
         { type: 'execute', stmt: { sql: 'UPDATE auth_sessions SET last_activity_at = 0' } },

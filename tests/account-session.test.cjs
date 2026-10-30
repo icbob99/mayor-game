@@ -7,14 +7,20 @@ function browser(initial = {}) {
     const values = new Map(Object.entries(initial));
     let now = 10000000;
     const b = {
+        crypto: require('node:crypto').webcrypto,
         Date: { now: () => now },
         localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: key => values.delete(key) },
         addEventListener() {}, setInterval() {}, updateAuthUI() {},
-        requestGameApi: async () => ({ account: { id: 'a', nickname: 'Mayor' }, authToken: 'token', expiresAt: now + 1800000 })
+        requestGameApi: async path => {
+            if (!path.startsWith('/api/auth/')) throw new TypeError('offline');
+            return { account: { id: 'a', nickname: 'Mayor' }, authToken: 'token', expiresAt: now + 1800000 };
+        }
     };
     b.window = b;
     vm.createContext(b);
     vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/mayor-save.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/account-session.js', 'utf8'), b);
     return { ...b, advance: ms => { now += ms; }, values };
 }
@@ -83,9 +89,38 @@ test('failed signup after a guest game ends does not restore its deleted save', 
         requestGameApi: async () => { throw Object.assign(new Error('Conflict'), { code: 'nickname_taken' }); }
     });
     vm.runInContext(readFileSync('app/ui/auth.js', 'utf8'), b.window);
+    vm.runInContext('state = window.state; currentTexts = window.currentTexts', b.window);
     b.window.updateAuthUI = () => {};
     vm.runInContext("authFormKind = 'register'", b.window);
     await b.window.submitAuth({ preventDefault() {} });
     assert.equal(elements.get('auth-error').textContent, 'Nickname taken');
     assert.equal(b.values.has('mayorGameState'), false, 'a completed guest game must remain deleted');
+});
+
+test('switching accounts cannot acknowledge or send the previous account snapshot as the new user', async () => {
+    const b = browser();
+    let release;
+    const writes = [];
+    b.window.requestGameApi = async (path, { body, token, method } = {}) => {
+        if (path.startsWith('/api/auth/')) return { account: { id: body.nickname, nickname: body.nickname }, authToken: body.nickname };
+        if (path.endsWith('/session')) return { gameSessionId: token + '-session', save: null };
+        if (method !== 'PUT') return null;
+        writes.push({ token, day: body.state.day });
+        if (token === 'A') await new Promise(resolve => { release = resolve; });
+        return { status: 'saved', operationId: body.operationId, writeTimestamp: body.writeTimestamp, versionGuid: token + '-version' };
+    };
+    await b.AccountSession.authenticate('login', { nickname: 'A' });
+    b.AccountSession.save({ day: 7, money: 100, wife: 50, threat: 15, health: 90, rating: 50 });
+    const oldRequest = b.AccountSession.flush();
+    await b.AccountSession.authenticate('login', { nickname: 'B' });
+    assert.equal(b.AccountSession.loadGame(), null);
+    b.AccountSession.save({ day: 1, money: 1000000, wife: 50, threat: 15, health: 90, rating: 50 });
+    await b.AccountSession.flush();
+    release();
+    await oldRequest;
+    assert.deepEqual(writes, [{ token: 'A', day: 7 }, { token: 'B', day: 1 }]);
+    assert.equal(b.AccountSession.loadGame().day, 1);
+    assert.equal(JSON.parse(b.values.get('mayorAccount:A:cloudSave')).state.day, 7);
+    assert.notEqual(JSON.parse(b.values.get('mayorAccount:A:cloudSave')).pending, null);
+    assert.equal(JSON.parse(b.values.get('mayorAccount:B:cloudSave')).pending, null);
 });

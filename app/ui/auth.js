@@ -32,8 +32,13 @@ function updateAuthUI() {
     document.getElementById('auth-submit').textContent = authText(authFormBusy ? 'working' : authFormKind);
 }
 
-function openAuth(kind) {
+async function openAuth(kind) {
     if (!currentTexts?.ui.auth) return;
+    if (kind === 'login' && !AccountSession.isMayor() && AccountSession.token() &&
+        AccountSession.check() !== 'expired' && await AccountSession.becomeMayor()) {
+        await restoreMayor();
+        return;
+    }
     authFormKind = kind;
     const invite = document.getElementById('auth-invite');
     if (invite.open) invite.close();
@@ -63,15 +68,7 @@ async function submitAuth(event) {
         });
         document.getElementById('auth-password').value = '';
         document.getElementById('auth-dialog').close();
-        const saved = AccountSession.loadGame();
-        if (saved) {
-            Object.assign(state, saved);
-            state.currentEventIndex = -1;
-            await setLang(state.lang);
-            if (state.gameOverRecorded) triggerGameOver(state.endReason);
-            else { document.getElementById('game-over-screen').classList.add('hidden'); loadNextEvent(); }
-        } else await resetGame();
-        saveGuestGame();
+        await restoreMayor();
     } catch (error) {
         document.getElementById('auth-error').textContent = authText(error.code || 'server_unavailable');
     } finally {
@@ -80,6 +77,19 @@ async function submitAuth(event) {
         document.getElementById('auth-cancel').disabled = false;
         updateAuthUI();
     }
+}
+
+async function restoreMayor() {
+    const saved = AccountSession.loadGame();
+    if (saved) {
+        Object.assign(state, saved);
+        state.currentEventIndex = -1;
+        await setLang(state.lang);
+        if (state.gameOverRecorded) triggerGameOver(state.endReason);
+        else { document.getElementById('game-over-screen').classList.add('hidden'); loadNextEvent(); }
+    } else await resetGame();
+    saveGuestGame();
+    updateAuthUI();
 }
 
 async function becomeGuest() {

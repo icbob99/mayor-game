@@ -2,6 +2,8 @@
     const idleMs = 30 * 60000;
     let auth = null;
     let pendingPing = false;
+    let mayorSave = null;
+    let switching = false;
 
     function storage() {
         try { return root.LocalEnvironment ? root.LocalEnvironment.storage : root.localStorage; }
@@ -25,6 +27,12 @@
         };
     }
     function notify() { root.updateAuthUI?.(); }
+    function openSave() {
+        const owner = auth;
+        mayorSave = root.createMayorSave(accountStorage(), () => owner.authToken,
+            () => auth === owner && (!root.LocalEnvironment || root.LocalEnvironment.isCurrent()),
+            () => { owner.retiredToken = owner.authToken; owner.authToken = null; persist(); notify(); });
+    }
     function sendActivity() {
         if (!auth?.authToken || pendingPing) return;
         const token = auth.authToken;
@@ -33,7 +41,7 @@
         root.requestGameApi('/api/auth/activity', { method: 'POST', token }).then(data => {
             if (auth.authToken === token) { auth.expiresAt = data.expiresAt; persist(); }
         }).catch(error => {
-            if (error.status === 401 && auth.authToken === token) { auth.authToken = null; persist(); notify(); }
+            if (error.status === 401 && auth.authToken === token) { auth.retiredToken = token; auth.authToken = null; persist(); notify(); }
         }).finally(() => {
             pendingPing = false;
             // Include activity that happened during the request, but never invent background activity.
@@ -42,6 +50,7 @@
     }
     function expire() {
         const token = auth.authToken;
+        auth.retiredToken = token || auth.retiredToken;
         auth.authToken = null;
         auth.locked = true;
         persist();
@@ -59,11 +68,17 @@
                     const data = await root.requestGameApi('/api/auth/session', { token });
                     if (auth.authToken === token) { auth.expiresAt = data.expiresAt; persist(); }
                 } catch (error) {
-                    if (error.status === 401 && auth.authToken === token) { auth.authToken = null; persist(); }
+                    if (error.status === 401 && auth.authToken === token) { auth.retiredToken = token; auth.authToken = null; persist(); }
                     // A network error does not discard local play or credentials.
                 }
             }
+            if (auth) {
+                openSave();
+                if (this.isMayor()) await mayorSave.resume();
+            }
             root.setInterval(() => { this.check(); notify(); }, 1000);
+            root.setInterval(() => { this.check(); void mayorSave?.flush(); }, 10000);
+            root.addEventListener('online', () => { this.check(); void mayorSave?.flush(); });
             for (const event of ['pointerdown', 'keydown']) root.addEventListener(event, e => {
                 if (e.isTrusted) this.activity();
             });
@@ -79,9 +94,14 @@
             });
         },
         async authenticate(kind, credentials) {
-            const result = await root.requestGameApi(`/api/auth/${kind}`, { method: 'POST', body: credentials });
+            const result = await root.requestGameApi(`/api/auth/${kind}`, {
+                method: 'POST', body: credentials, token: auth?.authToken || auth?.retiredToken
+            });
             auth = { ...result, mode: 'mayor', lastActivityAt: Date.now() };
             persist();
+            openSave();
+            switching = true;
+            try { await mayorSave.resume(); } finally { switching = false; }
             return result;
         },
         isMayor() { return auth?.mode === 'mayor'; },
@@ -94,7 +114,7 @@
             if (elapsed >= idleMs) { expire(); return 'expired'; }
             return elapsed >= 25 * 60000 ? 'warning' : 'active';
         },
-        canPlay() { return !this.isMayor() || this.check() !== 'expired'; },
+        canPlay() { return !switching && (!this.isMayor() || this.check() !== 'expired'); },
         activity() {
             if (!auth || this.check() === 'expired') { notify(); return false; }
             auth.lastActivityAt = Date.now();
@@ -103,16 +123,21 @@
             sendActivity();
             return true;
         },
-        loadGame() { return this.isMayor() ? root.GuestStorage.loadGameState(accountStorage()) : null; },
+        loadGame() { return this.isMayor() ? mayorSave?.load() : null; },
         save(state) {
             if (!this.isMayor() || (root.LocalEnvironment && !root.LocalEnvironment.isCurrent())) return;
-            const store = accountStorage();
-            root.GuestStorage.saveGameState(store, state);
-            root.GuestStorage.updateMaxMoney(store, state.money);
+            mayorSave.save(state);
+            void mayorSave.flush();
         },
-        recordGameOver(state) {
-            if (!this.isMayor()) return;
-            root.GuestStorage.recordGameOver(accountStorage(), { money: state.money, unlockedAchievements: state.earnedAchievementsThisGame });
+        getStats() { return mayorSave?.stats(); },
+        syncStatus() { return mayorSave?.status(); },
+        flush() { return mayorSave?.flush(); },
+        async becomeMayor() {
+            if (!auth?.authToken || this.check() === 'expired') return false;
+            auth.mode = 'mayor'; persist();
+            switching = true;
+            try { await mayorSave.resume(); } finally { switching = false; }
+            return true;
         },
         becomeGuest() { if (auth) { auth.mode = 'guest'; persist(); } },
         shouldInvite(count) {

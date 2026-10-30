@@ -1,5 +1,6 @@
 import { pipeline } from './database.js';
 import { handleAuth } from './auth.js';
+import { handleSave } from './saves.js';
 
 const allowedOrigins = ['https://icbob99.github.io'];
 
@@ -7,7 +8,7 @@ function corsHeaders(origin) {
     const allowed = !origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:');
     return {
         'Access-Control-Allow-Origin': allowed ? origin || '*' : 'null',
-        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Content-Type': 'application/json'
     };
@@ -20,6 +21,7 @@ export default {
 
         const url = new URL(request.url);
         if (url.pathname.startsWith('/api/auth/')) return handleAuth(request, env, headers);
+        if (url.pathname.startsWith('/api/game/')) return handleSave(request, env, headers);
         if (url.pathname !== '/api/game-data' || request.method !== 'GET') {
             return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers });
         }

@@ -17,11 +17,11 @@ function triggerGameOver(reasonType) {
     }
 
     if (!state.gameOverRecorded) {
-        if (AccountSession.isMayor()) AccountSession.recordGameOver(state);
-        else inviteGuest(GuestSession.recordGameOver(state).gamesPlayed);
         state.gameOverRecorded = true;
         state.endReason = reasonType;
+        state.finishedAt = Date.now();
         if (AccountSession.isMayor()) saveGuestGame();
+        else inviteGuest(GuestSession.recordGameOver(state).gamesPlayed);
     }
 
     const screen = document.getElementById('game-over-screen');
@@ -72,6 +72,8 @@ async function resetGame() {
     state.earnedAchievementsThisGame = [];
     state.gameOverRecorded = false;
     state.endReason = null;
+    state.finishedAt = null;
+    state.gameId = crypto.randomUUID();
     await setLang(state.lang);
     loadNextEvent();
     saveGuestGame();
