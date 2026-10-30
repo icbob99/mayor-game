@@ -32,6 +32,7 @@ Use the installed skill catalog to locate general skills by name; do not copy th
 | `game-text-editor` | Language review of cards and UI in RU/EN/UK/HE. Personal skill: `C:/Users/BorisShulman/.codex/skills/game-text-editor/SKILL.md`. Preserve meaning and placeholders; propose small batches before applying text changes. |
 | `deployment-aware-development` | During development/review, account for deployed state and the upgrade/recovery path. Personal skill: `C:/Users/BorisShulman/.codex/skills/deployment-aware-development/SKILL.md`. Project deployment evidence and open gaps are in `docs/agent-notes.md`. |
 | `mayor-game-deployment` | Project extension at `.agents/skills/mayor-game-deployment/SKILL.md`; loads `deployment-aware-development` and maps its rules to Mayor Game tables, SQL sources, components and local environments. Use for changes affecting release compatibility or persisted state. |
+| `md-refresh` | Project skill at `.agents/skills/md-refresh/SKILL.md`. After every three user messages, check whether the agent journal needs updating; also apply on explicit refresh or an unknown checkpoint after context recovery. |
 
 Other applicable skills remain available. Existing approved D/P decisions should be reused instead of reopening design. A skill does not authorize code changes, dependencies, extra documents, delegation or Git operations beyond Boris's approval.
 
@@ -48,6 +49,7 @@ Other applicable skills remain available. Existing approved D/P decisions should
 
 ## Keep context useful
 
+- Apply [md-refresh](.agents/skills/md-refresh/SKILL.md) on its cadence. Count user messages in working context; check after the third, then reset. If recovery loses the count, check immediately. A check does not require an edit.
 - Update the current-state section in place: actual work, open defects, latest verification, next action and authorization limits. Record a result once, link to it elsewhere.
 - Distinguish approved design, implemented code, verified behavior and Boris's acceptance. A successful login check does not establish that cloud saves or device transfer work.
 - Keep durable decisions in the existing D/P sections and relevant history in the journal. Do not create a second roadmap or per-task memory files.
