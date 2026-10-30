@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS game_choices (
     FOREIGN KEY (event_id) REFERENCES game_events(id)
 );
 
-CREATE TABLE IF NOT EXISTS game_ui_locales (
+CREATE TABLE IF NOT EXISTS game_locale_ui (
     lang TEXT PRIMARY KEY,
     ui TEXT NOT NULL,
     alerts TEXT NOT NULL

@@ -30,7 +30,7 @@ export default {
         const response = await pipeline(env, [
                     { type: 'execute', stmt: { sql: 'SELECT id, avatar, is_follow_up, repeat_policy, max_occurrences FROM game_events ORDER BY rowid', want_rows: true } },
                     { type: 'execute', stmt: { sql: 'SELECT event_id, choice_index, money, wife, health, threat, rating, next_event_id, delay_days FROM game_choices ORDER BY event_id, choice_index', want_rows: true } },
-                    { type: 'execute', stmt: { sql: 'SELECT lang, ui, alerts FROM game_ui_locales ORDER BY rowid', want_rows: true } },
+                    { type: 'execute', stmt: { sql: 'SELECT lang, ui, alerts FROM game_locale_ui ORDER BY rowid', want_rows: true } },
                     { type: 'execute', stmt: { sql: 'SELECT event_id, lang, title, description FROM game_event_locales ORDER BY event_id, lang', want_rows: true } },
                     { type: 'execute', stmt: { sql: 'SELECT event_id, choice_index, lang, text FROM game_choice_locales ORDER BY event_id, choice_index, lang', want_rows: true } },
                     { type: 'close' }

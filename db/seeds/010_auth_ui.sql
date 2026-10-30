@@ -1,7 +1,7 @@
 -- Registration, sign-in and inactivity messages.
 BEGIN TRANSACTION;
 
-UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
+UPDATE game_locale_ui SET ui = json_set(ui, '$.auth', json('{
   "login": "Я мэр", "register": "Хочу быть мэром", "guest": "Хочу быть гостем",
   "nickname": "Ник", "password": "Пароль", "cancel": "Отмена", "working": "Подождите…",
   "warning": "Вы не играли 25 минут. Через 5 минут потребуется повторный вход.",
@@ -14,7 +14,7 @@ UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
   "server_unavailable": "Сервер недоступен. Попробуйте позже.", "auth_expired": "Войдите снова."
 }')) WHERE lang = 'ru';
 
-UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
+UPDATE game_locale_ui SET ui = json_set(ui, '$.auth', json('{
   "login": "I am a mayor", "register": "Become a mayor", "guest": "Play as a guest",
   "nickname": "Nickname", "password": "Password", "cancel": "Cancel", "working": "Please wait…",
   "warning": "You have been inactive for 25 minutes. You will be signed out in 5 minutes.",
@@ -27,7 +27,7 @@ UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
   "server_unavailable": "Server unavailable. Try again later.", "auth_expired": "Please sign in again."
 }')) WHERE lang = 'en';
 
-UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
+UPDATE game_locale_ui SET ui = json_set(ui, '$.auth', json('{
   "login": "Я мер", "register": "Хочу бути мером", "guest": "Хочу бути гостем",
   "nickname": "Нік", "password": "Пароль", "cancel": "Скасувати", "working": "Зачекайте…",
   "warning": "Ви не грали 25 хвилин. Через 5 хвилин знадобиться повторний вхід.",
@@ -40,7 +40,7 @@ UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
   "server_unavailable": "Сервер недоступний. Спробуйте пізніше.", "auth_expired": "Увійдіть знову."
 }')) WHERE lang = 'uk';
 
-UPDATE game_ui_locales SET ui = json_set(ui, '$.auth', json('{
+UPDATE game_locale_ui SET ui = json_set(ui, '$.auth', json('{
   "login": "אני ראש עיר", "register": "רוצה להיות ראש עיר", "guest": "לשחק כאורח",
   "nickname": "כינוי", "password": "סיסמה", "cancel": "ביטול", "working": "נא להמתין…",
   "warning": "לא שיחקת במשך 25 דקות. בעוד 5 דקות תידרש כניסה מחדש.",

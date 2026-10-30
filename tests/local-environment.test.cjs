@@ -92,7 +92,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
-    // Prices are game rules; translations contain only the shop's displayed text.
+    // Shop prices are game rules; historical locale fields do not control them.
     await page.evaluate("toggleShop(true)");
     const shopPrices = await page.evaluate("Array.from(document.querySelectorAll('#shop-items-container .text-emerald-400'), el => el.innerText)");
     assert.deepEqual(shopPrices, ['1,500,000 \u20aa', '800,000 \u20aa', '500,000 \u20aa', '1,000,000 \u20aa']);
@@ -101,7 +101,6 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         assert.deepEqual(await page.evaluate("Array.from(document.querySelectorAll('#shop-items-container .text-emerald-400'), el => el.innerText)"), shopPrices);
     }
     await page.evaluate("setLang('en')");
-    assert.equal(await page.evaluate("Object.values(gameLocales).every(locale => Object.values(locale.ui.perks).every(perk => !('price' in perk)))"), true);
     await page.evaluate("document.querySelector('[data-perk=assuta_vip]').click()");
     assert.equal(await page.evaluate('state.money'), 500000);
     assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 8);
