@@ -1,5 +1,6 @@
 ﻿function updateUI() {
     if (!currentTexts) return;
+    updateAuthUI();
 
     document.getElementById('label-money').innerText = currentTexts.ui.money;
     document.getElementById('label-wife').innerText = currentTexts.ui.wife;
@@ -38,7 +39,8 @@
 }
 
 function saveGuestGame() {
-    GuestSession.save(state);
+    if (AccountSession.isMayor()) AccountSession.save(state);
+    else GuestSession.save(state);
 }
 
 function setAudioPreference(muted) {

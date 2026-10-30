@@ -17,8 +17,11 @@ function triggerGameOver(reasonType) {
     }
 
     if (!state.gameOverRecorded) {
-        GuestSession.recordGameOver(state);
+        if (AccountSession.isMayor()) AccountSession.recordGameOver(state);
+        else inviteGuest(GuestSession.recordGameOver(state).gamesPlayed);
         state.gameOverRecorded = true;
+        state.endReason = reasonType;
+        if (AccountSession.isMayor()) saveGuestGame();
     }
 
     const screen = document.getElementById('game-over-screen');
@@ -53,6 +56,7 @@ function triggerGameOver(reasonType) {
 
 
 async function resetGame() {
+    if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     document.getElementById('game-over-screen').classList.add('hidden');
 
     state.money = 1000000;
@@ -67,6 +71,7 @@ async function resetGame() {
     state.unlockedAchievements = [];
     state.earnedAchievementsThisGame = [];
     state.gameOverRecorded = false;
+    state.endReason = null;
     await setLang(state.lang);
     loadNextEvent();
     saveGuestGame();

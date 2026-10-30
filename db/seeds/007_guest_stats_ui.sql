@@ -1,7 +1,7 @@
 -- UI translations for the local guest profile and statistics (Phase 1A).
 BEGIN TRANSACTION;
 
-UPDATE game_locale_ui
+UPDATE game_ui_locales
 SET ui = json_set(ui,
     '$.guest_stats_title', 'Guest statistics',
     '$.guest_stats_games', 'Games played',
@@ -12,7 +12,7 @@ SET ui = json_set(ui,
 )
 WHERE lang = 'en';
 
-UPDATE game_locale_ui
+UPDATE game_ui_locales
 SET ui = json_set(ui,
     '$.guest_stats_title', 'Статистика гостя',
     '$.guest_stats_games', 'Сыграно игр',
@@ -23,7 +23,7 @@ SET ui = json_set(ui,
 )
 WHERE lang = 'ru';
 
-UPDATE game_locale_ui
+UPDATE game_ui_locales
 SET ui = json_set(ui,
     '$.guest_stats_title', 'סטטיסטיקת אורח',
     '$.guest_stats_games', 'משחקים ששוחקו',

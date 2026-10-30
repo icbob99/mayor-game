@@ -33,6 +33,7 @@ function showEventAtIndex(eventIndex) {
 }
 
 function handleChoice(choiceIndex) {
+    if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     if (typeof initAudio === 'function') initAudio();
     if (typeof startBgMusic === 'function') startBgMusic();
     if (typeof playClickSound === 'function') playClickSound();

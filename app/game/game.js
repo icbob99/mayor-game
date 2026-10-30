@@ -12,7 +12,12 @@ window.onload = async () => {
     await setLang(state.lang);
     try {
         if (typeof LocalEnvironment !== 'undefined') await LocalEnvironment.ready;
-        GuestSession.load(state);
+        await AccountSession.init();
+        if (AccountSession.isMayor()) {
+            const saved = AccountSession.loadGame();
+            if (saved) Object.assign(state, saved);
+            state.currentEventIndex = -1;
+        } else GuestSession.load(state);
         await setLang(state.lang);
         if (typeof applyAudioPreference === 'function') {
             applyAudioPreference(Boolean(state.audioMuted));
@@ -22,7 +27,8 @@ window.onload = async () => {
         gameLocales = data.locales;
         if (!gameLocales[state.lang]) state.lang = 'en';
         await setLang(state.lang);
-        loadNextEvent();
+        if (AccountSession.isMayor() && state.gameOverRecorded) triggerGameOver(state.endReason);
+        else loadNextEvent();
         saveGuestGame();
     } catch (error) {
         gameDataLoadFailed = true;

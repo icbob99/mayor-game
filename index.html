@@ -67,6 +67,40 @@
         </div>
     </header>
 
+    <section class="max-w-3xl w-full mx-auto px-4 pt-3 flex flex-wrap items-center justify-center gap-3">
+        <span id="auth-account" class="font-bold"></span>
+        <button id="btn-login" onclick="openAuth('login')" class="px-3 py-2 rounded bg-indigo-600"></button>
+        <button id="btn-register" onclick="openAuth('register')" class="px-3 py-2 rounded bg-slate-700"></button>
+        <button id="btn-become-guest" onclick="becomeGuest()" hidden class="px-3 py-2 rounded bg-slate-700"></button>
+    </section>
+    <div id="auth-notice" hidden role="status" class="max-w-xl mx-auto p-3 text-center text-amber-300">
+        <span id="auth-notice-text"></span>
+        <button id="btn-auth-continue" onclick="AccountSession.activity()" class="underline ms-2"></button>
+    </div>
+
+    <dialog id="auth-dialog" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-sm backdrop:bg-black/70"
+        oncancel="if (authFormBusy) event.preventDefault()">
+        <form id="auth-form" onsubmit="submitAuth(event)" class="space-y-4">
+            <h2 id="auth-title" class="text-xl font-bold"></h2>
+            <label class="block"><span id="auth-nickname-label"></span>
+                <input id="auth-nickname" name="nickname" autocomplete="username" required maxlength="128" class="block w-full mt-1 rounded bg-slate-700 p-2">
+            </label>
+            <label class="block"><span id="auth-password-label"></span>
+                <input id="auth-password" name="password" type="password" autocomplete="current-password" required maxlength="1024" class="block w-full mt-1 rounded bg-slate-700 p-2">
+            </label>
+            <p id="auth-error" role="alert" class="text-red-300"></p>
+            <div class="flex gap-3">
+                <button id="auth-submit" type="submit" class="rounded bg-indigo-600 px-4 py-2"></button>
+                <button id="auth-cancel" type="button" onclick="document.getElementById('auth-dialog').close()" class="rounded bg-slate-700 px-4 py-2"></button>
+            </div>
+        </form>
+    </dialog>
+    <dialog id="auth-invite" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-sm backdrop:bg-black/70">
+        <p id="auth-invite-text" class="mb-4"></p>
+        <button id="auth-invite-yes" onclick="openAuth('register')" class="rounded bg-indigo-600 px-4 py-2"></button>
+        <button id="auth-invite-no" onclick="document.getElementById('auth-invite').close()" class="rounded bg-slate-700 px-4 py-2"></button>
+    </dialog>
+
     <!-- Main game block: Day card -->
     <main class="max-w-xl w-full mx-auto p-4 flex-1 flex flex-col justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -203,9 +237,11 @@
     <script src="app/data/guest-storage.js"></script>
     <script src="app/ui/language-utils.js"></script>
     <script src="app/game/guest-session.js"></script>
+    <script src="app/game/account-session.js"></script>
     <script src="app/game/game-state.js"></script>
     <script src="app/game/choice-order.js"></script>
     <script src="app/ui/language.js"></script>
+    <script src="app/ui/auth.js"></script>
     <script src="app/ui/ui.js"></script>
     <script src="app/game/shop.js"></script>
     <script src="app/game/achievements.js"></script>

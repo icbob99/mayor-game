@@ -83,6 +83,7 @@ function renderShop() {
 }
 
 function buyPerk(key) {
+    if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     if (!shopPerkKeys.includes(key)) {
         console.error(gameErrorText('perk_unknown', key));
         return;
