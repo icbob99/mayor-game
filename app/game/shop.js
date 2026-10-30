@@ -27,7 +27,8 @@ function renderShop() {
             return;
         }
 
-        const canAfford = state.money >= perk.price;
+        const cost = shopPerkPrices[key];
+        const canAfford = state.money >= cost;
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between gap-3 p-3 bg-slate-900/80 border border-slate-700/60 rounded-xl';
 
@@ -42,7 +43,7 @@ function renderShop() {
 
         const price = document.createElement('div');
         price.className = 'text-xs font-bold text-emerald-400 mt-0.5';
-        price.innerText = `${perk.price.toLocaleString()} ₪`;
+        price.innerText = `${cost.toLocaleString()} ₪`;
 
         details.append(name, description, price);
 
@@ -106,12 +107,13 @@ function buyPerk(key) {
     );
     if (isMaxed) return;
 
-    if (state.money < perk.price) {
+    const cost = shopPerkPrices[key];
+    if (state.money < cost) {
         alert(currentTexts.ui.shop_not_enough);
         return;
     }
 
-    state.money -= perk.price;
+    state.money -= cost;
     if (key === 'police_bribe') {
         state.threat = Math.max(0, state.threat - 20);
     } else if (key === 'wife_spa') {

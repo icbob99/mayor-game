@@ -19,7 +19,13 @@ let gameLocales = {};
 let currentTexts = null;
 let languageRequestId = 0;
 let currentChoiceOrder = [];
-const shopPerkKeys = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
+const shopPerkPrices = {
+    police_bribe: 1500000,
+    wife_spa: 800000,
+    assuta_vip: 500000,
+    pr_agency: 1000000
+};
+const shopPerkKeys = Object.keys(shopPerkPrices);
 const shopPerkCooldownDays = 7;
 const LANGUAGE_OPTIONS = [
     { id: 'en', label: 'English', flag: 'assets/flags/gb.svg' },

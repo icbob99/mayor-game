@@ -13,6 +13,7 @@
 - `app/infrastructure/data-proxy.js`: environment selection, URLs, HTTP and timeout.
 - `app/data/dal.js`: raw Worker tables to game objects. No SQL, Turso credentials, URLs or environment selection here.
 - `app/game/`: game rules and session management. `app/ui/`: rendering, language and audio.
+- Shop prices belong to `shopPerkPrices` in `app/game/game-state.js`; locale JSON contains shop names/descriptions only. Do not duplicate prices per language or add a table just for these four existing constants.
 - `cloudflare/worker.js`: API entry point; game-data response stays raw. `cloudflare/database.js` handles database transport; `cloudflare/auth.js` handles authentication. Consult the journal for implementation status.
 - `server.py`: local stack lifecycle and the sole ordered SQL list (`SQL_FILES`). Never copy this list into tests.
 - `db/migrations/003_account_schema.sql` has not been applied to production. Edit it for agreed schema changes instead of creating incremental migrations for this unreleased schema. Recheck deployment status first.
