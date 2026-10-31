@@ -145,3 +145,138 @@ test('reload retries an unacknowledged operation without creating a false confli
     assert.equal(reopened.save.status(), null);
     assert.equal(JSON.parse(c.values.get('cloudSave')).versionGuid, 'own-version');
 });
+
+test('choosing local progress retries a lost activation reply and writes above the cloud timestamp', async () => {
+    const c = client();
+    c.state.day = 8;
+    c.save.save(c.state);
+    const cloud = { versionGuid: 'remote', writeTimestamp: Date.now() + 50000, state: { ...plain(c.save.load()), day: 12 },
+        stats: { gamesPlayed: 3, maxMoney: 3000000, achievements: {} } };
+    const activations = [], writes = [];
+    c.b.requestGameApi = async (path, { method, body } = {}) => {
+        if (path.endsWith('/session')) {
+            activations.push(plain(body));
+            if (activations.length === 1) throw new TypeError('reply lost');
+            return { gameSessionId: 'session', save: cloud };
+        }
+        if (method !== 'PUT') return cloud;
+        writes.push(plain(body));
+        return { status: 'saved', operationId: body.operationId, writeTimestamp: body.writeTimestamp, versionGuid: 'selected-local' };
+    };
+    await c.save.resume();
+    await c.save.resolve('local');
+    assert.equal(c.save.load().day, 8);
+    assert.equal(writes.length, 0);
+    await c.save.resolve('local');
+    assert.deepEqual(activations[0], activations[1]);
+    assert.equal(activations[0].expectedVersionGuid, 'remote');
+    assert.equal(activations[0].confirmTransfer, true);
+    assert.equal(writes[0].state.day, 8);
+    assert.ok(writes[0].writeTimestamp > cloud.writeTimestamp);
+    assert.equal(writes[0].stats.gamesPlayed, 0, 'statistics are selected, not merged');
+    assert.equal(c.save.status(), null);
+});
+
+test('cloud changing during selection preserves the local game and requires a new choice', async () => {
+    const c = client();
+    c.state.day = 8;
+    c.save.save(c.state);
+    const initial = JSON.parse(c.values.get('cloudSave'));
+    const cloud = { versionGuid: 'remote', writeTimestamp: Date.now() + 50000, state: { ...initial.state, day: 12 }, stats: initial.stats };
+    let choices = 0;
+    c.b.requestGameApi = async (path, { method, body } = {}) => {
+        if (path.endsWith('/session')) {
+            if (++choices === 1) {
+                cloud.versionGuid = 'newer'; cloud.state.day = 13;
+                throw Object.assign(new Error('changed'), { status: 409, code: 'save_conflict', data: { save: cloud } });
+            }
+            assert.equal(body.expectedVersionGuid, 'newer');
+            return { gameSessionId: 'session', save: cloud };
+        }
+        assert.notEqual(method, 'PUT', 'choosing cloud must not upload the discarded local snapshot');
+        return cloud;
+    };
+    await c.save.resume();
+    await c.save.resolve('cloud');
+    assert.equal(c.save.load().day, 8);
+    assert.equal(c.save.details().cloud.state.day, 13);
+    assert.equal(c.save.status(), 'save_conflict');
+    await c.save.resolve('cloud');
+    assert.equal(c.save.load().day, 13);
+    assert.equal(c.save.status(), null);
+    assert.equal(JSON.parse(c.values.get('cloudSave')).completedGames.length, 0);
+});
+
+test('a replaced writer stays blocked after reload until reauthentication and explicit transfer', async () => {
+    const c = client();
+    c.save.save(c.state);
+    const record = JSON.parse(c.values.get('cloudSave'));
+    record.gameSessionId = 'old-session'; record.ackTimestamp = record.writeTimestamp; record.versionGuid = 'cloud';
+    c.values.set('cloudSave', JSON.stringify(record));
+    const restored = client(c.values);
+    let activations = 0;
+    const cloud = { versionGuid: 'cloud', writeTimestamp: record.writeTimestamp, state: record.state, stats: record.stats };
+    restored.b.requestGameApi = async (path, { body } = {}) => {
+        if (path.includes('?')) throw Object.assign(new Error('replaced'), { status: 403, code: 'session_replaced' });
+        if (path.endsWith('/session')) {
+            activations++;
+            if (!body.confirmTransfer) throw Object.assign(new Error('confirm'), { status: 409, code: 'transfer_required', data: { save: cloud } });
+            return { gameSessionId: 'new-session', save: cloud };
+        }
+        return cloud;
+    };
+    await restored.save.resume();
+    assert.equal(restored.save.status(), 'session_replaced');
+    await restored.save.resume();
+    assert.equal(activations, 0);
+    await restored.save.resume(true);
+    assert.equal(restored.save.status(), 'transfer_required');
+    assert.equal(restored.save.details().source, 'cloud');
+    await restored.save.resolve('cloud');
+    assert.equal(activations, 2);
+    assert.equal(restored.save.status(), null);
+});
+
+test('reload recovers a lost activation reply before probing the replaced previous ID', async () => {
+    const c = client();
+    c.save.save(c.state);
+    const record = JSON.parse(c.values.get('cloudSave'));
+    record.gameSessionId = 'old-session'; record.versionGuid = 'cloud'; record.ackTimestamp = record.writeTimestamp;
+    record.activation = { operationId: webcrypto.randomUUID(), previousGameSessionId: 'old-session', expectedVersionGuid: 'cloud', source: 'cloud', confirmTransfer: false };
+    c.values.set('cloudSave', JSON.stringify(record));
+    const restored = client(c.values);
+    restored.b.requestGameApi = async (path, { body }) => {
+        assert.equal(path, '/api/game/session', 'recover the known operation before probing an obsolete ID');
+        assert.deepEqual(plain(body), record.activation);
+        return { gameSessionId: 'already-activated', save: { versionGuid: 'cloud', writeTimestamp: record.writeTimestamp, state: record.state, stats: record.stats } };
+    };
+    await restored.save.resume();
+    assert.equal(restored.save.status(), null);
+    assert.equal(JSON.parse(c.values.get('cloudSave')).gameSessionId, 'already-activated');
+});
+
+test('a recovered cloud activation cannot discard moves made offline while its reply was missing', async () => {
+    const c = client();
+    c.save.save(c.state);
+    const record = JSON.parse(c.values.get('cloudSave'));
+    record.versionGuid = 'cloud'; record.ackTimestamp = record.writeTimestamp;
+    c.values.set('cloudSave', JSON.stringify(record));
+    const restored = client(c.values);
+    let lost = true, uploaded;
+    const cloud = { versionGuid: 'cloud', writeTimestamp: record.writeTimestamp, state: record.state, stats: record.stats };
+    restored.b.requestGameApi = async (path, { method, body } = {}) => {
+        if (path.endsWith('/session')) {
+            if (lost) { lost = false; throw new TypeError('reply lost'); }
+            return { gameSessionId: 'accepted-session', save: cloud };
+        }
+        if (method !== 'PUT') return cloud;
+        uploaded = body.state;
+        return { status: 'saved', operationId: body.operationId, writeTimestamp: body.writeTimestamp, versionGuid: 'new-cloud' };
+    };
+    await restored.save.resume();
+    const played = restored.save.load(); played.day = 2;
+    restored.save.save(played);
+    await restored.save.flush();
+    assert.equal(restored.save.load().day, 2);
+    assert.equal(uploaded.day, 2);
+});

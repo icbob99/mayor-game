@@ -21,6 +21,7 @@ SQL_FILES = (
     'db/seeds/008_ukrainian_locale.sql',
     'db/seeds/009_event_error_locale.sql',
     'db/seeds/010_auth_ui.sql',
+    'db/seeds/011_save_sync_ui.sql',
     'db/migrations/003_account_schema.sql',
 )
 

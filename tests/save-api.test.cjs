@@ -3,7 +3,7 @@ const { test } = require('node:test');
 
 test('save routes require authentication and reject malformed snapshots before DB access', async () => {
     const { default: worker } = await import('../cloudflare/worker.js');
-    for (const [method, path] of [['GET', 'save'], ['PUT', 'save'], ['PUT', 'session']]) {
+    for (const [method, path] of [['GET', 'save'], ['PUT', 'save'], ['GET', 'session'], ['PUT', 'session']]) {
         const response = await worker.fetch(new Request(`https://example.com/api/game/${path}`, { method }), {});
         assert.equal(response.status, 401);
         assert.equal(response.headers.get('Cache-Control'), 'no-store');

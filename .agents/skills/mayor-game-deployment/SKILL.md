@@ -18,7 +18,7 @@ Three separately released components matter: browser files (`index.html`, `app/`
 | Data group | Current tables / location | Meaning for changes |
 | --- | --- | --- |
 | Product content, not written by gameplay | `game_events`, `game_choices`, `game_event_locales`, `game_choice_locales`, `game_locale_ui` | Update content without changing event IDs, choice indexes or links unintentionally. The rename to `game_ui_locales` was cancelled in source; consult the agent notes before touching an already running environment. |
-| Player and operational state | `accounts`, `auth_sessions`, `active_game_sessions`, `game_saves`, `game_history`, `save_operations` | Preserve account/save/history relationships and session/deduplication state during ordinary releases. Their existence in local schema files does not establish deployment. |
+| Player and operational state | `accounts`, `auth_sessions`, `active_game_sessions`, `game_statuses`, `game_history`, `game_persistence_operations` | Preserve account/save/history relationships and session/deduplication state during ordinary releases. Their existence in local schema files does not establish deployment. |
 | Deployment/game configuration | No game-configuration tables currently defined | Platform-specific setups and 13+/18+ content variants are proposed use cases, not implemented features. Existing runtime environment settings are in `compose.yaml` and `sandbox/wrangler.jsonc`; inspect actual usage before editing. |
 
 Shop prices currently live in `shopPerkPrices` in `app/game/game-state.js`. Locale data contains translated shop names and descriptions; when upgrading an older release, inspect its price source before removing historical locale fields.

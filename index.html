@@ -101,6 +101,31 @@
         <button id="auth-invite-no" onclick="document.getElementById('auth-invite').close()" class="rounded bg-slate-700 px-4 py-2"></button>
     </dialog>
 
+    <div id="save-sync-notice" hidden role="status" class="max-w-xl mx-auto p-3 text-center text-amber-300">
+        <span id="save-sync-notice-text"></span>
+        <button id="save-sync-review" onclick="showSaveSync()" class="underline ms-2"></button>
+    </div>
+    <dialog id="save-sync-dialog" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-lg backdrop:bg-black/70"
+        oncancel="if (saveSyncBusy) event.preventDefault()" onclose="updateSaveSyncUI()">
+        <h2 id="save-sync-title" class="text-xl font-bold mb-3"></h2>
+        <p id="save-sync-description" class="mb-4"></p>
+        <div class="grid gap-3 sm:grid-cols-2 mb-4">
+            <div id="save-sync-local-card" class="rounded bg-slate-700 p-3">
+                <h3 id="save-sync-local-title" class="font-bold"></h3>
+                <p id="save-sync-local-summary" class="whitespace-pre-line my-2"></p>
+                <button id="save-sync-local" onclick="resolveSaveSync('local')" class="rounded bg-indigo-600 px-3 py-2"></button>
+            </div>
+            <div id="save-sync-cloud-card" class="rounded bg-slate-700 p-3">
+                <h3 id="save-sync-cloud-title" class="font-bold"></h3>
+                <p id="save-sync-cloud-summary" class="whitespace-pre-line my-2"></p>
+                <button id="save-sync-cloud" onclick="resolveSaveSync('cloud')" class="rounded bg-indigo-600 px-3 py-2"></button>
+            </div>
+        </div>
+        <p id="save-sync-error" role="alert" class="text-red-300 mb-3"></p>
+        <button id="save-sync-confirm" onclick="resolveSaveSync()" class="rounded bg-indigo-600 px-4 py-2"></button>
+        <button id="save-sync-cancel" onclick="document.getElementById('save-sync-dialog').close()" class="rounded bg-slate-700 px-4 py-2"></button>
+    </dialog>
+
     <!-- Main game block: Day card -->
     <main class="max-w-xl w-full mx-auto p-4 flex-1 flex flex-col justify-center">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -233,6 +258,7 @@
     <!-- Load data and game logic -->
     <script src="app/ui/audio.js"></script>
     <script src="app/infrastructure/data-proxy.js"></script>
+    <script src="app/infrastructure/browser-session.js"></script>
     <script src="app/data/dal.js"></script>
     <script src="app/data/guest-storage.js"></script>
     <script src="app/ui/language-utils.js"></script>
@@ -243,6 +269,7 @@
     <script src="app/game/choice-order.js"></script>
     <script src="app/ui/language.js"></script>
     <script src="app/ui/auth.js"></script>
+    <script src="app/ui/save-sync.js"></script>
     <script src="app/ui/ui.js"></script>
     <script src="app/game/shop.js"></script>
     <script src="app/game/achievements.js"></script>

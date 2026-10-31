@@ -8,7 +8,7 @@ function updateAuthUI() {
     const status = AccountSession.check();
     document.getElementById('btn-login').textContent = authText('login');
     document.getElementById('btn-register').textContent = authText('register');
-    document.getElementById('btn-login').hidden = mayor && Boolean(AccountSession.token()) && status !== 'expired';
+    document.getElementById('btn-login').hidden = mayor && Boolean(AccountSession.token()) && status !== 'expired' && AccountSession.syncStatus() !== 'session_replaced';
     document.getElementById('btn-register').hidden = mayor;
     document.getElementById('auth-account').textContent = mayor ? AccountSession.account().nickname : '';
     document.getElementById('btn-become-guest').hidden = !mayor;
@@ -19,7 +19,7 @@ function updateAuthUI() {
     const resume = document.getElementById('btn-auth-continue');
     resume.hidden = status !== 'warning' || !AccountSession.token();
     resume.textContent = authText('continue');
-    const locked = mayor && status === 'expired';
+    const locked = mayor && !AccountSession.canPlay();
     if (locked) document.getElementById('game-over-screen').classList.add('hidden');
     document.getElementById('choices-container').inert = locked;
     document.getElementById('btn-shop').disabled = locked;
@@ -30,6 +30,7 @@ function updateAuthUI() {
     }
     document.getElementById('auth-title').textContent = authText(authFormKind);
     document.getElementById('auth-submit').textContent = authText(authFormBusy ? 'working' : authFormKind);
+    if (typeof updateSaveSyncUI === 'function') updateSaveSyncUI();
 }
 
 async function openAuth(kind) {

@@ -56,6 +56,8 @@
         ready: null,
         // A tab always writes into its own generation, even if reset races a write.
         storage: {
+            keys: () => Object.keys(localStorage).filter(name => name.startsWith(`mayorDevData:${instanceId}:`))
+                .map(name => name.slice(`mayorDevData:${instanceId}:`.length)),
             getItem: name => localStorage.getItem(`mayorDevData:${instanceId}:${name}`),
             setItem: (name, value) => localStorage.setItem(`mayorDevData:${instanceId}:${name}`, value),
             removeItem: name => localStorage.removeItem(`mayorDevData:${instanceId}:${name}`)

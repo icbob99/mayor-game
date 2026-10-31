@@ -64,7 +64,7 @@ function renderGuestStats() {
     document.getElementById('guest-stats-title').innerText = `📜 ${currentTexts.ui.guest_stats_title}`;
     document.getElementById('guest-stats-close-btn').innerText = currentTexts.ui.guest_stats_close;
     document.getElementById('guest-stats-dismiss-btn').setAttribute('aria-label', currentTexts.ui.guest_stats_close);
-    const stats = GuestSession.getStats();
+    const stats = AccountSession.isMayor() ? AccountSession.getStats() : GuestSession.getStats();
     document.getElementById('guest-stats-games').innerText = stats.gamesPlayed;
     document.getElementById('guest-stats-money').innerText = `${stats.maxMoney.toLocaleString()} ₪`;
 

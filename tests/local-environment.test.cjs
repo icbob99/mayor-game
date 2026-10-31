@@ -51,6 +51,11 @@ async function openPage(port) {
     }
     return {
         call, ws,
+        async click(selector) {
+            const point = await this.evaluate(`(() => { const el=document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({block:'center'}); const r=el.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
+            await call('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
+            await call('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
+        },
         async evaluate(expression) {
             const result = await call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
             if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
@@ -65,11 +70,12 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const browserPath = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
     assert.ok(existsSync(browserPath), 'Set CHROME_PATH to an installed Chrome/Chromium browser');
     const profile = mkdtempSync(path.join(tmpdir(), 'mayor-step1-'));
-    let chrome;
+    let chrome, remoteChrome;
     const pages = [];
     t.after(async () => {
         pages.forEach(page => page.ws.close());
         chrome?.kill();
+        remoteChrome?.kill();
         await run('docker', [...compose, 'down', '--volumes'], { cwd: root, timeout: 60000, windowsHide: true });
     });
     async function start() {
@@ -146,6 +152,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
 
     const guestProgress = "JSON.stringify((({currentEventIndex, ...progress}) => progress)(JSON.parse(LocalEnvironment.storage.getItem('mayorGameState'))))";
     const guestBefore = await page.evaluate(guestProgress);
+    const guestStatsBefore = await page.evaluate('GuestSession.getStats()');
     await page.evaluate(`openAuth('register'); document.getElementById('auth-nickname').value = '${nickname}-ui'; document.getElementById('auth-password').value = 'browser-password'; document.getElementById('auth-form').requestSubmit()`);
     await until(() => page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open && state.day === 1"));
     assert.equal(await page.evaluate(guestProgress), guestBefore, 'registration must preserve the guest progress');
@@ -181,10 +188,25 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.isFinished)"), true,
         'offline completion uploads after reauthentication');
     assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 1);
+    // Complete three mayor games in this tab, then verify the popup the player actually sees.
+    for (let game = 0; game < 2; game++) {
+        await page.evaluate('resetGame()');
+        await page.evaluate("state.money=3000000; state.earnedAchievementsThisGame=['happy_wife']; triggerGameOver('arrest'); AccountSession.flush()");
+    }
+    async function checkStatsPopup(tab, games, maxMoney, achievementCounts) {
+        await tab.evaluate("document.getElementById('btn-guest-stats').click()");
+        assert.equal(await tab.evaluate("document.getElementById('guest-stats-modal').getClientRects().length > 0"), true);
+        assert.equal(await tab.evaluate("document.getElementById('guest-stats-games').innerText"), String(games));
+        assert.equal(await tab.evaluate("document.getElementById('guest-stats-money').innerText"),
+            await tab.evaluate(`(${maxMoney}).toLocaleString() + ' ₪'`));
+        assert.deepEqual(await tab.evaluate("Array.from(document.querySelectorAll('#guest-stats-achievements > div'), row => Number(row.innerText.match(/× (\\d+)$/)[1]))"), achievementCounts);
+        await tab.evaluate("document.getElementById('guest-stats-close-btn').click()");
+    }
     const finishedGame = await page.evaluate('state.gameId');
     await page.evaluate('resetGame();');
     await until(() => page.evaluate('state.day === 1 && !state.gameOverRecorded'));
     assert.notEqual(await page.evaluate('state.gameId'), finishedGame);
+    await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0]);
     await page.evaluate('AccountSession.flush()');
     await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
     await page.evaluate("buyPerk('assuta_vip'); state.eventQueue.push({eventId:'never-restore',triggerDay:99}); saveGuestGame()");
@@ -192,6 +214,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate('becomeGuest()');
     assert.equal(await page.evaluate('AccountSession.isMayor()'), false);
     assert.equal(await page.evaluate('state.money'), 1000000);
+    await checkStatsPopup(page, guestStatsBefore.gamesPlayed, Math.max(1000000, guestStatsBefore.maxMoney), []);
     await page.evaluate("openAuth('login')");
     assert.equal(await page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open"), true,
         'returning from guest uses the existing authorization even offline');
@@ -201,11 +224,176 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate('AccountSession.flush()');
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.money)"), 500000);
     // Prove cloud restoration, rather than only restoring an existing browser copy.
-    await page.evaluate("LocalEnvironment.storage.removeItem('mayorAccount:' + AccountSession.account().id + ':cloudSave'); window.beforeCloudReload=true");
+    await page.evaluate("BrowserSession.accountStore(AccountSession.account().id).removeItem('cloudSave'); window.beforeCloudReload=true");
     await page.call('Page.reload');
-    await until(() => page.evaluate("!window.beforeCloudReload && typeof AccountSession !== 'undefined' && AccountSession.isMayor() && gameLogicEvents.length > 0 && state.money === 500000"));
+    await until(() => page.evaluate("!window.beforeCloudReload && typeof AccountSession !== 'undefined' && AccountSession.syncStatus() === 'transfer_required' && document.getElementById('save-sync-dialog').open"));
+    await page.evaluate("document.getElementById('save-sync-confirm').click()");
+    await until(() => page.evaluate("!saveSyncBusy && !AccountSession.syncStatus() && state.money === 500000"));
     assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 8);
-    assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 1);
+    assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 3);
+
+    // Actual clicks after no play, several guest moves and completed guest games.
+    const mayorWriter = await page.evaluate("JSON.parse(BrowserSession.accountStore(AccountSession.account().id).getItem('cloudSave')).gameSessionId");
+    const mayorAccount = await page.evaluate('AccountSession.account().id');
+    async function storedCounts() {
+        const response = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
+            { type: 'execute', stmt: { sql: `SELECT
+                (SELECT COUNT(*) FROM game_persistence_operations WHERE account_id = a.id),
+                (SELECT COUNT(*) FROM auth_sessions WHERE account_id = a.id),
+                (SELECT COUNT(*) FROM game_history WHERE account_id = a.id)
+                FROM accounts a WHERE id = ?`, args: [{ type: 'text', value: mayorAccount }], want_rows: true } },
+            { type: 'close' }
+        ] }) });
+        const data = await response.json();
+        assert.equal(data.results[0].type, 'ok');
+        return data.results[0].response.result.rows[0].map(cell => Number(cell.value));
+    }
+    const countsBeforeGuest = await storedCounts();
+    assert.equal(countsBeforeGuest[2], 3, 'each completed mayor game has one history row');
+    await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0]);
+    assert.deepEqual(await storedCounts(), countsBeforeGuest, 'viewing statistics creates no database rows');
+    for (const scenario of [{ moves: 0, endings: 0 }, { moves: 5, endings: 0 }, { moves: 0, endings: 3 }]) {
+        await page.click('#btn-become-guest');
+        await until(() => page.evaluate('!AccountSession.isMayor() && state.day===1'));
+        for (let move = 0; move < scenario.moves; move++) {
+            const day = await page.evaluate('state.day');
+            await page.click('#choices-container button');
+            assert.equal(await page.evaluate('state.day'), day + 1);
+            if (await page.evaluate('Boolean(state.gameOverRecorded)')) await page.evaluate('resetGame()');
+        }
+        for (let game = 0; game < scenario.endings; game++) {
+            await page.evaluate("triggerGameOver('arrest')");
+            assert.equal(await page.evaluate("document.getElementById('auth-invite').open"), false, 'known mayor needs no registration invitation');
+            await page.click('#btn-restart');
+            await until(() => page.evaluate('!state.gameOverRecorded'));
+        }
+        await page.click('#btn-login');
+        await until(() => page.evaluate('AccountSession.isMayor() && AccountSession.canPlay() && state.money===500000'));
+        assert.equal(await page.evaluate("document.getElementById('auth-dialog').open || document.getElementById('save-sync-dialog').open"), false);
+        assert.equal(await page.evaluate("JSON.parse(BrowserSession.accountStore(AccountSession.account().id).getItem('cloudSave')).gameSessionId"), mayorWriter,
+            'returning to mayor continues the existing writer instead of activating another');
+        await page.evaluate('AccountSession.flush()');
+        assert.deepEqual(await storedCounts(), countsBeforeGuest,
+            'guest play and return must not add mayor operations, authorizations or completed games');
+    }
+
+    // Two live tabs retain separate credentials and progress; a login alone never takes ownership.
+    const otherTab = await openPage(port);
+    pages.push(otherTab);
+    await until(() => otherTab.evaluate("typeof currentTexts !== 'undefined' && currentTexts?.ui.saveSync"));
+    assert.equal(await otherTab.evaluate('AccountSession.token()'), null);
+    assert.equal(await otherTab.evaluate('AccountSession.check()'), 'signed_out');
+    assert.equal(await otherTab.evaluate("document.getElementById('auth-notice-text').textContent"), await otherTab.evaluate("authText('reauth')"));
+    async function login(tab) {
+        await tab.evaluate(`openAuth('login'); document.getElementById('auth-nickname').value = '${nickname}-ui'; document.getElementById('auth-password').value = 'browser-password'; document.getElementById('auth-form').requestSubmit()`);
+        await until(() => tab.evaluate("!authFormBusy && !document.getElementById('auth-dialog').open"));
+    }
+    async function offline(tab, value) {
+        await tab.call('Network.enable');
+        await tab.call('Network.emulateNetworkConditions', { offline: value, latency: 0,
+            downloadThroughput: value ? 0 : -1, uploadThroughput: value ? 0 : -1 });
+    }
+    await login(otherTab);
+    assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'transfer_required');
+    assert.equal(await otherTab.evaluate("document.getElementById('save-sync-notice').hidden"), true);
+    await otherTab.click('#save-sync-cancel');
+    await until(() => otherTab.evaluate("!document.getElementById('save-sync-dialog').open && !document.getElementById('save-sync-notice').hidden"));
+    await otherTab.click('#save-sync-review');
+    assert.equal(await otherTab.evaluate("document.getElementById('save-sync-dialog').open && document.getElementById('save-sync-notice').hidden"), true);
+    await page.evaluate('AccountSession.flush()');
+    assert.equal(await page.evaluate('AccountSession.canPlay()'), true, 'unconfirmed login leaves the first writer active');
+    await offline(page, true);
+    await page.evaluate("state.day=11; state.money=777000; state.earnedAchievementsThisGame=['survivor']; state.eventQueue.push({eventId:'never-transfer',triggerDay:99}); saveGuestGame(); AccountSession.flush()");
+    await otherTab.evaluate("document.getElementById('save-sync-confirm').click()");
+    await until(() => otherTab.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
+    assert.equal(await otherTab.evaluate('state.money'), 500000);
+    await otherTab.evaluate('state.day=3; state.money=600000; saveGuestGame(); AccountSession.flush()');
+    await offline(page, false);
+    await page.evaluate('AccountSession.flush()');
+    assert.equal(await page.evaluate('AccountSession.syncStatus()'), 'session_replaced');
+    assert.equal(await page.evaluate('AccountSession.canPlay()'), false);
+    assert.equal(await page.evaluate('AccountSession.loadGame().money'), 777000);
+    await login(page);
+    assert.equal(await page.evaluate('AccountSession.syncStatus()'), 'save_conflict');
+    assert.deepEqual(await page.evaluate('({local:AccountSession.syncDetails().local.money,cloud:AccountSession.syncDetails().cloud.state.money})'),
+        { local: 777000, cloud: 600000 });
+    // Keep the other tab's offline branch for the subsequent cloud-choice check.
+    await offline(otherTab, true);
+    await otherTab.evaluate('state.day=8; state.money=888000; saveGuestGame(); AccountSession.flush()');
+    await page.evaluate("document.getElementById('save-sync-local').click()");
+    await until(() => page.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
+    assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.money)"), 777000);
+    await offline(otherTab, false);
+    await otherTab.evaluate('AccountSession.flush()');
+    assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'session_replaced');
+    await login(otherTab);
+    assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'save_conflict');
+    await page.evaluate('state.day=12; state.money=999000; saveGuestGame(); AccountSession.flush()');
+    await otherTab.evaluate("document.getElementById('save-sync-cloud').click()");
+    await until(() => otherTab.evaluate('!saveSyncBusy'));
+    assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'save_conflict', 'cloud changed while the choice was open');
+    assert.equal(await otherTab.evaluate('AccountSession.syncDetails().local.money'), 888000, 'a rejected choice retains local play');
+    assert.equal(await otherTab.evaluate('AccountSession.syncDetails().cloud.state.money'), 999000);
+    await otherTab.evaluate("document.getElementById('save-sync-cloud').click()");
+    await until(() => otherTab.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
+    assert.equal(await otherTab.evaluate('state.money'), 999000);
+    assert.equal(await otherTab.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.equal(await otherTab.evaluate('AccountSession.getStats().gamesPlayed'), 3, 'choices never add the two statistics together');
+    await page.evaluate('AccountSession.flush()');
+    assert.equal(await page.evaluate('AccountSession.syncStatus()'), 'session_replaced');
+
+    // A separate browser profile has no local save or credentials, like another device.
+    const remoteProfile = mkdtempSync(path.join(tmpdir(), 'mayor-device-'));
+    remoteChrome = spawn(browserPath, ['--headless=new', '--no-first-run', '--no-default-browser-check',
+        '--remote-debugging-port=0', `--user-data-dir=${remoteProfile}`, 'about:blank'], { stdio: 'ignore', windowsHide: true });
+    const remotePortFile = path.join(remoteProfile, 'DevToolsActivePort');
+    await until(() => existsSync(remotePortFile));
+    const remotePage = await openPage(Number(readFileSync(remotePortFile, 'utf8').split('\n')[0]));
+    pages.push(remotePage);
+    await until(() => remotePage.evaluate("typeof currentTexts !== 'undefined' && currentTexts?.ui.saveSync"));
+    await remotePage.evaluate("localStorage.setItem('unrelated','keep')");
+    await login(remotePage);
+    assert.equal(await remotePage.evaluate('AccountSession.syncStatus()'), 'transfer_required');
+    await remotePage.evaluate("document.getElementById('save-sync-confirm').click()");
+    await until(() => remotePage.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
+    assert.equal(await remotePage.evaluate('state.money'), 999000);
+    assert.equal(await remotePage.evaluate('state.day'), 12);
+    assert.equal(await remotePage.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.deepEqual(await remotePage.evaluate('state.earnedAchievementsThisGame'), ['survivor']);
+    assert.equal(await remotePage.evaluate('state.eventQueue.length'), 0);
+    await checkStatsPopup(remotePage, 3, 3000000, [0, 0, 2, 0]);
+    await otherTab.evaluate('AccountSession.flush()');
+    assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'session_replaced');
+    await remotePage.evaluate("triggerGameOver('arrest'); AccountSession.flush()");
+    await login(otherTab);
+    assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'transfer_required');
+    await otherTab.evaluate("document.getElementById('save-sync-confirm').click()");
+    await until(() => otherTab.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
+    assert.equal(await otherTab.evaluate('state.gameOverRecorded'), true);
+    assert.equal(await otherTab.evaluate('state.endReason'), 'arrest');
+    assert.equal(await otherTab.evaluate('AccountSession.getStats().gamesPlayed'), 4);
+    assert.equal(await otherTab.evaluate('AccountSession.getStats().achievements.survivor'), 1);
+
+    for (const count of [3, 8, 18, 19]) {
+        await secondPage.evaluate(`LocalEnvironment.storage.setItem('mayorGuestStats', JSON.stringify({gamesPlayed:${count - 1},maxMoney:0,achievements:{}})); GuestSession.load(state); state.gameOverRecorded = false; triggerGameOver('arrest')`);
+        assert.equal(await secondPage.evaluate("document.getElementById('auth-invite').open"), count !== 19);
+        if (count !== 19) await secondPage.evaluate("document.getElementById('auth-invite-no').click()");
+    }
+    // Close every game tab, then open a genuinely new one in the same browser profile.
+    await page.evaluate('AccountSession.activity()');
+    const countsBeforeReopen = await storedCounts();
+    for (const tab of pages.splice(0)) { await tab.call('Page.close'); tab.ws.close(); }
+    const reopened = await openPage(port);
+    pages.push(reopened);
+    await until(() => reopened.evaluate("typeof currentTexts !== 'undefined' && currentTexts?.ui.auth && AccountSession.canPlay() && state.gameOverRecorded"));
+    assert.equal(await reopened.evaluate('Boolean(AccountSession.token())'), true);
+    assert.equal(await reopened.evaluate('AccountSession.check()'), 'active');
+    assert.equal(await reopened.evaluate("document.getElementById('auth-dialog').open || document.getElementById('save-sync-dialog').open"), false);
+    await checkStatsPopup(reopened, 4, 3000000, [0, 0, 2, 1]);
+    assert.deepEqual(await storedCounts(), countsBeforeReopen, 'reopening restores authorization without creating database rows');
+    // Keep several tabs/profiles open for the generation-reset checks below.
+    pages.push(await openPage(port));
+    pages.push(await openPage(Number(readFileSync(remotePortFile, 'utf8').split('\n')[0])));
 
     const expired = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
         { type: 'execute', stmt: { sql: 'UPDATE auth_sessions SET last_activity_at = 0' } },
@@ -214,11 +402,6 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const authRows = await expired.json();
     for (const row of authRows.results[1].response.result.rows) assert.match(row[0].value, /^pbkdf2-sha256\$/);
     assert.equal((await authRequest('activity', 'POST', null, registered.body.authToken)).status, 401, 'expired sessions cannot be revived');
-    for (const count of [3, 8, 18, 19]) {
-        await secondPage.evaluate(`LocalEnvironment.storage.setItem('mayorGuestStats', JSON.stringify({gamesPlayed:${count - 1},maxMoney:0,achievements:{}})); GuestSession.load(state); state.gameOverRecorded = false; triggerGameOver('arrest')`);
-        assert.equal(await secondPage.evaluate("document.getElementById('auth-invite').open"), count !== 19);
-        if (count !== 19) await secondPage.evaluate("document.getElementById('auth-invite-no').click()");
-    }
     // A marker written through the real libSQL HTTP API must disappear on reset.
     const write = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST',
         body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: 'CREATE TABLE reset_marker (id INTEGER)' } }, { type: 'close' }] }) });

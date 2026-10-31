@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS active_game_sessions (
     FOREIGN KEY (account_id, auth_session_id) REFERENCES auth_sessions(account_id, id)
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS game_saves (
+CREATE TABLE IF NOT EXISTS game_statuses (
     account_id TEXT PRIMARY KEY NOT NULL,
     version_guid TEXT NOT NULL,
     state_json TEXT NOT NULL CHECK (json_valid(state_json)),
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS game_saves (
 ) STRICT;
 
 -- Reject delayed or repeated writes even when the caller omits a timestamp predicate.
-CREATE TRIGGER IF NOT EXISTS game_saves_reject_stale_update
-BEFORE UPDATE ON game_saves
+CREATE TRIGGER IF NOT EXISTS game_statuses_reject_stale_update
+BEFORE UPDATE ON game_statuses
 FOR EACH ROW
 WHEN NEW.write_timestamp <= OLD.write_timestamp
 BEGIN
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS game_history (
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS save_operations (
+CREATE TABLE IF NOT EXISTS game_persistence_operations (
     account_id TEXT NOT NULL,
     operation_id TEXT NOT NULL,
     request_hash TEXT NOT NULL,

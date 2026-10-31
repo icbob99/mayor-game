@@ -71,7 +71,13 @@ export async function handleAuth(request, env, headers) {
                 const [, active] = await query(env, [
                     { sql: 'INSERT INTO auth_sessions (id, account_id, token_hash, created_at, last_activity_at) VALUES (?, ?, ?, ?, ?)', args: [sessionId, account.id, hashedToken, now, now] },
                     { sql: 'SELECT id FROM active_game_sessions WHERE account_id = ?', args: [account.id] },
-                    retirePrevious
+                    retirePrevious,
+                    // Keep the referenced writer even after expiry; it still controls the transfer flow.
+                    { sql: `DELETE FROM auth_sessions
+                        WHERE account_id = ? AND (revoked_at IS NOT NULL OR last_activity_at <= ?)
+                        AND NOT EXISTS (SELECT 1 FROM active_game_sessions g
+                            WHERE g.account_id = auth_sessions.account_id AND g.auth_session_id = auth_sessions.id)`,
+                    args: [account.id, now - idleMs] }
                 ], true);
                 activeGameSessionId = active[0]?.id || null;
             }

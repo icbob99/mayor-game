@@ -15,16 +15,10 @@
     }
     function persist() {
         if (root.LocalEnvironment && !root.LocalEnvironment.isCurrent()) return;
-        try { storage()?.setItem('mayorAuth', JSON.stringify(auth)); } catch { /* Storage may be unavailable. */ }
+        root.BrowserSession.saveAuth(auth);
     }
     function accountStorage() {
-        const prefix = `mayorAccount:${auth.account.id}:`;
-        const store = storage();
-        return {
-            getItem: key => store?.getItem(prefix + key),
-            setItem: (key, value) => store?.setItem(prefix + key, value),
-            removeItem: key => store?.removeItem(prefix + key)
-        };
+        return root.BrowserSession.accountStore(auth.account.id);
     }
     function notify() { root.updateAuthUI?.(); }
     function openSave() {
@@ -59,7 +53,8 @@
 
     root.AccountSession = {
         async init() {
-            auth = read('mayorAuth');
+            await root.BrowserSession.init(storage());
+            auth = root.BrowserSession.readAuth();
             if (!auth?.account?.id || !Number.isFinite(auth.lastActivityAt)) auth = null;
             this.check();
             if (auth?.authToken) {
@@ -77,14 +72,14 @@
                 if (this.isMayor()) await mayorSave.resume();
             }
             root.setInterval(() => { this.check(); notify(); }, 1000);
-            root.setInterval(() => { this.check(); void mayorSave?.flush(); }, 10000);
-            root.addEventListener('online', () => { this.check(); void mayorSave?.flush(); });
+            root.setInterval(() => { this.check(); void mayorSave?.flush().then(notify); }, 10000);
+            root.addEventListener('online', () => { this.check(); void mayorSave?.flush().then(notify); });
             for (const event of ['pointerdown', 'keydown']) root.addEventListener(event, e => {
                 if (e.isTrusted) this.activity();
             });
-            root.addEventListener('focus', () => { this.check(); notify(); });
+            root.addEventListener('focus', () => { this.check(); notify(); void mayorSave?.flush().then(notify); });
             root.addEventListener('storage', () => {
-                const current = read('mayorAuth');
+                const current = root.BrowserSession.readAuth();
                 // Another tab cannot change the account whose game this tab holds.
                 if (auth && current?.account?.id === auth.account.id) {
                     auth.lastActivityAt = Math.max(auth.lastActivityAt, current.lastActivityAt || 0);
@@ -94,6 +89,7 @@
             });
         },
         async authenticate(kind, credentials) {
+            await root.BrowserSession.init(storage());
             const result = await root.requestGameApi(`/api/auth/${kind}`, {
                 method: 'POST', body: credentials, token: auth?.authToken || auth?.retiredToken
             });
@@ -101,7 +97,7 @@
             persist();
             openSave();
             switching = true;
-            try { await mayorSave.resume(); } finally { switching = false; }
+            try { await mayorSave.resume(true); } finally { switching = false; }
             return result;
         },
         isMayor() { return auth?.mode === 'mayor'; },
@@ -109,14 +105,15 @@
         token() { return auth?.authToken || null; },
         check() {
             if (!auth) return 'guest';
+            if (!auth.authToken && !auth.retiredToken) return 'signed_out';
             if (auth.locked) return 'expired';
             const elapsed = Date.now() - auth.lastActivityAt;
             if (elapsed >= idleMs) { expire(); return 'expired'; }
             return elapsed >= 25 * 60000 ? 'warning' : 'active';
         },
-        canPlay() { return !switching && (!this.isMayor() || this.check() !== 'expired'); },
+        canPlay() { return !switching && (!this.isMayor() || (!['expired', 'signed_out'].includes(this.check()) && !mayorSave?.status())); },
         activity() {
-            if (!auth || this.check() === 'expired') { notify(); return false; }
+            if (!auth || ['expired', 'signed_out'].includes(this.check())) { notify(); return false; }
             auth.lastActivityAt = Date.now();
             persist();
             notify();
@@ -127,21 +124,24 @@
         save(state) {
             if (!this.isMayor() || (root.LocalEnvironment && !root.LocalEnvironment.isCurrent())) return;
             mayorSave.save(state);
-            void mayorSave.flush();
+            void mayorSave.flush().then(notify);
         },
         getStats() { return mayorSave?.stats(); },
         syncStatus() { return mayorSave?.status(); },
+        syncDetails() { return mayorSave?.details(); },
+        async resolveSave(source) { await mayorSave.resolve(source); notify(); },
         flush() { return mayorSave?.flush(); },
         async becomeMayor() {
-            if (!auth?.authToken || this.check() === 'expired') return false;
-            auth.mode = 'mayor'; persist();
+            if (!auth?.authToken || this.check() === 'expired' || mayorSave?.status() === 'session_replaced') return false;
             switching = true;
-            try { await mayorSave.resume(); } finally { switching = false; }
+            try { await mayorSave.flush(); } finally { switching = false; }
+            if (!auth.authToken || mayorSave.status() === 'session_replaced') return false;
+            auth.mode = 'mayor'; persist();
             return true;
         },
         becomeGuest() { if (auth) { auth.mode = 'guest'; persist(); } },
         shouldInvite(count) {
-            if (this.isMayor() || ![3, 8, 18].includes(count) || Number(read('mayorRegistrationPrompt')) >= count) return false;
+            if (auth?.account || ![3, 8, 18].includes(count) || Number(read('mayorRegistrationPrompt')) >= count) return false;
             try { storage()?.setItem('mayorRegistrationPrompt', JSON.stringify(count)); } catch { /* Invitations are optional. */ }
             return true;
         }

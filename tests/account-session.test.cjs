@@ -18,6 +18,7 @@ function browser(initial = {}) {
     };
     b.window = b;
     vm.createContext(b);
+    vm.runInContext(readFileSync('app/infrastructure/browser-session.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/mayor-save.js', 'utf8'), b);
@@ -61,6 +62,20 @@ test('registration prompts occur once at 3, 8 and 18 completed guest games', () 
         assert.equal(b.AccountSession.shouldInvite(count), false);
     }
     assert.equal(b.AccountSession.shouldInvite(19), false);
+});
+
+test('a registered mayor playing as a guest is not invited to register again', async () => {
+    const b = browser();
+    await b.AccountSession.authenticate('login', {});
+    b.AccountSession.becomeGuest();
+    for (const count of [3, 8, 18]) assert.equal(b.AccountSession.shouldInvite(count), false);
+});
+
+test('an unsigned new tab is not reported as thirty minutes idle and cannot play as mayor', async () => {
+    const b = browser({ mayorAuth: JSON.stringify({ account: { id: 'a' }, mode: 'mayor', lastActivityAt: 10000000 }) });
+    await b.AccountSession.init();
+    assert.equal(b.AccountSession.check(), 'signed_out');
+    assert.equal(b.AccountSession.canPlay(), false);
 });
 
 test('a failed sign-in leaves the existing account and its local progress intact', async () => {
@@ -120,7 +135,7 @@ test('switching accounts cannot acknowledge or send the previous account snapsho
     await oldRequest;
     assert.deepEqual(writes, [{ token: 'A', day: 7 }, { token: 'B', day: 1 }]);
     assert.equal(b.AccountSession.loadGame().day, 1);
-    assert.equal(JSON.parse(b.values.get('mayorAccount:A:cloudSave')).state.day, 7);
-    assert.notEqual(JSON.parse(b.values.get('mayorAccount:A:cloudSave')).pending, null);
-    assert.equal(JSON.parse(b.values.get('mayorAccount:B:cloudSave')).pending, null);
+    assert.equal(JSON.parse(b.BrowserSession.accountStore('A').getItem('cloudSave')).state.day, 7);
+    assert.notEqual(JSON.parse(b.BrowserSession.accountStore('A').getItem('cloudSave')).pending, null);
+    assert.equal(JSON.parse(b.BrowserSession.accountStore('B').getItem('cloudSave')).pending, null);
 });
