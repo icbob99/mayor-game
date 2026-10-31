@@ -1,0 +1,15 @@
+{
+    "name": "mayor-game-local-only",
+    "main": "local-worker.mjs",
+    "compatibility_date": "2026-10-26",
+    "workers_dev": false,
+    "assets": {
+        "directory": "../public",
+        "binding": "ASSETS",
+        "run_worker_first": true
+    },
+    "vars": {
+        "TURSO_DATABASE_URL": "http://db:8080",
+        "TURSO_AUTH_TOKEN": "local-only"
+    }
+}

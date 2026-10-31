@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const storage = require('../app/guest-storage.js');
+const storage = require('../app/data/guest-storage.js');
 
 function createMemoryStorage(initial = {}) {
     const values = new Map(Object.entries(initial));
@@ -11,16 +11,28 @@ function createMemoryStorage(initial = {}) {
     };
 }
 
-test('loads a valid guest game and preserves statistics separately', () => {
+test('loads an old save without pending events and preserves shop cooldowns and statistics', () => {
     const browserStorage = createMemoryStorage({
-        mayorGameState: JSON.stringify({ day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, eventQueue: [], pendingChainEvents: [], lang: 'en' }),
+        mayorGameState: JSON.stringify({ day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, eventQueue: [{ eventId: 'burning_trucks', triggerDay: 6 }], pendingChainEvents: [{ id: 'country_cctv_raid', triggerDay: 7 }], cooldowns: { wife_spa: 10 }, lang: 'en' }),
         mayorGuestStats: JSON.stringify({ gamesPlayed: 2, maxMoney: 1500000, achievements: { survivor: 1 } })
     });
 
-    assert.deepEqual(storage.loadGameState(browserStorage), { day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, eventQueue: [], pendingChainEvents: [], lang: 'en' });
+    assert.deepEqual(storage.loadGameState(browserStorage), { day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, eventQueue: [], cooldowns: { wife_spa: 10 }, lang: 'en' });
     assert.deepEqual(storage.loadGuestStats(browserStorage), {
         gamesPlayed: 2, maxMoney: 1500000, achievements: { survivor: 1 }
     });
+});
+
+test('saves progress without persisting or clearing the live event queue', () => {
+    const browserStorage = createMemoryStorage();
+    const progress = { day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, cooldowns: { wife_spa: 10 } };
+    const state = { ...progress, eventQueue: [{ eventId: 'burning_trucks', triggerDay: 6 }] };
+
+    storage.saveGameState(browserStorage, state);
+
+    assert.deepEqual(JSON.parse(browserStorage.getItem('mayorGameState')), progress);
+    assert.deepEqual(state.eventQueue, [{ eventId: 'burning_trucks', triggerDay: 6 }]);
+    assert.deepEqual(storage.loadGameState(browserStorage), { ...progress, eventQueue: [] });
 });
 
 test('discards invalid game state and starts with empty statistics', () => {
