@@ -150,6 +150,13 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal((await authRequest('session', 'GET', null, signedIn.body.authToken)).status, 401);
     await require('./save-api.integration.cjs')(base, firstId);
 
+    // Observe delivery from the test, without adding acknowledgements to the browser game.
+    async function waitForCloud(tab) {
+        await until(() => tab.evaluate(`requestGameApi('/api/game/save', {token:AccountSession.token()}).then(cloud => {
+            const local = JSON.parse(BrowserSession.accountStore(AccountSession.account().id).getItem('cloudSave'));
+            return cloud && cloud.writeTimestamp === local.writeTimestamp;
+        })`));
+    }
     const guestProgress = "JSON.stringify((({currentEventIndex, ...progress}) => progress)(JSON.parse(LocalEnvironment.storage.getItem('mayorGameState'))))";
     const guestBefore = await page.evaluate(guestProgress);
     const guestStatsBefore = await page.evaluate('GuestSession.getStats()');
@@ -157,7 +164,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open && state.day === 1"));
     assert.equal(await page.evaluate(guestProgress), guestBefore, 'registration must preserve the guest progress');
     await page.evaluate("document.querySelector('#choices-container button').click()");
-    await page.evaluate('AccountSession.flush()');
+    await waitForCloud(page);
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.day)"),
         await page.evaluate('state.day'), 'a completed move reaches the cloud');
     const mayorSaved = await page.evaluate('JSON.stringify({day:state.day,money:state.money})');
@@ -168,7 +175,8 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
     await page.evaluate('window.realNow = Date.now; Date.now = () => realNow() + 25 * 60000; updateAuthUI()');
     assert.equal(await page.evaluate('AccountSession.check()'), 'warning');
-    await page.evaluate('AccountSession.activity(); triggerGameOver("arrest"); Date.now = () => realNow() + 56 * 60000; updateAuthUI()');
+    // Fix the completion fixture independently of achievements from the random card above.
+    await page.evaluate('state.earnedAchievementsThisGame=[]; AccountSession.activity(); triggerGameOver("arrest"); Date.now = () => realNow() + 56 * 60000; updateAuthUI()');
     assert.equal(await page.evaluate('AccountSession.check()'), 'expired');
     assert.equal(await page.evaluate('AccountSession.activity()'), false);
     assert.equal(await page.evaluate("document.getElementById('choices-container').inert"), true);
@@ -184,14 +192,15 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => page.evaluate("!authFormBusy && !document.getElementById('auth-dialog').open && AccountSession.canPlay()"));
     assert.equal(await page.evaluate('JSON.stringify({day:state.day,money:state.money})'), mayorSaved);
 
-    await page.evaluate('AccountSession.flush()');
+    await waitForCloud(page);
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.isFinished)"), true,
         'offline completion uploads after reauthentication');
     assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 1);
     // Complete three mayor games in this tab, then verify the popup the player actually sees.
     for (let game = 0; game < 2; game++) {
         await page.evaluate('resetGame()');
-        await page.evaluate("state.money=3000000; state.earnedAchievementsThisGame=['happy_wife']; triggerGameOver('arrest'); AccountSession.flush()");
+        await page.evaluate("state.money=3000000; state.earnedAchievementsThisGame=['happy_wife']; triggerGameOver('arrest'); AccountSession.checkSession()");
+        await waitForCloud(page);
     }
     async function checkStatsPopup(tab, games, maxMoney, achievementCounts) {
         await tab.evaluate("document.getElementById('btn-guest-stats').click()");
@@ -207,7 +216,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => page.evaluate('state.day === 1 && !state.gameOverRecorded'));
     assert.notEqual(await page.evaluate('state.gameId'), finishedGame);
     await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0]);
-    await page.evaluate('AccountSession.flush()');
+    await waitForCloud(page);
     await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
     await page.evaluate("buyPerk('assuta_vip'); state.eventQueue.push({eventId:'never-restore',triggerDay:99}); saveGuestGame()");
     const beforeGuest = await page.evaluate('JSON.stringify({gameId:state.gameId,money:state.money,cooldown:state.cooldowns.assuta_vip})');
@@ -221,7 +230,11 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal(await page.evaluate('JSON.stringify({gameId:state.gameId,money:state.money,cooldown:state.cooldowns.assuta_vip})'), beforeGuest);
     assert.equal(await page.evaluate('state.eventQueue.length'), 0);
     await page.call('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
-    await page.evaluate('AccountSession.flush()');
+    await page.evaluate('AccountSession.checkSession()');
+    assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.money)"), 1000000,
+        'reconnecting does not resend the offline purchase');
+    await page.evaluate('state.day++; saveGuestGame()');
+    await waitForCloud(page);
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.money)"), 500000);
     // Prove cloud restoration, rather than only restoring an existing browser copy.
     await page.evaluate("BrowserSession.accountStore(AccountSession.account().id).removeItem('cloudSave'); window.beforeCloudReload=true");
@@ -272,7 +285,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         assert.equal(await page.evaluate("document.getElementById('auth-dialog').open || document.getElementById('save-sync-dialog').open"), false);
         assert.equal(await page.evaluate("JSON.parse(BrowserSession.accountStore(AccountSession.account().id).getItem('cloudSave')).gameSessionId"), mayorWriter,
             'returning to mayor continues the existing writer instead of activating another');
-        await page.evaluate('AccountSession.flush()');
+        await page.evaluate('AccountSession.checkSession()');
         assert.deepEqual(await storedCounts(), countsBeforeGuest,
             'guest play and return must not add mayor operations, authorizations or completed games');
     }
@@ -300,16 +313,17 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => otherTab.evaluate("!document.getElementById('save-sync-dialog').open && !document.getElementById('save-sync-notice').hidden"));
     await otherTab.click('#save-sync-review');
     assert.equal(await otherTab.evaluate("document.getElementById('save-sync-dialog').open && document.getElementById('save-sync-notice').hidden"), true);
-    await page.evaluate('AccountSession.flush()');
+    await page.evaluate('AccountSession.checkSession()');
     assert.equal(await page.evaluate('AccountSession.canPlay()'), true, 'unconfirmed login leaves the first writer active');
     await offline(page, true);
-    await page.evaluate("state.day=11; state.money=777000; state.earnedAchievementsThisGame=['survivor']; state.eventQueue.push({eventId:'never-transfer',triggerDay:99}); saveGuestGame(); AccountSession.flush()");
+    await page.evaluate("state.day=11; state.money=777000; state.earnedAchievementsThisGame=['survivor']; state.eventQueue.push({eventId:'never-transfer',triggerDay:99}); saveGuestGame(); AccountSession.checkSession()");
     await otherTab.evaluate("document.getElementById('save-sync-confirm').click()");
     await until(() => otherTab.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
     assert.equal(await otherTab.evaluate('state.money'), 500000);
-    await otherTab.evaluate('state.day=3; state.money=600000; saveGuestGame(); AccountSession.flush()');
+    await otherTab.evaluate('state.day=3; state.money=600000; saveGuestGame(); AccountSession.checkSession()');
+    await waitForCloud(otherTab);
     await offline(page, false);
-    await page.evaluate('AccountSession.flush()');
+    await page.evaluate('AccountSession.checkSession()');
     assert.equal(await page.evaluate('AccountSession.syncStatus()'), 'session_replaced');
     assert.equal(await page.evaluate('AccountSession.canPlay()'), false);
     assert.equal(await page.evaluate('AccountSession.loadGame().money'), 777000);
@@ -319,16 +333,18 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         { local: 777000, cloud: 600000 });
     // Keep the other tab's offline branch for the subsequent cloud-choice check.
     await offline(otherTab, true);
-    await otherTab.evaluate('state.day=8; state.money=888000; saveGuestGame(); AccountSession.flush()');
+    await otherTab.evaluate('state.day=8; state.money=888000; saveGuestGame(); AccountSession.checkSession()');
     await page.evaluate("document.getElementById('save-sync-local').click()");
     await until(() => page.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
+    await waitForCloud(page);
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.money)"), 777000);
     await offline(otherTab, false);
-    await otherTab.evaluate('AccountSession.flush()');
+    await otherTab.evaluate('AccountSession.checkSession()');
     assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'session_replaced');
     await login(otherTab);
     assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'save_conflict');
-    await page.evaluate('state.day=12; state.money=999000; saveGuestGame(); AccountSession.flush()');
+    await page.evaluate('state.day=12; state.money=999000; saveGuestGame(); AccountSession.checkSession()');
+    await waitForCloud(page);
     await otherTab.evaluate("document.getElementById('save-sync-cloud').click()");
     await until(() => otherTab.evaluate('!saveSyncBusy'));
     assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'save_conflict', 'cloud changed while the choice was open');
@@ -339,7 +355,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal(await otherTab.evaluate('state.money'), 999000);
     assert.equal(await otherTab.evaluate('state.cooldowns.assuta_vip'), 8);
     assert.equal(await otherTab.evaluate('AccountSession.getStats().gamesPlayed'), 3, 'choices never add the two statistics together');
-    await page.evaluate('AccountSession.flush()');
+    await page.evaluate('AccountSession.checkSession()');
     assert.equal(await page.evaluate('AccountSession.syncStatus()'), 'session_replaced');
 
     // A separate browser profile has no local save or credentials, like another device.
@@ -362,9 +378,10 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.deepEqual(await remotePage.evaluate('state.earnedAchievementsThisGame'), ['survivor']);
     assert.equal(await remotePage.evaluate('state.eventQueue.length'), 0);
     await checkStatsPopup(remotePage, 3, 3000000, [0, 0, 2, 0]);
-    await otherTab.evaluate('AccountSession.flush()');
+    await otherTab.evaluate('AccountSession.checkSession()');
     assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'session_replaced');
-    await remotePage.evaluate("triggerGameOver('arrest'); AccountSession.flush()");
+    await remotePage.evaluate("triggerGameOver('arrest'); AccountSession.checkSession()");
+    await waitForCloud(remotePage);
     await login(otherTab);
     assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'transfer_required');
     await otherTab.evaluate("document.getElementById('save-sync-confirm').click()");

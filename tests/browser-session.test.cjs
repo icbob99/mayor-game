@@ -37,7 +37,7 @@ test('a duplicated tab gets its own identity and never inherits live authorizati
     assert.equal(copy.api.readAuth().authToken, undefined);
     const b = copy.api.accountStore('a');
     assert.equal(JSON.parse(b.getItem('cloudSave')).gameSessionId, null);
-    b.setItem('cloudSave', JSON.stringify({ state: { day: 6 }, writeTimestamp: 101, ackTimestamp: 100 }));
+    b.setItem('cloudSave', JSON.stringify({ state: { day: 6 }, writeTimestamp: 101, localChanged: true }));
     assert.equal(JSON.parse(a.getItem('cloudSave')).state.day, 5);
     assert.equal(first.api.readAuth().authToken, 'old-token');
 });
@@ -46,7 +46,7 @@ test('reopening after closing the tab restores authorization and its local write
     const e = environment();
     const first = e.tab(); await first.api.init(e.store);
     first.api.saveAuth({ account: { id: 'a' }, authToken: 'token-a', mode: 'mayor', lastActivityAt: Date.now() });
-    first.api.accountStore('a').setItem('cloudSave', JSON.stringify({ gameSessionId: 'writer-a', writeTimestamp: 10, ackTimestamp: 10 }));
+    first.api.accountStore('a').setItem('cloudSave', JSON.stringify({ gameSessionId: 'writer-a', writeTimestamp: 10, localChanged: false }));
     const originalId = first.session.get('mayorAccount:tabId');
     first.close();
     const reopened = e.tab(); await reopened.api.init(e.store);
@@ -73,10 +73,10 @@ test('new tab recovery prefers unsent progress over a newer clean snapshot or a 
     const e = environment();
     const first = e.tab(); await first.api.init(e.store);
     const a = first.api.accountStore('a');
-    a.setItem('cloudSave', JSON.stringify({ state: { day: 9 }, writeTimestamp: 150, ackTimestamp: 100 }));
+    a.setItem('cloudSave', JSON.stringify({ state: { day: 9 }, writeTimestamp: 150, localChanged: true }));
     const second = e.tab(); await second.api.init(e.store);
     const b = second.api.accountStore('a');
-    b.setItem('cloudSave', JSON.stringify({ state: { day: 12 }, writeTimestamp: 200, ackTimestamp: 200, blocked: 'session_replaced' }));
+    b.setItem('cloudSave', JSON.stringify({ state: { day: 12 }, writeTimestamp: 200, localChanged: false, blocked: 'session_replaced' }));
     const reopened = e.tab(); await reopened.api.init(e.store);
     assert.equal(JSON.parse(reopened.api.accountStore('a').getItem('cloudSave')).state.day, 9);
 });
@@ -101,15 +101,15 @@ test('resolved recovered progress is not offered again, while later source-tab m
         const e = environment();
         const first = e.tab(); await first.api.init(e.store);
         const a = first.api.accountStore('a');
-        a.setItem('cloudSave', JSON.stringify({ state: { day: 9 }, writeTimestamp: 150, ackTimestamp: 100, versionGuid: 'old' }));
+        a.setItem('cloudSave', JSON.stringify({ state: { day: 9 }, writeTimestamp: 150, localChanged: true, versionGuid: 'old' }));
         const second = e.tab(); await second.api.init(e.store);
         const b = second.api.accountStore('a');
         const imported = JSON.parse(b.getItem('cloudSave'));
         b.setItem('cloudSave', JSON.stringify({ ...imported, state: { day: cloudChoice ? 12 : 9 },
-            writeTimestamp: 200, ackTimestamp: 200, versionGuid: 'accepted' }));
+            writeTimestamp: 200, localChanged: false, recoveryResolved: true, versionGuid: 'accepted' }));
         const third = e.tab(); await third.api.init(e.store);
         assert.equal(JSON.parse(third.api.accountStore('a').getItem('cloudSave')).writeTimestamp, 200);
-        a.setItem('cloudSave', JSON.stringify({ state: { day: 10 }, writeTimestamp: 151, ackTimestamp: 100, versionGuid: 'old' }));
+        a.setItem('cloudSave', JSON.stringify({ state: { day: 10 }, writeTimestamp: 151, localChanged: true, versionGuid: 'old' }));
         const fourth = e.tab(); await fourth.api.init(e.store);
         assert.equal(JSON.parse(fourth.api.accountStore('a').getItem('cloudSave')).state.day, 10);
     }

@@ -72,12 +72,12 @@
                 if (this.isMayor()) await mayorSave.resume();
             }
             root.setInterval(() => { this.check(); notify(); }, 1000);
-            root.setInterval(() => { this.check(); void mayorSave?.flush().then(notify); }, 10000);
-            root.addEventListener('online', () => { this.check(); void mayorSave?.flush().then(notify); });
+            root.setInterval(() => { this.check(); void mayorSave?.checkSession().then(notify); }, 10000);
+            root.addEventListener('online', () => { this.check(); void mayorSave?.checkSession().then(notify); });
             for (const event of ['pointerdown', 'keydown']) root.addEventListener(event, e => {
                 if (e.isTrusted) this.activity();
             });
-            root.addEventListener('focus', () => { this.check(); notify(); void mayorSave?.flush().then(notify); });
+            root.addEventListener('focus', () => { this.check(); notify(); void mayorSave?.checkSession().then(notify); });
             root.addEventListener('storage', () => {
                 const current = root.BrowserSession.readAuth();
                 // Another tab cannot change the account whose game this tab holds.
@@ -97,7 +97,7 @@
             persist();
             openSave();
             switching = true;
-            try { await mayorSave.resume(true); } finally { switching = false; }
+            try { await mayorSave.resume(true, result.activeGameSessionId); } finally { switching = false; }
             return result;
         },
         isMayor() { return auth?.mode === 'mayor'; },
@@ -124,17 +124,16 @@
         save(state) {
             if (!this.isMayor() || (root.LocalEnvironment && !root.LocalEnvironment.isCurrent())) return;
             mayorSave.save(state);
-            void mayorSave.flush().then(notify);
         },
         getStats() { return mayorSave?.stats(); },
         syncStatus() { return mayorSave?.status(); },
         syncDetails() { return mayorSave?.details(); },
         async resolveSave(source) { await mayorSave.resolve(source); notify(); },
-        flush() { return mayorSave?.flush(); },
+        checkSession() { return mayorSave?.checkSession(); },
         async becomeMayor() {
             if (!auth?.authToken || this.check() === 'expired' || mayorSave?.status() === 'session_replaced') return false;
             switching = true;
-            try { await mayorSave.flush(); } finally { switching = false; }
+            try { await mayorSave.resume(); } finally { switching = false; }
             if (!auth.authToken || mayorSave.status() === 'session_replaced') return false;
             auth.mode = 'mayor'; persist();
             return true;

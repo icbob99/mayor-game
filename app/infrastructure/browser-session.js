@@ -79,11 +79,12 @@
                     .map(key => ({ key, value: read(key) }))
                     .filter(item => item.value && !read(resolvedKey(item.key, revision(item.value))));
                 // Recover unsent play before a clean snapshot from another tab. Never merge branches.
-                const dirty = value => Number(Boolean(value.pending) || value.writeTimestamp > value.ackTimestamp);
+                const dirty = value => Number(value.localChanged ?? (value.writeTimestamp > (value.ackTimestamp || 0)));
                 candidates.sort((a, b) => dirty(b.value) - dirty(a.value) || b.value.writeTimestamp - a.value.writeTimestamp);
                 const selected = candidates[0];
                 if (selected) {
                     const previous = selected.value;
+                    previous.recoveryResolved = false;
                     previous.recoverySources = { ...previous.recoverySources, [selected.key]: revision(previous) };
                     if (importedAccount !== accountId || selected.key !== base + 'cloudSave') {
                         previous.gameSessionId = null;
@@ -104,8 +105,7 @@
                             const auth = read(authKey());
                             if (auth?.authToken) rememberAuth(auth);
                         }
-                        if (saved.recoverySources && saved.writeTimestamp === saved.ackTimestamp &&
-                            !saved.pending && !saved.activation && !saved.blocked) {
+                        if (saved.recoverySources && saved.recoveryResolved && !saved.activation && !saved.blocked) {
                             // Resolve the imported revision only; a live source tab may have newer unsent play.
                             for (const [source, rev] of Object.entries(saved.recoverySources)) {
                                 if (!read(resolvedKey(source, rev))) write(resolvedKey(source, rev), true);

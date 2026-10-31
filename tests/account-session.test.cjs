@@ -5,12 +5,14 @@ const vm = require('node:vm');
 
 function browser(initial = {}) {
     const values = new Map(Object.entries(initial));
+    const listeners = new Map(), timers = new Map();
     let now = 10000000;
     const b = {
         crypto: require('node:crypto').webcrypto,
         Date: { now: () => now },
         localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: key => values.delete(key) },
-        addEventListener() {}, setInterval() {}, updateAuthUI() {},
+        addEventListener: (name, handler) => listeners.set(name, handler),
+        setInterval: (handler, ms) => timers.set(ms, handler), updateAuthUI() {},
         requestGameApi: async path => {
             if (!path.startsWith('/api/auth/')) throw new TypeError('offline');
             return { account: { id: 'a', nickname: 'Mayor' }, authToken: 'token', expiresAt: now + 1800000 };
@@ -23,8 +25,53 @@ function browser(initial = {}) {
     vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/mayor-save.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/account-session.js', 'utf8'), b);
-    return { ...b, advance: ms => { now += ms; }, values };
+    return { ...b, advance: ms => { now += ms; }, values, listeners, timers };
 }
+
+test('online, focus and periodic ownership checks never resend a failed game PUT', async () => {
+    const b = browser();
+    let writes = 0, probes = 0;
+    b.window.requestGameApi = async (path, { method } = {}) => {
+        if (path.startsWith('/api/auth/')) return { account: { id: 'a' }, authToken: 'token' };
+        if (path.includes('?')) { probes++; return {}; }
+        if (path.endsWith('/session')) return { gameSessionId: 'writer', save: null };
+        if (method === 'PUT') { writes++; throw new TypeError('offline'); }
+        return null;
+    };
+    await b.AccountSession.init();
+    await b.AccountSession.authenticate('login', {});
+    b.AccountSession.save({ day: 2, money: 100, wife: 50, threat: 15, health: 90, rating: 50 });
+    for (const check of [b.listeners.get('online'), b.listeners.get('focus'), b.timers.get(10000)]) {
+        check();
+        await new Promise(resolve => setImmediate(resolve));
+    }
+    assert.equal(writes, 1);
+    assert.equal(probes, 3);
+});
+
+test('returning from guest explicitly recovers a lost activation reply before saving new moves', async () => {
+    const b = browser();
+    let lost = true;
+    const activations = [], writes = [];
+    b.window.requestGameApi = async (path, { method, body } = {}) => {
+        if (path.startsWith('/api/auth/')) return { account: { id: 'a' }, authToken: 'token' };
+        if (path.endsWith('/session')) {
+            activations.push(JSON.stringify(body));
+            if (lost) { lost = false; throw new TypeError('reply lost'); }
+            return { gameSessionId: 'writer', save: null };
+        }
+        if (method === 'PUT') writes.push(body);
+        return null;
+    };
+    await b.AccountSession.authenticate('login', {});
+    b.AccountSession.becomeGuest();
+    assert.equal(await b.AccountSession.becomeMayor(), true);
+    b.AccountSession.save({ day: 2, money: 100, wife: 50, threat: 15, health: 90, rating: 50 });
+    assert.equal(activations.length, 2);
+    assert.equal(activations[0], activations[1]);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].state.day, 2);
+});
 
 test('mayor state and statistics do not overwrite or inherit the guest', async () => {
     const b = browser({ mayorGameState: 'guest-game', mayorGuestStats: 'guest-stats' });
@@ -122,20 +169,20 @@ test('switching accounts cannot acknowledge or send the previous account snapsho
         if (method !== 'PUT') return null;
         writes.push({ token, day: body.state.day });
         if (token === 'A') await new Promise(resolve => { release = resolve; });
-        return { status: 'saved', operationId: body.operationId, writeTimestamp: body.writeTimestamp, versionGuid: token + '-version' };
+        return;
     };
     await b.AccountSession.authenticate('login', { nickname: 'A' });
     b.AccountSession.save({ day: 7, money: 100, wife: 50, threat: 15, health: 90, rating: 50 });
-    const oldRequest = b.AccountSession.flush();
+    const oldRequest = b.AccountSession.checkSession();
     await b.AccountSession.authenticate('login', { nickname: 'B' });
     assert.equal(b.AccountSession.loadGame(), null);
     b.AccountSession.save({ day: 1, money: 1000000, wife: 50, threat: 15, health: 90, rating: 50 });
-    await b.AccountSession.flush();
+    await b.AccountSession.checkSession();
     release();
     await oldRequest;
     assert.deepEqual(writes, [{ token: 'A', day: 7 }, { token: 'B', day: 1 }]);
     assert.equal(b.AccountSession.loadGame().day, 1);
     assert.equal(JSON.parse(b.BrowserSession.accountStore('A').getItem('cloudSave')).state.day, 7);
-    assert.notEqual(JSON.parse(b.BrowserSession.accountStore('A').getItem('cloudSave')).pending, null);
-    assert.equal(JSON.parse(b.BrowserSession.accountStore('B').getItem('cloudSave')).pending, null);
+    assert.equal(JSON.parse(b.BrowserSession.accountStore('A').getItem('cloudSave')).pending, undefined);
+    assert.equal(JSON.parse(b.BrowserSession.accountStore('B').getItem('cloudSave')).pending, undefined);
 });

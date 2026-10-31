@@ -7,7 +7,7 @@ module.exports = async function checkSaves(base, instanceId) {
         const response = await fetch(base + path, { method,
             headers: { 'X-Dev-Instance': instanceId, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
             body: body ? JSON.stringify(body) : undefined });
-        return { status: response.status, data: await response.json() };
+        return { status: response.status, data: response.status === 204 ? await response.text() : await response.json() };
     };
     const sql = async (text, args = []) => {
         const response = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
@@ -35,71 +35,89 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.deepEqual(await counts(), [1, 1, 0], 'activation retry does not insert a second operation');
     const flags = { offshore_king: 0, untouchable: 0, happy_wife: 0, survivor: 0 };
     const body = {
-        gameSessionId: activated.data.gameSessionId, operationId: randomUUID(), writeTimestamp: 100,
+        gameSessionId: activated.data.gameSessionId, writeTimestamp: 100,
         state: { gameId: randomUUID(), day: 9, money: 2500000, health: 60, wife: 50, threat: 15, rating: 50,
             cooldowns: { police_bribe: 0, wife_spa: 0, assuta_vip: 12, pr_agency: 0 }, achievements: flags,
             isFinished: false, endReason: null, finishedAt: null },
-        stats: { gamesPlayed: 0, maxMoney: 2500000, achievements: flags }, completedGames: []
+        stats: { gamesPlayed: 0, maxMoney: 2500000, achievements: flags }
     };
     const invalid = structuredClone(body);
     invalid.state.achievements.survivor = 2;
     assert.equal((await api('/api/game/save', token, invalid)).status, 400);
     const first = await api('/api/game/save', token, body);
-    assert.equal(first.status, 200, JSON.stringify(first));
-    assert.equal(first.data.status, 'saved');
-    assert.deepEqual(await api('/api/game/save', token, body), first, 'a lost reply can be recovered verbatim');
-    assert.equal((await api('/api/game/save', token, { ...body, writeTimestamp: 101 })).status, 400, 'operation IDs cannot be reused for changed content');
+    assert.deepEqual(first, { status: 204, data: '' }, 'ordinary saves return no receipt');
     const loaded = await api('/api/game/save', token);
     assert.deepEqual(loaded.data.state, body.state);
     assert.deepEqual(loaded.data.stats, body.stats);
-    assert.equal(loaded.data.versionGuid, first.data.versionGuid);
+    assert.equal(typeof loaded.data.versionGuid, 'string');
+    assert.deepEqual(await api('/api/game/save', token, body), first);
+    const equalTimestamp = { ...body, state: { ...body.state, money: 1 }, stats: { ...body.stats, maxMoney: 1 } };
+    assert.deepEqual(await api('/api/game/save', token, equalTimestamp), first);
+    assert.deepEqual(await api('/api/game/save', token), loaded, 'equal timestamp changes neither state, stats nor version');
     const conflict = await api('/api/game/session', token, { ...activation, operationId: randomUUID() });
     assert.equal(conflict.status, 409);
     assert.deepEqual(conflict.data.save, loaded.data);
-    assert.deepEqual(await counts(), [2, 1, 0], 'one accepted save adds one operation; retries, reads and rejected writes add none');
+    assert.deepEqual(await counts(), [1, 1, 0], 'ordinary saves, retries and reads create no operation receipts');
 
-    const finished = { gameId: body.state.gameId, days: 9, money: 2500000, finishedAt: Date.now(), endReason: 'arrest', achievements: flags };
-    const next = { ...body, operationId: randomUUID(), writeTimestamp: 110,
-        state: { ...body.state, gameId: randomUUID(), day: 1 }, stats: { ...body.stats, gamesPlayed: 1 }, completedGames: [finished] };
-    const late = { ...body, operationId: randomUUID(), writeTimestamp: 109 };
-    const [newer] = await Promise.all([api('/api/game/save', token, next), api('/api/game/save', token, late)]);
-    assert.equal(newer.data.status, 'saved');
-    assert.equal((await api('/api/game/save', token)).data.writeTimestamp, 110);
+    const next = { ...body, writeTimestamp: 110,
+        state: { ...body.state, isFinished: true, finishedAt: Date.now(), endReason: 'arrest' },
+        stats: { ...body.stats, gamesPlayed: 1 } };
+    const late = { ...body, writeTimestamp: 109 };
+    const [newer, older] = await Promise.all([api('/api/game/save', token, next), api('/api/game/save', token, late)]);
+    assert.equal(newer.status, 204);
+    assert.equal(older.status, 204);
+    const completed = await api('/api/game/save', token);
+    assert.equal(completed.data.writeTimestamp, 110);
+    assert.deepEqual(completed.data.state, next.state);
+    assert.deepEqual(completed.data.stats, next.stats);
     assert.deepEqual(await api('/api/game/save', token, next), newer);
-    const stale = { ...late, operationId: randomUUID(), writeTimestamp: 108 };
-    assert.equal((await api('/api/game/save', token, stale)).data.status, 'stale');
-    assert.equal(Number((await sql('SELECT COUNT(*) FROM game_history WHERE account_id = ?', [account]))[0][0].value), 1);
-    assert.equal((await api('/api/game/save', token)).data.stats.gamesPlayed, 1);
-    assert.deepEqual(await counts(), [5, 1, 1], 'new operations, including stale writes, are recorded; completion and its retries produce one history row');
+    const stale = { ...next, writeTimestamp: 108, state: { ...next.state, gameId: randomUUID() },
+        stats: { ...next.stats, gamesPlayed: 5 } };
+    assert.equal((await api('/api/game/save', token, stale)).status, 204);
+    assert.equal((await api('/api/game/save', token, { ...stale, writeTimestamp: 110 })).status, 204);
+    assert.deepEqual(await api('/api/game/save', token), completed, 'stale completion changes nothing');
+    const history = await sql('SELECT game_id, finished_at, days, money, end_reason, achievements_json FROM game_history WHERE account_id = ?', [account]);
+    assert.equal(history.length, 1);
+    assert.deepEqual(history[0].map(cell => cell.value), [next.state.gameId, String(next.state.finishedAt), '9', '2500000', 'arrest', JSON.stringify(flags)]);
+    assert.deepEqual(await counts(), [1, 1, 1], 'only activation has a receipt, and completion retries produce one history row');
+    assert.equal((await api('/api/game/save', token, { ...next, writeTimestamp: 111 })).status, 204);
+    assert.deepEqual(await counts(), [1, 1, 1], 'a newer snapshot of the same finished game does not duplicate its history');
 
-    // A failure after the save write must also roll back the operation ID and the save itself.
+    // A history failure must roll back the state and absolute statistics together.
     const beforeFailure = await api('/api/game/save', token);
+    const beforeFailureCounts = await counts();
     await sql(`CREATE TRIGGER fail_save_test BEFORE INSERT ON game_history WHEN NEW.account_id = '${account}' BEGIN SELECT RAISE(ABORT, 'test_failure'); END`);
-    const failed = { ...next, operationId: randomUUID(), writeTimestamp: 111 };
+    const failed = { ...next, writeTimestamp: 112, state: { ...next.state, gameId: randomUUID(), day: 12 },
+        stats: { ...next.stats, gamesPlayed: 2, maxMoney: 3000000 } };
     try {
         assert.equal((await api('/api/game/save', token, failed)).status, 503);
         assert.deepEqual(await api('/api/game/save', token), beforeFailure);
-        assert.equal((await sql('SELECT operation_id FROM game_persistence_operations WHERE account_id = ? AND operation_id = ?', [account, failed.operationId])).length, 0);
+        assert.deepEqual(await counts(), beforeFailureCounts);
     } finally { await sql('DROP TRIGGER fail_save_test'); }
     const recovered = await api('/api/game/save', token, failed);
-    assert.equal(recovered.data.status, 'saved');
+    assert.equal(recovered.status, 204);
+    assert.deepEqual((await api('/api/game/save', token)).data.stats, failed.stats);
+    assert.deepEqual(await counts(), [1, 1, 2]);
 
     const other = await api('/api/auth/register', null, { nickname: nickname + '-other', password: 'save-test' }, 'POST');
-    assert.equal((await api('/api/game/save', other.data.authToken, { ...failed, operationId: randomUUID(), writeTimestamp: 112 })).status, 403);
+    assert.equal((await api('/api/game/save', other.data.authToken, { ...failed, writeTimestamp: 113 })).status, 403);
     assert.equal((await api('/api/game/save', other.data.authToken)).data, null);
 
-    // Reauthentication proves possession of this browser's previous token; another login does not.
+    // Reauthentication retires the old token; writing requires activation under the new authorization.
     const login = await api('/api/auth/login', token, { nickname, password: 'save-test' }, 'POST');
     assert.equal(login.status, 200);
     assert.equal((await api('/api/game/save', token)).status, 401);
     const newToken = login.data.authToken;
     assert.equal((await counts())[1], 2, 'successful login inserts an authorization; the retired one is retained');
-    assert.deepEqual(await api('/api/game/save', newToken, failed), recovered);
+    assert.deepEqual(await api('/api/game/save', newToken, failed), { status: 403, data: { error: 'session_replaced' } },
+        'a new authorization cannot write through the previous authorization\'s game session');
     const cloud = (await api('/api/game/save', newToken)).data;
     const resumed = await api('/api/game/session', newToken, { ...activation, operationId: randomUUID(), expectedVersionGuid: cloud.versionGuid, previousGameSessionId: activated.data.gameSessionId });
     assert.equal(resumed.status, 200, JSON.stringify(resumed));
+    assert.deepEqual(await api('/api/game/save', newToken, { ...failed, gameSessionId: resumed.data.gameSessionId }),
+        { status: 204, data: '' }, 'the activated writer may submit an equal-timestamp snapshot');
     assert.equal((await api('/api/game/session', newToken, activation)).status, 403, 'an old activation cannot reclaim its writer');
-    assert.equal((await api('/api/game/save', newToken, { ...failed, operationId: randomUUID(), writeTimestamp: 112 })).status, 403);
+    assert.equal((await api('/api/game/save', newToken, { ...failed, writeTimestamp: 113 })).status, 403);
     const remoteLogin = await api('/api/auth/login', null, { nickname, password: 'save-test' }, 'POST');
     assert.equal((await api('/api/game/session', remoteLogin.data.authToken, { ...activation, operationId: randomUUID(), expectedVersionGuid: cloud.versionGuid })).data.error, 'transfer_required');
     assert.equal((await api('/api/auth/login', newToken, { nickname: nickname + '-other', password: 'wrong' }, 'POST')).status, 401);
@@ -111,7 +129,7 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.equal((await api('/api/game/save', newToken)).status, 401, 'switching to B retires only this browser token for A');
     assert.equal((await api('/api/game/save', remoteLogin.data.authToken)).status, 200, 'another authorization for A remains valid');
     const loginA = await api('/api/auth/login', loginB.data.authToken, { nickname, password: 'save-test' }, 'POST');
-    assert.deepEqual(await api('/api/game/save', loginA.data.authToken, failed), recovered, 'A recovers its lost reply after visiting B');
+    assert.equal((await api('/api/game/save', loginA.data.authToken, failed)).status, 403, 'returning to A does not authorize an old game session');
     assert.equal((await api('/api/game/session', loginA.data.authToken, { ...activation, operationId: randomUUID(), expectedVersionGuid: cloud.versionGuid, previousGameSessionId: resumed.data.gameSessionId })).status, 200);
     const registerC = await api('/api/auth/register', loginA.data.authToken, { nickname: nickname + '-third', password: 'save-test' }, 'POST');
     assert.equal(registerC.status, 201);
@@ -132,9 +150,9 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.equal((await api('/api/game/session?gameSessionId=' + owner.data.gameSessionId, remoteLogin.data.authToken)).status, 403);
     assert.equal((await api('/api/game/session', remoteLogin.data.authToken, transfer)).status, 403, 'replaying an old confirmation never restores ownership');
     assert.equal((await api('/api/game/session', remoteLogin.data.authToken, { ...transfer, operationId: randomUUID(), confirmTransfer: false, previousGameSessionId: owner.data.gameSessionId })).data.error, 'transfer_required');
-    assert.equal((await api('/api/game/save', remoteLogin.data.authToken, { ...failed, operationId: randomUUID(), gameSessionId: owner.data.gameSessionId, writeTimestamp: 1000 })).status, 403);
-    const currentWrite = { ...failed, operationId: randomUUID(), gameSessionId: newOwner.data.gameSessionId, writeTimestamp: 1000 };
-    assert.equal((await api('/api/game/save', remoteLogin.data.authToken, currentWrite)).status, 200);
+    assert.equal((await api('/api/game/save', remoteLogin.data.authToken, { ...failed, gameSessionId: owner.data.gameSessionId, writeTimestamp: 1000 })).status, 403);
+    const currentWrite = { ...failed, gameSessionId: newOwner.data.gameSessionId, writeTimestamp: 1000 };
+    assert.equal((await api('/api/game/save', remoteLogin.data.authToken, currentWrite)).status, 204);
     assert.equal((await api('/api/game/session', remoteLogin.data.authToken, { ...transfer, operationId: randomUUID() })).data.error, 'save_conflict', 'a choice against an old GUID cannot overwrite a newer cloud version');
 
     // Rehearse the additive locale update on a populated database, without rebuilding it.

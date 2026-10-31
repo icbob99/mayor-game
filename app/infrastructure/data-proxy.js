@@ -20,5 +20,6 @@ async function requestGameApi(path, { method = 'GET', body, token } = {}) {
         const data = await response.json().catch(() => ({}));
         throw Object.assign(new Error(`HTTP ${response.status}`), { code: data.error || 'server_unavailable', status: response.status, data });
     }
+    if (response.status === 204) return;
     return response.json();
 }
