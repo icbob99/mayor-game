@@ -27,9 +27,9 @@ Shop prices currently live in `shopPerkPrices` in `app/game/game-state.js`. Loca
 
 Use confirmed release/application versions and applied SQL evidence recorded in the agent notes, supported by actual release artifacts or authorized inspection when needed. Record the source of the evidence. Branch HEAD, local Docker data and filenames alone do not establish what is in production.
 
-`server.py:SQL_FILES` is the authoritative order for the fresh Docker setup. Read it rather than copying its list. Historical migrations and seeds were restored to the pre-rename revision; auth seed 010 remains. The proposed deployment journal and migration CLI were cancelled and removed. Numeric filename prefixes overlap and do not identify the actual production revision.
+`db_deploy.py:SQL_FILES` is the single append-only order for Docker and production updates. `server.py` calls this runner; do not copy the list into tests. Numeric filename prefixes overlap: the journal sequence is the list position, not the filename prefix. The earlier deployment implementation was cancelled; this replacement was explicitly approved on 2026-11-18.
 
-Resolve the actual production baseline from confirmed release evidence; there is currently no deployment table or baseline-adoption command in this implementation. Recheck the recorded undeployed status of 003_account_schema.sql before choosing to edit it in place. Designing or implementing a replacement release mechanism requires a new agreed proposal; do not reinstate the cancelled solution automatically.
+Schema 003 is already deployed and must not be edited in place. The runner provides status/check-baseline/baseline/apply. Before adopting an untracked database, compare its schema and product content; baseline records adoption time without replaying historical SQL or replacing player data. A matching baseline does not prove historical execution dates. `db_deployments` records sequence, path, checksum, recorded_at and baseline/applied kind. Consult the agent notes for whether the journal itself has actually been deployed.
 
 ## Prepare the concrete change
 
@@ -44,6 +44,6 @@ Choose exact forward/recovery artifacts and execution commands only after the ba
 
 `python server.py` destroys and recreates the manual Docker stack including its volume. `python server.py --test` does the same for the separate test stack. Neither command currently preserves an old installation and applies an upgrade to it.
 
-For an approved upgrade rehearsal, use the disposable test project identified in AGENTS.md. Build the confirmed historical baseline with synthetic existing state, apply proposed changes without resetting between stages, and verify recovery. This is a requirement for future release work, not an implemented server.py mode. The cancelled migration integration test was removed; existing browser tests verify fresh startup. Current evidence and open release gaps belong in the agent notes.
+For an approved upgrade rehearsal, use the disposable test project identified in AGENTS.md. `tests/test_db_deploy.py` exercises the runner against real libSQL on port 8082: adoption with an existing player, fresh setup, idempotence, checksum rejection and transactional rollback. It imports the shared SQL list. Future feature migrations still need their own relevant existing-state and recovery checks; the browser suite verifies fresh startup. Current evidence and open release gaps belong in the agent notes.
 
 Keep the working manual account intact. Run only checks relevant to the change using the existing tools; do not add a migration framework, admin service or JS/Python database-test wrapper as incidental work. Record what was actually rehearsed and what still blocks release in the agent notes.

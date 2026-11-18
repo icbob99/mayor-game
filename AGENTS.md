@@ -15,8 +15,8 @@
 - `app/game/`: game rules and session management. `app/ui/`: rendering, language and audio.
 - Runtime shop prices come from `shopPerkPrices` in `app/game/game-state.js`. Historical locale price fields have been restored with the database rollback and are ignored by the current frontend; do not remove them again without approval.
 - `cloudflare/worker.js`: API entry point; game-data response stays raw. `cloudflare/database.js` handles database transport; `cloudflare/auth.js` handles authentication. Consult the journal for implementation status.
-- `server.py`: local stack lifecycle and the sole ordered SQL list (`SQL_FILES`). Never copy this list into tests. The proposed deployment journal/CLI was cancelled and removed; there is no `--db-url` mode or `deployment` table creation. The UI translation table is `game_locale_ui` again.
-- `db/migrations/003_account_schema.sql` has not been applied to production. Edit it for agreed schema changes instead of creating incremental migrations for this unreleased schema. Recheck deployment status first.
+- `server.py` manages the local stack; `db_deploy.py` owns the sole ordered SQL list (`SQL_FILES`) and shared deployment runner. Never copy the list into tests. The approved replacement uses `db_deployments`; do not restore the earlier cancelled CLI. The UI translation table remains `game_locale_ui`.
+- `db/migrations/003_account_schema.sql` is deployed to production. Preserve released SQL and append new migrations/seeds. Consult `docs/agent-notes.md` and the target's deployment journal for actual application status; local files alone do not establish deployment.
 - Code comments are English. Player-facing text follows the game language; runtime messages come from locale data, startup messages have a local fallback.
 
 ## Selected skills

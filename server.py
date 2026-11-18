@@ -9,21 +9,9 @@ import time
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 from uuid import uuid4
+from db_deploy import Database, apply
 
 ROOT = Path(__file__).resolve().parent
-SQL_FILES = (
-    'db/migrations/002_normalized_schema.sql',
-    'db/seeds/003_normalized_data.sql',
-    'db/seeds/004_balance_update.sql',
-    'db/seeds/005_clean_choice_texts.sql',
-    'db/seeds/006_new_scenarios.sql',
-    'db/seeds/007_guest_stats_ui.sql',
-    'db/seeds/008_ukrainian_locale.sql',
-    'db/seeds/009_event_error_locale.sql',
-    'db/seeds/010_auth_ui.sql',
-    'db/seeds/011_save_sync_ui.sql',
-    'db/migrations/003_account_schema.sql',
-)
 
 
 def request_json(url, payload=None, headers=None):
@@ -31,14 +19,6 @@ def request_json(url, payload=None, headers=None):
     request = Request(url, data=body, headers={'Content-Type': 'application/json', **(headers or {})})
     with urlopen(request, timeout=5) as response:
         return json.load(response)
-
-
-def pipeline(url, requests):
-    data = request_json(url + '/v2/pipeline', {'requests': [*requests, {'type': 'close'}]})
-    results = data.get('results', [])
-    if len(results) != len(requests) + 1 or any(item.get('type') != 'ok' for item in results):
-        raise RuntimeError(f'Database request failed: {data}')
-    return results
 
 
 def wait_ready(check, label):
@@ -74,10 +54,12 @@ def main():
         compose('build', '--no-cache', 'game')
         compose('up', '--detach', 'db')
         db_url = f'http://127.0.0.1:{db_port}'
-        wait_ready(lambda: pipeline(db_url, [{'type': 'execute', 'stmt': {'sql': 'SELECT 1'}}]), 'Database')
-        for filename in SQL_FILES:
-            print(f'Applying {filename}', flush=True)
-            pipeline(db_url, [{'type': 'sequence', 'sql': (ROOT / filename).read_text(encoding='utf-8')}])
+        database = Database(db_url)
+        try:
+            wait_ready(lambda: database.execute('SELECT 1'), 'Database')
+            apply(database)
+        finally:
+            database.close()
         compose('up', '--detach', 'game')
         game_url = f'http://localhost:{port}'
 
