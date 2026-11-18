@@ -1,0 +1,21 @@
+{
+    "name": "mayor-game-api",
+    "account_id": "249ea8400707a1dffedac5d3b05c9235",
+    "main": "worker.js",
+    // Match the existing production Worker, including its logging settings.
+    "compatibility_date": "2026-10-20",
+    // Keep TURSO_DATABASE_URL configured in the Cloudflare dashboard.
+    // TURSO_AUTH_TOKEN stays a Cloudflare secret, never a local build input.
+    "keep_vars": true,
+    "workers_dev": true,
+    "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+            "enabled": true,
+            "invocation_logs": true,
+            "persist": true
+        },
+        "traces": { "enabled": false }
+    }
+}
