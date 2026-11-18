@@ -6,6 +6,7 @@ RUN --mount=type=cache,target=/root/.npm npm install --prefer-offline --no-save 
 COPY cloudflare /srv/cloudflare
 COPY sandbox/local-worker.mjs sandbox/wrangler.jsonc /srv/sandbox/
 COPY index.html /srv/public/index.html
+COPY service-worker.js /srv/public/service-worker.js
 COPY app /srv/public/app
 COPY css /srv/public/css
 COPY assets /srv/public/assets

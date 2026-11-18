@@ -87,7 +87,12 @@
             return response;
         }
     };
-    window.LocalEnvironment.ready = getInstance().then(id => {
+    window.LocalEnvironment.ready = getInstance().catch(error => {
+        // Offline reload may resume only an already known stand; reconnect still checks its ID.
+        const knownId = localStorage.getItem(key);
+        if (!knownId) throw error;
+        return knownId;
+    }).then(id => {
         adopt(id);
         instanceId = id;
         addEventListener('focus', check);

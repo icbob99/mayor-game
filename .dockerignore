@@ -1,5 +1,6 @@
 **
 !index.html
+!service-worker.js
 !app/
 !app/**
 !css/

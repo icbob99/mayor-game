@@ -1,6 +1,7 @@
 const GAME_DATA_URL = 'https://mayor-game-api.icbob99.workers.dev/api/game-data';
 
 async function fetchRawGameData() {
+    if (typeof offlineReady !== 'undefined') await offlineReady;
     return requestGameApi('/api/game-data');
 }
 

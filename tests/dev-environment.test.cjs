@@ -14,7 +14,7 @@ function storage(initial = {}) {
     };
 }
 
-function browser(initial = {}, remoteId = 'new') {
+function browser(initial = {}, remoteId = 'new', offline = false) {
     const listeners = {};
     const requests = [];
     const context = {
@@ -28,7 +28,7 @@ function browser(initial = {}, remoteId = 'new') {
             if (context.offline) throw new Error('offline');
             return new Response(JSON.stringify({ instance_id: context.remoteId }), { status: context.status });
         },
-        remoteId, status: 200, listeners, requests
+        remoteId, offline, status: 200, listeners, requests
     };
     context.window = context;
     vm.createContext(context);
@@ -59,6 +59,20 @@ test('same stand preserves progress on reload and sends its generation to the AP
     await b.LocalEnvironment.fetch('/api/game-data');
     assert.equal(b.LocalEnvironment.storage.getItem('mayorGameState'), 'saved game');
     assert.equal(b.requests.at(-1).options.headers.get('X-Dev-Instance'), 'new');
+});
+
+test('offline reload keeps the known stand and still detects a reset on reconnect', async () => {
+    const b = browser({ mayorDevInstance: 'old', 'mayorDevData:old:mayorGameState': 'saved game' }, 'rebuilt', true);
+    await b.LocalEnvironment.ready;
+    assert.equal(b.LocalEnvironment.storage.getItem('mayorGameState'), 'saved game');
+    assert.equal(b.LocalEnvironment.isCurrent(), true);
+    b.offline = false;
+    await b.poll();
+    assert.equal(b.reloads, 1);
+    assert.equal(b.localStorage.getItem('mayorDevInstance'), 'rebuilt');
+    assert.equal(b.localStorage.getItem('mayorDevData:old:mayorGameState'), null);
+    const firstVisit = browser({}, 'new', true);
+    await assert.rejects(firstVisit.LocalEnvironment.ready, /offline/);
 });
 
 test('first visit clears legacy game data without a remembered stand ID', async () => {

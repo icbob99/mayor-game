@@ -91,6 +91,14 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const port = Number(readFileSync(portFile, 'utf8').split('\n')[0]);
     const page = await openPage(port);
     pages.push(page);
+    const browserErrors = [];
+    page.ws.addEventListener('message', event => {
+        const message = JSON.parse(event.data);
+        if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
+            browserErrors.push(message.params.entry.text);
+        }
+    });
+    await page.call('Log.enable');
     try {
         await until(() => page.evaluate("typeof state !== 'undefined' && state.day === 1 && document.querySelectorAll('#choices-container button').length > 0"));
     } catch (error) {
@@ -98,6 +106,39 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
+    async function offlineReloadAndPlay() {
+        assert.equal(await page.evaluate('Boolean(navigator.serviceWorker.controller)'), true,
+            'the first successful load has an active offline worker');
+        assert.equal(await page.evaluate("caches.open('mayor-offline:/:v1').then(c => c.match(location.origin + '/index.html')).then(r => r.redirected)"), false,
+            'cached HTML must be usable for navigation after an index.html redirect');
+        const progress = await page.evaluate('JSON.stringify({day:state.day,money:state.money})');
+        await page.call('Network.enable');
+        await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+        // Stop the actual server too: a service worker must not bypass CDP's page-level offline mode.
+        await run('docker', [...compose, 'stop', 'game'], { cwd: root, timeout: 60000, windowsHide: true });
+        await page.evaluate('window.beforeOfflineReload = true');
+        await page.call('Page.reload');
+        try {
+            await until(() => page.evaluate("!window.beforeOfflineReload && typeof gameLogicEvents !== 'undefined' && gameLogicEvents.length > 0 && document.querySelectorAll('#choices-container button').length > 0"));
+        } catch (error) {
+            const details = await page.evaluate("JSON.stringify({url:location.href, text:document.body.innerText, controlled:Boolean(navigator.serviceWorker?.controller)})");
+            throw new Error(`${error.message}: ${details}; browser errors: ${JSON.stringify(browserErrors)}`);
+        }
+        assert.equal(await page.evaluate('JSON.stringify({day:state.day,money:state.money})'), progress,
+            'offline reload restores the saved game');
+        const day = await page.evaluate('state.day');
+        await page.click('#choices-container button');
+        assert.equal(await page.evaluate('state.day'), day + 1, 'a real click advances the offline game');
+        await page.evaluate('window.beforeOfflineReload = true');
+        await page.call('Page.reload');
+        await until(() => page.evaluate(`!window.beforeOfflineReload && typeof gameLogicEvents !== 'undefined' && gameLogicEvents.length > 0 && state.day === ${day + 1}`));
+        assert.equal(await page.evaluate("getComputedStyle(document.body).display"), 'flex', 'Tailwind is available offline');
+        await run('docker', [...compose, 'start', 'game'], { cwd: root, timeout: 60000, windowsHide: true });
+        await until(async () => (await fetch(base + '/api/dev-info')).ok);
+        await page.call('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    }
+    await offlineReloadAndPlay();
+    await page.evaluate('resetGame()');
     // Shop prices are game rules; historical locale fields do not control them.
     await page.evaluate("toggleShop(true)");
     const shopPrices = await page.evaluate("Array.from(document.querySelectorAll('#shop-items-container .text-emerald-400'), el => el.innerText)");
@@ -117,10 +158,10 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const saved = await page.evaluate('JSON.stringify({ day: state.day, money: state.money })');
     await page.evaluate('window.beforeReload = true');
     await page.call('Page.reload');
-    await until(() => page.evaluate(`!window.beforeReload && typeof state !== 'undefined' && JSON.stringify({day:state.day,money:state.money}) === ${JSON.stringify(saved)}`));
+    await until(() => page.evaluate(`!window.beforeReload && typeof currentTexts !== 'undefined' && currentTexts?.ui.auth && document.querySelectorAll('#choices-container button').length > 0 && JSON.stringify({day:state.day,money:state.money}) === ${JSON.stringify(saved)}`));
     const secondPage = await openPage(port);
     pages.push(secondPage);
-    await until(() => secondPage.evaluate('typeof state !== "undefined" && state.day > 1'));
+    await until(() => secondPage.evaluate('typeof currentTexts !== "undefined" && currentTexts?.ui.auth && state.day > 1'));
     // Real auth routes and real libSQL: no simulated database or password verifier.
     async function authRequest(route, method, body, token) {
         const response = await fetch(base + '/api/auth/' + route, {
@@ -160,13 +201,26 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const guestProgress = "JSON.stringify((({currentEventIndex, ...progress}) => progress)(JSON.parse(LocalEnvironment.storage.getItem('mayorGameState'))))";
     const guestBefore = await page.evaluate(guestProgress);
     const guestStatsBefore = await page.evaluate('GuestSession.getStats()');
-    await page.evaluate(`openAuth('register'); document.getElementById('auth-nickname').value = '${nickname}-ui'; document.getElementById('auth-password').value = 'browser-password'; document.getElementById('auth-form').requestSubmit()`);
-    await until(() => page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open && state.day === 1"));
+    await page.click('#btn-register');
+    assert.equal(await page.evaluate("document.getElementById('auth-dialog').open"), true, 'registration is available after reconnect');
+    await page.evaluate(`document.getElementById('auth-nickname').value = '${nickname}-ui'; document.getElementById('auth-password').value = 'browser-password'`);
+    await page.click('#auth-submit');
+    try {
+        await until(() => page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open && state.day === 1"));
+    } catch (error) {
+        const details = await page.evaluate("JSON.stringify({mayor:AccountSession.isMayor(),day:state.day,open:document.getElementById('auth-dialog').open,busy:authFormBusy,error:document.getElementById('auth-error').textContent,online:navigator.onLine,sync:AccountSession.syncStatus()})");
+        throw new Error(`${error.message}: ${details}; browser errors: ${JSON.stringify(browserErrors)}`);
+    }
     assert.equal(await page.evaluate(guestProgress), guestBefore, 'registration must preserve the guest progress');
     await page.evaluate("document.querySelector('#choices-container button').click()");
     await waitForCloud(page);
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.day)"),
         await page.evaluate('state.day'), 'a completed move reaches the cloud');
+    await offlineReloadAndPlay();
+    t.diagnostic('Guest and mayor offline reloads, saved moves, and registration after reconnect passed.');
+    const cachedUrls = await page.evaluate(`caches.keys().then(async names => (await Promise.all(names.filter(n => n.startsWith('mayor-offline:')).map(async n => (await (await caches.open(n)).keys()).map(r => r.url)))).flat())`);
+    assert.ok(cachedUrls.some(url => url.endsWith('/api/game-data')), 'shared game content is cached');
+    assert.ok(!cachedUrls.some(url => /\/api\/(auth|game)\//.test(url)), 'account responses are never cached');
     const mayorSaved = await page.evaluate('JSON.stringify({day:state.day,money:state.money})');
     await page.evaluate('window.beforeAuthReload = true');
     await page.call('Page.reload');
@@ -445,4 +499,6 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const api = await fetch(base + '/api/game-data', { headers: { 'X-Dev-Instance': secondId } });
     const data = await api.json();
     assert.equal(data.results[0].response.result.rows.length, 41);
+    assert.equal(await reopened.evaluate("caches.open('mayor-offline:/:v1').then(c => c.keys()).then(keys => keys.filter(r => r.url.endsWith('/api/game-data')).length)"), 1,
+        'a rebuilt stand replaces cached content instead of accumulating generations');
 });
