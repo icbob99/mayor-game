@@ -39,6 +39,53 @@
 1. Доработать существующий редакторский скилл: меньше академичности, больше юмора, живого языка и уместного сленга.
 2. Подготовить первую правку текстов и провести её через настроенный процесс обновления БД.
 
+Сначала завершаем русскую редакцию всех сценариев, затем переходим к остальным языкам, по одному.
+`updated` — текст проверен и опубликован; `pending` — работа ещё не завершена.
+
+| Scenario name | Russian | Hebrew | English | Ukrainian |
+| --- | --- | --- | --- | --- |
+| Тендер на скамейки | pending | pending | pending | pending |
+| Махинации с ТАМА 38 | pending | pending | pending | pending |
+| Бюджет на мамады (Бомбоубежища) | pending | pending | pending | pending |
+| Проверка Госконтролера | pending | pending | pending | pending |
+| Коалиционный кризис (Шаббат) | pending | pending | pending | pending |
+| Визит адвоката-решалы | pending | pending | pending | pending |
+| Рэкет на мусоре | pending | pending | pending | pending |
+| Горящие мусоровозы | pending | pending | pending | pending |
+| Братская помощь коллеге | pending | pending | pending | pending |
+| Ответный удар СМИ | pending | pending | pending | pending |
+| Скандал с White Burger | pending | pending | pending | pending |
+| Субботний парковочный ад | pending | pending | pending | pending |
+| Потоп на улице Вайцман | pending | pending | pending | pending |
+| Скидки по Арноне для избранных | pending | pending | pending | pending |
+| Захват городского пляжа | pending | pending | pending | pending |
+| Нашествие электросамокатов | pending | pending | pending | pending |
+| Права на название стадиона | pending | pending | pending | pending |
+| Прорыв канализации | pending | pending | pending | pending |
+| Пятничные встречи в Кантри-клубе | pending | pending | pending | pending |
+| Изъятие записей в Кантри | pending | pending | pending | pending |
+| Блат в детском саду | pending | pending | pending | pending |
+| Строительство депо метро | pending | pending | pending | pending |
+| Реформа школьного образования | pending | pending | pending | pending |
+| Современное искусство в парке | updated | pending | pending | pending |
+| Празднование Дня Независимости | pending | pending | pending | pending |
+| Собака для жены | pending | pending | pending | pending |
+| Выставка кошек | pending | pending | pending | pending |
+| Парад Гордости на улице Вайцман | pending | pending | pending | pending |
+| Кризис в коалиции | pending | pending | pending | pending |
+| Скандал после встречи мэров | pending | pending | pending | pending |
+| Ответка союза мэров | pending | pending | pending | pending |
+| Свадьба сына | pending | pending | pending | pending |
+| Расследование по свадьбе | pending | pending | pending | pending |
+| Траур и похороны отца | pending | pending | pending | pending |
+| Памятник от застройщиков | pending | pending | pending | pending |
+| Дочка идет в школу | pending | pending | pending | pending |
+| Потоп в школе | pending | pending | pending | pending |
+| Ремонт квартиры | pending | pending | pending | pending |
+| Слив ремонта от блогера | pending | pending | pending | pending |
+| Недвижимость за границей | pending | pending | pending | pending |
+| Насмешки: «Мэр — лох» | pending | pending | pending | pending |
+
 ### обновить текущие оценки за решения
 
 ### расширение статистики по мэру

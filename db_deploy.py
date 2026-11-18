@@ -26,6 +26,7 @@ SQL_FILES = (
     'db/seeds/011_save_sync_ui.sql',
     'db/migrations/003_account_schema.sql',
     'db/migrations/004_deployment_history.sql',
+    'db/seeds/012_park_sculptures_ru.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'

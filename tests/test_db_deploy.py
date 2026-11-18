@@ -12,7 +12,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from db_deploy import BASELINE_LAST, Database, SQL_FILES, apply, baseline, check_baseline, history, scripts, statements
+from db_deploy import BASELINE_LAST, Database, ROOT, SQL_FILES, apply, baseline, check_baseline, history, scripts, statements
 
 
 class ScriptTests(unittest.TestCase):
@@ -167,6 +167,37 @@ class DeploymentTests(unittest.TestCase):
                 list(pool.map(deploy, range(2)))
             self.assertEqual(self.db.execute('SELECT * FROM upgrade_probe'), [[42]])
             self.assertEqual(len(history(self.db)), len(files))
+
+    def test_park_copy_upgrade_and_compensation_preserve_other_data(self):
+        self.legacy_database()
+        baseline(self.db)
+        def snapshot():
+            tables = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> 'db_deployments'")
+            return {name: sorted(self.db.execute('SELECT * FROM "' + name + '"'), key=repr) for (name,) in tables}
+        before = snapshot()
+        end = SQL_FILES.index('db/seeds/012_park_sculptures_ru.sql') + 1
+        files = self.files[:end]
+        apply(self.db, files)
+        after = snapshot()
+        differences = []
+        for table in before:
+            self.assertEqual(len(after[table]), len(before[table]), table)
+            for old, new in zip(before[table], after[table]):
+                if old != new:
+                    # These are the only permitted changes, including within each row.
+                    changed = [i for i in range(len(old)) if old[i] != new[i]]
+                    key = old[:3] if table == 'game_choice_locales' else old[:2]
+                    differences.append((table, tuple(key), changed))
+        self.assertCountEqual(differences, [
+            ('game_event_locales', ('park_sculptures', 'ru'), [3]),
+            ('game_choice_locales', ('park_sculptures', 0, 'ru'), [3]),
+            ('game_choice_locales', ('park_sculptures', 1, 'ru'), [3]),
+        ])
+        apply(self.db, files)
+        self.assertEqual(snapshot(), after)
+        apply(self.db, files + scripts(ROOT, ('db/rollbacks/012_park_sculptures_ru.sql',)))
+        self.assertEqual(snapshot(), before)
+        self.assertEqual(len(history(self.db)), end + 1)
 
 
 if __name__ == '__main__':
