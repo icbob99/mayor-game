@@ -27,6 +27,9 @@ SQL_FILES = (
     'db/migrations/003_account_schema.sql',
     'db/migrations/004_deployment_history.sql',
     'db/seeds/012_park_sculptures_ru.sql',
+    'db/seeds/013_bench_tender_ru.sql',
+    'db/seeds/014_tama_38_ru.sql',
+    'db/seeds/015_shelters_budget_ru.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'

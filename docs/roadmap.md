@@ -46,7 +46,7 @@
 | --- | --- | --- | --- | --- |
 | Тендер на скамейки | pending | pending | pending | pending |
 | Махинации с ТАМА 38 | pending | pending | pending | pending |
-| Бюджет на мамады (Бомбоубежища) | pending | pending | pending | pending |
+| Бюджет на бомбоубежища | pending | pending | pending | pending |
 | Проверка Госконтролера | pending | pending | pending | pending |
 | Коалиционный кризис (Шаббат) | pending | pending | pending | pending |
 | Визит адвоката-решалы | pending | pending | pending | pending |
