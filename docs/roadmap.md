@@ -44,12 +44,12 @@
 
 | Scenario name | Russian | Hebrew | English | Ukrainian |
 | --- | --- | --- | --- | --- |
-| Тендер на скамейки | pending | pending | pending | pending |
-| Махинации с ТАМА 38 | pending | pending | pending | pending |
-| Бюджет на бомбоубежища | pending | pending | pending | pending |
-| Проверка Госконтролера | pending | pending | pending | pending |
-| Коалиционный кризис (Шаббат) | pending | pending | pending | pending |
-| Визит адвоката-решалы | pending | pending | pending | pending |
+| Тендер на скамейки | updated | pending | pending | pending |
+| Махинации с ТАМА 38 | updated | pending | pending | pending |
+| Бюджет на бомбоубежища | updated | pending | pending | pending |
+| Проверка госконтролёра | updated | pending | pending | pending |
+| Коалиционный кризис: шаббат | updated | pending | pending | pending |
+| Визит адвоката-решалы | updated | pending | pending | pending |
 | Рэкет на мусоре | pending | pending | pending | pending |
 | Горящие мусоровозы | pending | pending | pending | pending |
 | Братская помощь коллеге | pending | pending | pending | pending |
