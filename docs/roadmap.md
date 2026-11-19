@@ -50,9 +50,9 @@
 | Проверка госконтролёра | updated | pending | pending | pending |
 | Коалиционный кризис: шаббат | updated | pending | pending | pending |
 | Визит адвоката-решалы | updated | pending | pending | pending |
-| Рэкет на мусоре | pending | pending | pending | pending |
-| Горящие мусоровозы | pending | pending | pending | pending |
-| Братская помощь коллеге | pending | pending | pending | pending |
+| Рэкет на мусоре | updated | pending | pending | pending |
+| Горящие мусоровозы | updated | pending | pending | pending |
+| Братская помощь коллеге | updated | pending | pending | pending |
 | Ответный удар СМИ | pending | pending | pending | pending |
 | Скандал с White Burger | pending | pending | pending | pending |
 | Субботний парковочный ад | pending | pending | pending | pending |
