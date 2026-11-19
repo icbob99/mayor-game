@@ -39,13 +39,13 @@
 1. Доработать существующий редакторский скилл: меньше академичности, больше юмора, живого языка и уместного сленга.
 2. Подготовить первую правку текстов и провести её через настроенный процесс обновления БД.
 
-Сначала завершаем русскую редакцию всех сценариев, затем переходим к остальным языкам, по одному.
+Русская редакция всех 41 сценария опубликована. Далее — остальные языки, по одному.
 `updated` — текст проверен и опубликован; `pending` — работа ещё не завершена.
 
 | Scenario name | Russian | Hebrew | English | Ukrainian |
 | --- | --- | --- | --- | --- |
 | Тендер на скамейки | updated | pending | pending | pending |
-| Махинации с ТАМА 38 | updated | pending | pending | pending |
+| Три лишних этажа | updated | pending | pending | pending |
 | Бюджет на бомбоубежища | updated | pending | pending | pending |
 | Проверка госконтролёра | updated | pending | pending | pending |
 | Коалиционный кризис: шаббат | updated | pending | pending | pending |
@@ -59,32 +59,32 @@
 | Потоп на улице Вайцман | updated | pending | pending | pending |
 | Налоговые скидки для избранных | updated | pending | pending | pending |
 | Захват городского пляжа | updated | pending | pending | pending |
-| Нашествие электросамокатов | pending | pending | pending | pending |
-| Права на название стадиона | pending | pending | pending | pending |
-| Прорыв канализации | pending | pending | pending | pending |
-| Пятничные встречи в Кантри-клубе | pending | pending | pending | pending |
-| Изъятие записей в Кантри | pending | pending | pending | pending |
-| Блат в детском саду | pending | pending | pending | pending |
-| Строительство депо метро | pending | pending | pending | pending |
-| Реформа школьного образования | pending | pending | pending | pending |
+| Нашествие электросамокатов | updated | pending | pending | pending |
+| Права на название стадиона | updated | pending | pending | pending |
+| Прорыв канализации | updated | pending | pending | pending |
+| Пятничные встречи в Кантри-клубе | updated | pending | pending | pending |
+| Изъятие записей в Кантри | updated | pending | pending | pending |
+| Блат в детском саду | updated | pending | pending | pending |
+| Строительство депо метро | updated | pending | pending | pending |
+| Реформа школьного образования | updated | pending | pending | pending |
 | Современное искусство в парке | updated | pending | pending | pending |
-| Празднование Дня Независимости | pending | pending | pending | pending |
-| Собака для жены | pending | pending | pending | pending |
-| Выставка кошек | pending | pending | pending | pending |
-| Парад Гордости на улице Вайцман | pending | pending | pending | pending |
-| Кризис в коалиции | pending | pending | pending | pending |
-| Скандал после встречи мэров | pending | pending | pending | pending |
-| Ответка союза мэров | pending | pending | pending | pending |
-| Свадьба сына | pending | pending | pending | pending |
-| Расследование по свадьбе | pending | pending | pending | pending |
-| Траур и похороны отца | pending | pending | pending | pending |
-| Памятник от застройщиков | pending | pending | pending | pending |
-| Дочка идет в школу | pending | pending | pending | pending |
-| Потоп в школе | pending | pending | pending | pending |
-| Ремонт квартиры | pending | pending | pending | pending |
-| Слив ремонта от блогера | pending | pending | pending | pending |
-| Недвижимость за границей | pending | pending | pending | pending |
-| Насмешки: «Мэр — лох» | pending | pending | pending | pending |
+| Празднование Дня Независимости | updated | pending | pending | pending |
+| Собака для жены | updated | pending | pending | pending |
+| Выставка кошек | updated | pending | pending | pending |
+| Парад Гордости на улице Вайцман | updated | pending | pending | pending |
+| Кризис в коалиции | updated | pending | pending | pending |
+| Скандал после встречи мэров | updated | pending | pending | pending |
+| Ответка союза мэров | updated | pending | pending | pending |
+| Свадьба сына | updated | pending | pending | pending |
+| Расследование по свадьбе | updated | pending | pending | pending |
+| Траур и похороны отца | updated | pending | pending | pending |
+| Памятник от застройщиков | updated | pending | pending | pending |
+| Дочка идет в школу | updated | pending | pending | pending |
+| Потоп в школе | updated | pending | pending | pending |
+| Ремонт квартиры | updated | pending | pending | pending |
+| Слив ремонта от блогера | updated | pending | pending | pending |
+| Недвижимость за границей | updated | pending | pending | pending |
+| Насмешки: «Мэр — лох» | updated | pending | pending | pending |
 
 ### обновить текущие оценки за решения
 
