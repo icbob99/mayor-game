@@ -53,12 +53,12 @@
 | Рэкет на мусоре | updated | pending | pending | pending |
 | Горящие мусоровозы | updated | pending | pending | pending |
 | Братская помощь коллеге | updated | pending | pending | pending |
-| Ответный удар СМИ | pending | pending | pending | pending |
-| Скандал с White Burger | pending | pending | pending | pending |
-| Субботний парковочный ад | pending | pending | pending | pending |
-| Потоп на улице Вайцман | pending | pending | pending | pending |
-| Скидки по Арноне для избранных | pending | pending | pending | pending |
-| Захват городского пляжа | pending | pending | pending | pending |
+| Ответный удар СМИ | updated | pending | pending | pending |
+| Скандал с White Burger | updated | pending | pending | pending |
+| Субботний парковочный ад | updated | pending | pending | pending |
+| Потоп на улице Вайцман | updated | pending | pending | pending |
+| Налоговые скидки для избранных | updated | pending | pending | pending |
+| Захват городского пляжа | updated | pending | pending | pending |
 | Нашествие электросамокатов | pending | pending | pending | pending |
 | Права на название стадиона | pending | pending | pending | pending |
 | Прорыв канализации | pending | pending | pending | pending |
