@@ -18,6 +18,28 @@ function client(values = new Map()) {
 }
 const plain = value => JSON.parse(JSON.stringify(value));
 
+test('difficulty and inflated prices survive local and cloud restore, while old saves default to normal', async () => {
+    const c = client();
+    Object.assign(c.state, { difficulty: 'insane', shopPrices: { wife_spa: 1200000 } });
+    c.save.save(c.state);
+    const stored = JSON.parse(c.values.get('cloudSave'));
+    const reloaded = client(c.values).save.load();
+    assert.equal(reloaded.difficulty, 'insane');
+    assert.equal(reloaded.shopPrices.wife_spa, 1200000);
+    assert.equal(reloaded.shopPrices.assuta_vip, 500000);
+    const remote = client();
+    const cloud = { versionGuid: 'cloud', writeTimestamp: stored.writeTimestamp, state: stored.state, stats: stored.stats };
+    remote.b.requestGameApi = async path => path.endsWith('/session') ? { gameSessionId: 'writer', save: cloud } : cloud;
+    await remote.save.resume();
+    assert.equal(remote.save.load().difficulty, 'insane');
+    assert.equal(remote.save.load().shopPrices.wife_spa, 1200000);
+    for (const key of ['difficulty', 'shopPrices']) delete stored.state[key];
+    c.values.set('cloudSave', JSON.stringify(stored));
+    const old = client(c.values).save.load();
+    assert.equal(old.difficulty, 'normal');
+    assert.deepEqual(plain(old.shopPrices), {});
+});
+
 test('legacy delivery fields are discarded without losing state, statistics or preferences', async () => {
     const c = client();
     c.state.day = 7;

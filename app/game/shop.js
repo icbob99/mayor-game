@@ -27,7 +27,7 @@ function renderShop() {
             return;
         }
 
-        const cost = shopPerkPrices[key];
+        const cost = Difficulty.price(state, key, shopPerkPrices[key]);
         const canAfford = state.money >= cost;
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between gap-3 p-3 bg-slate-900/80 border border-slate-700/60 rounded-xl';
@@ -84,6 +84,7 @@ function renderShop() {
 }
 
 function buyPerk(key) {
+    if (state.gameOverRecorded) return;
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     if (!shopPerkKeys.includes(key)) {
         console.error(gameErrorText('perk_unknown', key));
@@ -107,13 +108,14 @@ function buyPerk(key) {
     );
     if (isMaxed) return;
 
-    const cost = shopPerkPrices[key];
+    const cost = Difficulty.price(state, key, shopPerkPrices[key]);
     if (state.money < cost) {
         alert(currentTexts.ui.shop_not_enough);
         return;
     }
 
     state.money -= cost;
+    Difficulty.purchased(state, key, cost);
     if (key === 'police_bribe') {
         state.threat = Math.max(0, state.threat - 20);
     } else if (key === 'wife_spa') {
@@ -131,6 +133,11 @@ function buyPerk(key) {
 
     updateUI();
     checkAchievements();
+    const reason = Difficulty.defeat(state);
+    if (reason) {
+        toggleShop(false);
+        return triggerGameOver(reason);
+    }
     saveGuestGame();
 }
 

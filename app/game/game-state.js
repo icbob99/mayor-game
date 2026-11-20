@@ -9,6 +9,8 @@
     currentEventIndex: -1,
     eventQueue: [],
     cooldowns: {},
+    difficulty: 'normal',
+    shopPrices: {},
     audioMuted: false,
     unlockedAchievements: [],
     earnedAchievementsThisGame: []
@@ -27,6 +29,13 @@ const shopPerkPrices = {
 };
 const shopPerkKeys = Object.keys(shopPerkPrices);
 const shopPerkCooldownDays = 7;
+
+function restoreDifficulty(saved) {
+    // Old saves use normal rules; the day determines whether switching requires a restart.
+    state.difficulty = saved.difficulty || 'normal';
+    delete state.difficultyLocked;
+    state.shopPrices = { ...saved.shopPrices };
+}
 const LANGUAGE_OPTIONS = [
     { id: 'en', label: 'English', flag: 'assets/flags/gb.svg' },
     { id: 'ru', label: 'Русский', flag: 'assets/flags/ru.svg' },

@@ -1,6 +1,7 @@
 ﻿function updateUI() {
     if (!currentTexts) return;
     updateAuthUI();
+    renderDifficulty();
 
     document.getElementById('label-money').innerText = currentTexts.ui.money;
     document.getElementById('label-wife').innerText = currentTexts.ui.wife;

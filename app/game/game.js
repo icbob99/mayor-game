@@ -15,7 +15,7 @@ window.onload = async () => {
         await AccountSession.init();
         if (AccountSession.isMayor()) {
             const saved = AccountSession.loadGame();
-            if (saved) Object.assign(state, saved);
+            if (saved) { Object.assign(state, saved); restoreDifficulty(saved); }
             state.currentEventIndex = -1;
         } else GuestSession.load(state);
         await setLang(state.lang);

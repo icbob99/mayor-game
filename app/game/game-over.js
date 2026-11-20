@@ -1,6 +1,7 @@
 ﻿function getFinalTitle(reasonType) {
     if (reasonType === 'arrest') return currentTexts.ui.titles.prisoner;
-    if (reasonType === 'wife') return currentTexts.ui.titles.henpecked;
+    if (reasonType === 'wife_left') return currentTexts.ui.titles.henpecked;
+    if (['bankruptcy', 'too_popular', 'wife_abroad'].includes(reasonType)) return currentTexts.ui.titles[reasonType];
 
     if (state.money >= 10000000) {
         return currentTexts.ui.titles.legend;
@@ -26,6 +27,7 @@ function triggerGameOver(reasonType) {
 
     const screen = document.getElementById('game-over-screen');
     if (!screen) return;
+    updateUI();
 
     // Localize the modal elements.
     document.getElementById('label-stat-days').innerText = currentTexts.ui.end_days;
@@ -47,7 +49,10 @@ function triggerGameOver(reasonType) {
         arrest: '🚨',
         wife_left: '💔',
         heart_attack: '🏥',
-        elections_lost: '🗳️'
+        elections_lost: '🗳️',
+        bankruptcy: '📉',
+        too_popular: '🎯',
+        wife_abroad: '✈️'
     };
     document.getElementById('game-over-icon').innerText = icons[reasonType] || '💀';
 
@@ -55,7 +60,7 @@ function triggerGameOver(reasonType) {
 }
 
 
-async function resetGame() {
+async function resetGame(difficulty = 'normal') {
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     document.getElementById('game-over-screen').classList.add('hidden');
 
@@ -68,6 +73,8 @@ async function resetGame() {
     state.eventQueue = [];
     state.currentEventIndex = -1;
     state.cooldowns = {};
+    state.difficulty = Object.hasOwn(Difficulty.levels, difficulty) ? difficulty : 'normal';
+    state.shopPrices = {};
     state.unlockedAchievements = [];
     state.earnedAchievementsThisGame = [];
     state.gameOverRecorded = false;
