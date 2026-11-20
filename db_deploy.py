@@ -37,6 +37,9 @@ SQL_FILES = (
     'db/seeds/020_three_scenarios_ru.sql',
     'db/seeds/021_three_scenarios_ru.sql',
     'db/seeds/022_all_scenarios_ru.sql',
+    'db/seeds/023_all_scenarios_en.sql',
+    'db/seeds/024_all_scenarios_he.sql',
+    'db/seeds/025_all_scenarios_uk.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'
