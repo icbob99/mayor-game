@@ -25,6 +25,8 @@
             return {
                 gameId: state.gameId, day: state.day, money: state.money, health: state.health,
                 wife: state.wife, threat: state.threat, rating: state.rating,
+                difficulty: state.difficulty || 'normal',
+                shopPrices: Object.fromEntries(shopPerkKeys.map(id => [id, state.shopPrices?.[id] || shopPerkPrices[id]])),
                 cooldowns: Object.fromEntries(shopPerkKeys.map(id => [id, state.cooldowns?.[id] || 0])),
                 achievements: counts(Object.fromEntries((state.earnedAchievementsThisGame || []).map(id => [id, 1]))),
                 isFinished: Boolean(state.gameOverRecorded), endReason: state.endReason || null, finishedAt: state.finishedAt || null
@@ -183,6 +185,7 @@
                 const s = record.state;
                 const earned = achievementIds.filter(id => s.achievements[id]);
                 return { ...s, ...record.preferences, currentEventIndex: -1, eventQueue: [],
+                    difficulty: s.difficulty || 'normal', shopPrices: { ...s.shopPrices },
                     cooldowns: { ...s.cooldowns },
                     gameOverRecorded: s.isFinished, earnedAchievementsThisGame: earned, unlockedAchievements: [...earned] };
             },

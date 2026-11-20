@@ -3,7 +3,7 @@ import { idleMs, tokenHash } from './auth.js';
 
 const achievements = ['offshore_king', 'untouchable', 'happy_wife', 'survivor'];
 const perks = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
-const reasons = ['arrest', 'wife_left', 'heart_attack', 'elections_lost'];
+const reasons = ['arrest', 'wife_left', 'heart_attack', 'elections_lost', 'bankruptcy', 'too_popular', 'wife_abroad'];
 const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
 const integer = (value, min = 0) => Number.isSafeInteger(value) && value >= min;
 const counts = (value, keys, max = Number.MAX_SAFE_INTEGER) => value &&
@@ -16,6 +16,8 @@ function validSave(body) {
         integer(s.day, 1) && Number.isSafeInteger(s.money) &&
         ['health', 'wife', 'threat', 'rating'].every(key => integer(s[key]) && s[key] <= 100) &&
         counts(s.cooldowns, perks) && counts(s.achievements, achievements, 1) &&
+        (s.difficulty === undefined || ['easy', 'normal', 'hard', 'insane'].includes(s.difficulty)) &&
+        (s.shopPrices === undefined || (counts(s.shopPrices, perks) && perks.every(key => s.shopPrices[key] > 0))) &&
         (s.isFinished === true ? ending(s) : s.isFinished === false && s.endReason === null && s.finishedAt === null) &&
         stats && integer(stats.gamesPlayed) && integer(stats.maxMoney) && counts(stats.achievements, achievements, stats.gamesPlayed);
 }

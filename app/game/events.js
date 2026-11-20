@@ -33,6 +33,7 @@ function showEventAtIndex(eventIndex) {
 }
 
 function handleChoice(choiceIndex) {
+    if (state.gameOverRecorded) return;
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     if (typeof initAudio === 'function') initAudio();
     if (typeof startBgMusic === 'function') startBgMusic();
@@ -40,26 +41,14 @@ function handleChoice(choiceIndex) {
     if (typeof playCashSound === 'function') playCashSound();
     const currentEvent = gameLogicEvents[state.currentEventIndex];
     const choice = currentEvent.choices[choiceIndex];
-    state.money += choice.money;
-    state.wife = Math.max(0, Math.min(100, state.wife + choice.wife));
-    state.threat = Math.max(0, Math.min(100, state.threat + choice.threat));
-    state.health = Math.max(0, Math.min(100, state.health + choice.health));
-    state.rating = Math.max(0, Math.min(100, state.rating + (choice.rating || 0)));
+    if (!choice) return;
+    const reason = Difficulty.applyChoice(state, choice);
     if (choice.nextEvent) state.eventQueue.push({ eventId: choice.nextEvent.id, triggerDay: state.day + choice.nextEvent.delay });
     state.day++;
     checkAchievements();
-    if (state.threat >= 100) return triggerGameOver('arrest');
-    if (state.wife <= 0) {
-        if (typeof playLoseSound === 'function') playLoseSound();
-        return triggerGameOver('wife_left');
-    }
-    if (state.health <= 0) {
-        if (typeof playLoseSound === 'function') playLoseSound();
-        return triggerGameOver('heart_attack');
-    }
-    if (state.rating <= 0) {
-        if (typeof playLoseSound === 'function') playLoseSound();
-        return triggerGameOver('elections_lost');
+    if (reason) {
+        if (reason !== 'arrest' && typeof playLoseSound === 'function') playLoseSound();
+        return triggerGameOver(reason);
     }
     saveGuestGame();
     loadNextEvent();

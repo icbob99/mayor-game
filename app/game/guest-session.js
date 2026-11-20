@@ -13,7 +13,10 @@
         load(state) {
             const browserStorage = storage();
             const savedState = root.GuestStorage.loadGameState(browserStorage);
-            if (savedState) Object.assign(state, savedState);
+            if (savedState) {
+                Object.assign(state, savedState);
+                restoreDifficulty(savedState);
+            }
             else if (typeof root.detectInitialLanguage === 'function') {
                 state.lang = root.detectInitialLanguage(root.navigator?.language);
             }

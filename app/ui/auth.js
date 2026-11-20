@@ -84,6 +84,7 @@ async function restoreMayor() {
     const saved = AccountSession.loadGame();
     if (saved) {
         Object.assign(state, saved);
+        restoreDifficulty(saved);
         state.currentEventIndex = -1;
         await setLang(state.lang);
         if (state.gameOverRecorded) triggerGameOver(state.endReason);

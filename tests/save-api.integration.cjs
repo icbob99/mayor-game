@@ -59,6 +59,17 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.deepEqual(conflict.data.save, loaded.data);
     assert.deepEqual(await counts(), [1, 1, 0], 'ordinary saves, retries and reads create no operation receipts');
 
+    for (const bad of [{ difficulty: 'impossible' }, { shopPrices: {} },
+        { shopPrices: { police_bribe: 1, wife_spa: 1, assuta_vip: -1, pr_agency: 1 } }]) {
+        assert.equal((await api('/api/game/save', token, { ...body, state: { ...body.state, ...bad } })).status, 400);
+    }
+    // New state fields round-trip through the real Worker/DB; old snapshots above remain valid.
+    const difficultySave = { ...body, writeTimestamp: 105, state: { ...body.state,
+        difficulty: 'insane',
+        shopPrices: { police_bribe: 1500000, wife_spa: 1200000, assuta_vip: 500000, pr_agency: 1000000 } } };
+    assert.equal((await api('/api/game/save', token, difficultySave)).status, 204);
+    assert.deepEqual((await api('/api/game/save', token)).data.state, difficultySave.state);
+
     const next = { ...body, writeTimestamp: 110,
         state: { ...body.state, isFinished: true, finishedAt: Date.now(), endReason: 'arrest' },
         stats: { ...body.stats, gamesPlayed: 1 } };
@@ -235,4 +246,14 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.deepEqual(await sql('SELECT id, last_activity_at, revoked_at FROM auth_sessions WHERE account_id <> ? ORDER BY id', [cleanupAccount]), others);
     assert.deepEqual(await api('/api/game/save', remoteLogin.data.authToken), savedBeforeSeed);
     assert.deepEqual(await sql('SELECT account_id, game_id FROM game_history ORDER BY account_id, game_id'), historyBeforeSeed);
+    // Every new ending must be accepted and retained in both the snapshot and history.
+    for (const [i, reason] of ['bankruptcy', 'too_popular', 'wife_abroad'].entries()) {
+        const end = { ...difficultySave, gameSessionId: bWriter.data.gameSessionId, writeTimestamp: Date.now() + i,
+            state: { ...difficultySave.state, gameId: randomUUID(), isFinished: true, endReason: reason, finishedAt: Date.now() },
+            stats: { ...body.stats, gamesPlayed: i + 1 } };
+        assert.equal((await api('/api/game/save', b.data.authToken, end)).status, 204);
+        assert.deepEqual((await api('/api/game/save', b.data.authToken)).data.state, end.state);
+        const rows = await sql('SELECT end_reason FROM game_history WHERE account_id = ? AND game_id = ?', [cleanupAccount, end.state.gameId]);
+        assert.equal(rows[0][0].value, reason);
+    }
 };

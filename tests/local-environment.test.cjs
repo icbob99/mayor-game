@@ -106,6 +106,10 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
+    async function showNoEffectChoice(tab) {
+        // These flows test delivery and statistics, not randomly selected card rewards.
+        await tab.evaluate("showEventAtIndex(gameLogicEvents.findIndex(e=>e.id==='shitty_burger')); currentChoiceOrder=[1,0,2]; renderCurrentEvent()");
+    }
     async function offlineReloadAndPlay() {
         assert.equal(await page.evaluate('Boolean(navigator.serviceWorker.controller)'), true,
             'the first successful load has an active offline worker');
@@ -127,6 +131,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         assert.equal(await page.evaluate('JSON.stringify({day:state.day,money:state.money})'), progress,
             'offline reload restores the saved game');
         const day = await page.evaluate('state.day');
+        await showNoEffectChoice(page);
         await page.click('#choices-container button');
         assert.equal(await page.evaluate('state.day'), day + 1, 'a real click advances the offline game');
         await page.evaluate('window.beforeOfflineReload = true');
@@ -212,6 +217,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}; browser errors: ${JSON.stringify(browserErrors)}`);
     }
     assert.equal(await page.evaluate(guestProgress), guestBefore, 'registration must preserve the guest progress');
+    await showNoEffectChoice(page);
     await page.evaluate("document.querySelector('#choices-container button').click()");
     await waitForCloud(page);
     assert.equal(await page.evaluate("requestGameApi('/api/game/save', {token:AccountSession.token()}).then(save => save.state.day)"),
@@ -465,6 +471,96 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     // Keep several tabs/profiles open for the generation-reset checks below.
     pages.push(await openPage(port));
     pages.push(await openPage(Number(readFileSync(remotePortFile, 'utf8').split('\n')[0])));
+
+    await reopened.evaluate('becomeGuest()');
+    assert.equal(await reopened.evaluate("document.getElementById('difficulty-panel')"), null);
+    assert.deepEqual(await reopened.evaluate("Array.from(document.getElementById('game-nav').children, e => e.id || e.tagName)"),
+        ['H1', 'btn-audio', 'btn-shop', 'btn-difficulty', 'btn-achievements', 'lang-selector']);
+    // Difficulty lives in a modal and remains available throughout the game.
+    for (const lang of ['ru', 'en', 'he', 'uk']) {
+        await reopened.evaluate(`setLang('${lang}')`);
+        assert.equal(await reopened.evaluate("document.querySelectorAll('#difficulty-options button').length"), 4);
+        assert.equal(await reopened.evaluate("document.documentElement.dir"), lang === 'he' ? 'rtl' : 'ltr');
+        assert.ok(await reopened.evaluate("document.getElementById('btn-difficulty').textContent.includes(currentTexts.ui.difficulty[state.difficulty].name)"));
+        await reopened.click('#btn-difficulty');
+        assert.equal(await reopened.evaluate("document.getElementById('difficulty-modal').open"), true);
+        assert.equal(await reopened.evaluate("document.querySelectorAll('#difficulty-options [aria-pressed=true]').length"), 1);
+        assert.equal(await reopened.evaluate("/[0-9%]/.test(document.getElementById('difficulty-modal').textContent)"), false);
+        await reopened.click('#difficulty-dismiss');
+        assert.equal(await reopened.evaluate("document.getElementById('difficulty-modal').open"), false);
+    }
+    await reopened.evaluate("setLang('en'); selectDifficulty('hard'); state.money=4000000; state.wife=50; buyPerk('wife_spa')");
+    assert.equal(await reopened.evaluate('state.money'), 3200000);
+    assert.equal(await reopened.evaluate('state.shopPrices.wife_spa'), 1200000);
+    assert.equal(await reopened.evaluate('state.day'), 1, 'shopping does not apply passive drift or advance the day');
+    assert.equal(await reopened.evaluate("document.getElementById('btn-difficulty').disabled"), false);
+    await reopened.evaluate("window.beforeDifficultyReload=true");
+    await reopened.call('Page.reload');
+    await until(() => reopened.evaluate("!window.beforeDifficultyReload && typeof currentTexts!=='undefined' && currentTexts && document.querySelectorAll('#choices-container button').length>0"));
+    assert.equal(await reopened.evaluate('state.difficulty'), 'hard');
+    assert.equal(await reopened.evaluate('state.shopPrices.wife_spa'), 1200000);
+
+    await reopened.click('#btn-difficulty');
+    await reopened.click('[data-difficulty=easy]');
+    assert.equal(await reopened.evaluate('state.difficulty'), 'easy', 'day-one change requires no confirmation even after a purchase');
+    assert.equal(await reopened.evaluate('state.money'), 3200000);
+    await reopened.click('#choices-container button');
+    const beforeChange = await reopened.evaluate('JSON.stringify(state)');
+    let confirmation;
+    await reopened.call('Page.enable');
+    const onDialog = event => {
+        const message = JSON.parse(event.data);
+        if (message.method === 'Page.javascriptDialogOpening') confirmation = message.params;
+    };
+    reopened.ws.addEventListener('message', onDialog);
+    const confirmationText = await reopened.evaluate('currentTexts.ui.difficulty.restart');
+    await reopened.click('#btn-difficulty');
+    for (const accept of [false, true]) {
+        confirmation = null;
+        const click = reopened.click('[data-difficulty=hard]');
+        await until(() => Boolean(confirmation));
+        assert.equal(confirmation.type, 'confirm');
+        assert.equal(confirmation.message, confirmationText);
+        await reopened.call('Page.handleJavaScriptDialog', { accept });
+        await click;
+        if (!accept) assert.equal(await reopened.evaluate('JSON.stringify(state)'), beforeChange, 'cancel keeps all progress');
+    }
+    reopened.ws.removeEventListener('message', onDialog);
+    await until(() => reopened.evaluate("state.day===1 && state.difficulty==='hard'"));
+    assert.equal(await reopened.evaluate('state.money'), 1000000);
+    assert.deepEqual(await reopened.evaluate('state.shopPrices'), {});
+    await reopened.click('#btn-difficulty');
+    await reopened.call('Input.dispatchMouseEvent', { type: 'mousePressed', x: 3, y: 3, button: 'left', clickCount: 1 });
+    await reopened.call('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 3, y: 3, button: 'left', clickCount: 1 });
+    assert.equal(await reopened.evaluate("document.getElementById('difficulty-modal').open"), false, 'backdrop closes the popup');
+
+    for (const [setup, reason, icon] of [
+        ["state.money=-1; handleChoice(currentChoiceOrder[0])", 'bankruptcy', '📉'],
+        ["state.rating=90; buyPerk('pr_agency')", 'too_popular', '🎯'],
+        ["state.wife=80; buyPerk('wife_spa')", 'wife_abroad', '✈️']
+    ]) {
+        await reopened.evaluate("resetGame()");
+        await reopened.evaluate("selectDifficulty('insane'); state.money=10000000");
+        if (reason === 'bankruptcy') {
+            // Keep the chosen card deterministic without changing the loaded content.
+            await reopened.evaluate("window.savedChoices=gameLogicEvents[state.currentEventIndex].choices; gameLogicEvents[state.currentEventIndex].choices=window.savedChoices.map(()=>({money:0,wife:0,health:0,threat:0,rating:0}))");
+        }
+        await reopened.evaluate(setup);
+        if (reason === 'bankruptcy') await reopened.evaluate('gameLogicEvents[state.currentEventIndex].choices=window.savedChoices');
+        assert.equal(await reopened.evaluate('state.endReason'), reason);
+        assert.equal(await reopened.evaluate("document.getElementById('game-over-icon').textContent"), icon);
+        assert.ok(await reopened.evaluate("document.getElementById('end-stat-title').textContent.length>0 && document.getElementById('game-over-reason').textContent.length>0"));
+        const finished = await reopened.evaluate('JSON.stringify(state)');
+        await reopened.evaluate("handleChoice(0); buyPerk('assuta_vip')");
+        assert.equal(await reopened.evaluate('JSON.stringify(state)'), finished, 'completed games cannot accept further actions');
+    }
+    await reopened.click('#btn-end-difficulty');
+    await reopened.click('[data-difficulty=hard]');
+    await until(() => reopened.evaluate("state.day===1 && state.difficulty==='hard' && !state.gameOverRecorded"));
+    await reopened.evaluate('resetGame()');
+    assert.equal(await reopened.evaluate('state.difficulty'), 'normal');
+    assert.equal(await reopened.evaluate("document.getElementById('btn-difficulty').disabled"), false);
+    assert.deepEqual(await reopened.evaluate('state.shopPrices'), {});
 
     const expired = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
         { type: 'execute', stmt: { sql: 'UPDATE auth_sessions SET last_activity_at = 0' } },

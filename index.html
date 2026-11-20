@@ -14,9 +14,23 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
     <!-- Top bar: language switcher and Tamagotchi-style stats -->
-    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
-        <div class="max-w-3xl mx-auto flex flex-wrap md:flex-nowrap justify-between items-center gap-2 mb-3">
+    <header id="game-header" class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
+        <div id="game-nav" class="max-w-5xl mx-auto flex flex-wrap md:flex-nowrap justify-between items-center gap-2 mb-3">
             <h1 class="text-sm font-bold text-slate-400">🏛️ Mayor: Chronicles of Embezzlement</h1>
+            <button id="btn-audio" onclick="toggleAudio()"
+                class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition text-xs flex items-center gap-1">
+                🔊 <span id="audio-status">ON</span>
+            </button>
+            <button id="btn-shop" onclick="toggleShop(true)"
+                class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow">
+                <span>🛒</span>
+                <span id="label-btn-shop"></span>
+            </button>
+            <button id="btn-difficulty" onclick="toggleDifficulty(true)" aria-haspopup="dialog"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition"></button>
+            <button id="btn-achievements" onclick="toggleAchievements(true)"
+                class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow"
+                aria-label="Achievements">🏆</button>
             <!-- Language switcher -->
             <div id="lang-selector" class="relative text-xs">
                 <button id="lang-toggle" type="button" onclick="toggleLanguageMenu()"
@@ -29,21 +43,9 @@
                 <div id="lang-menu" class="hidden absolute right-0 mt-1 min-w-32 p-1 rounded-lg bg-slate-700 border border-slate-600 shadow-lg z-30"
                     role="listbox" aria-label="Languages"></div>
             </div>
-            <button id="btn-audio" onclick="toggleAudio()"
-                class="px-3 py-1 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition text-xs flex items-center gap-1">
-                🔊 <span id="audio-status">ON</span>
-            </button>
-            <button id="btn-shop" onclick="toggleShop(true)"
-                class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow">
-                <span>🛒</span>
-                <span id="label-btn-shop"></span>
-            </button>
-            <button id="btn-achievements" onclick="toggleAchievements(true)"
-                class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition flex items-center gap-1.5 cursor-pointer shadow"
-                aria-label="Achievements">🏆</button>
         </div>
 
-        <div class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-2 text-center text-sm">
+        <div id="game-stats" class="max-w-2xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-2 text-center text-sm">
             <div class="bg-slate-700/50 p-2 rounded-lg">
                 <div id="label-money" class="text-slate-400 text-xs">Money / Offshore</div>
                 <div id="stat-money" class="text-green-400 font-bold text-lg">1.5M ₪</div>
@@ -67,7 +69,7 @@
         </div>
     </header>
 
-    <section class="max-w-3xl w-full mx-auto px-4 pt-3 flex flex-wrap items-center justify-center gap-3">
+    <section id="account-controls" class="max-w-3xl w-full mx-auto px-4 pt-3 flex flex-wrap items-center justify-center gap-3">
         <span id="auth-account" class="font-bold"></span>
         <button id="btn-login" onclick="openAuth('login')" class="px-3 py-2 rounded bg-indigo-600"></button>
         <button id="btn-register" onclick="openAuth('register')" class="px-3 py-2 rounded bg-slate-700"></button>
@@ -128,7 +130,7 @@
 
     <!-- Main game block: Day card -->
     <main class="max-w-xl w-full mx-auto p-4 flex-1 flex flex-col justify-center">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div id="event-card" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
             <div class="flex items-center justify-between mb-4">
                 <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold" id="day-counter">
                     Day 1
@@ -175,12 +177,26 @@
                 </div>
             </div>
 
-            <button id="btn-restart" onclick="resetGame()"
+            <button id="btn-end-difficulty" onclick="toggleDifficulty(true)" aria-haspopup="dialog"
+                class="mb-3 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl"></button>
+            <button id="btn-restart" onclick="resetGame(state.difficulty)"
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition cursor-pointer shadow-lg">
 
             </button>
         </div>
     </div>
+
+    <!-- Difficulty uses a native dialog for focus trapping, Escape and modal stacking. -->
+    <dialog id="difficulty-modal" aria-labelledby="difficulty-title" onclick="if (event.target === this) toggleDifficulty(false)"
+        class="fixed inset-0 m-0 w-full h-full max-w-none max-h-none bg-transparent text-white p-4 backdrop:bg-slate-950/80 backdrop:backdrop-blur-md">
+        <div class="bg-slate-800 border border-slate-700 max-w-md w-full max-h-full overflow-y-auto rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                <h2 id="difficulty-title" class="text-xl font-bold"></h2>
+                <button id="difficulty-dismiss" onclick="toggleDifficulty(false)" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
+            </div>
+            <div id="difficulty-options" class="grid gap-3"></div>
+        </div>
+    </dialog>
 
     <!-- Shop Modal -->
     <div id="shop-modal" role="dialog" aria-modal="true" aria-labelledby="shop-title"
@@ -267,11 +283,13 @@
     <script src="app/game/mayor-save.js"></script>
     <script src="app/game/account-session.js"></script>
     <script src="app/game/game-state.js"></script>
+    <script src="app/game/difficulty.js"></script>
     <script src="app/game/choice-order.js"></script>
     <script src="app/ui/language.js"></script>
     <script src="app/ui/auth.js"></script>
     <script src="app/ui/save-sync.js"></script>
     <script src="app/ui/ui.js"></script>
+    <script src="app/ui/difficulty.js"></script>
     <script src="app/game/shop.js"></script>
     <script src="app/game/achievements.js"></script>
     <script src="app/game/events.js"></script>
