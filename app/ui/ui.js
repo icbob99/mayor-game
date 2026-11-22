@@ -71,7 +71,7 @@ function renderGuestStats() {
     const all = GameStats.normalize(AccountSession.isMayor() ? AccountSession.getStats() : GuestSession.getStats());
     const select = document.getElementById('stats-mode');
     const selected = select.value || 'all';
-    select.replaceChildren(...['all', ...GameModes.names].map(mode => {
+    select.replaceChildren(...['all', ...GameModes.names.filter(GameModes.available)].map(mode => {
         const option = document.createElement('option');
         option.value = mode; option.textContent = mode === 'all' ? currentTexts.ui.modes.all : currentTexts.ui.modes[mode].name;
         return option;

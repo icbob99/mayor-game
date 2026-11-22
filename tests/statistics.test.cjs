@@ -1,6 +1,42 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Stats = require('../app/game/statistics.js');
+const vm = require('node:vm');
+const { readFileSync } = require('node:fs');
+
+test('statistics offers only enabled modes and preserves totals and the selected mode', () => {
+    const elements = new Map();
+    const element = () => ({ value: '', setAttribute() {},
+        replaceChildren(...children) { this.children = children; }, appendChild() {} });
+    const stats = { byMode: { arcade: { gamesPlayed: 2 }, daily: { gamesPlayed: 3 }, blitz: { gamesPlayed: 4 } } };
+    const b = vm.createContext({
+        GameStats: Stats, ACHIEVEMENTS_DEF: [],
+        currentTexts: { ui: { modes: { all: 'All', arcade: { name: 'Arcade' }, daily: { name: 'Daily' }, blitz: { name: 'Blitz' } } } },
+        AccountSession: { isMayor: () => false, getStats: () => stats },
+        GuestSession: { getStats: () => stats },
+        document: { createElement: element, getElementById(id) {
+            if (!elements.has(id)) elements.set(id, element());
+            return elements.get(id);
+        } }
+    });
+    for (const file of ['app/game/modes.js', 'app/ui/ui.js']) vm.runInContext(readFileSync(file, 'utf8'), b);
+    for (const isMayor of [false, true]) {
+        b.AccountSession.isMayor = () => isMayor;
+        for (const dailyEnabled of [false, true]) {
+            b.GameModes.settings.dailyEnabled = dailyEnabled;
+            b.document.getElementById('stats-mode').value = 'all';
+            b.renderGuestStats();
+            const select = elements.get('stats-mode');
+            assert.deepEqual(select.children.map(option => option.value),
+                dailyEnabled ? ['all', 'arcade', 'daily', 'blitz'] : ['all', 'arcade', 'blitz']);
+            assert.equal(elements.get('guest-stats-games').innerText, 9);
+            select.value = 'blitz';
+            b.renderGuestStats();
+            assert.equal(select.value, 'blitz');
+            assert.equal(elements.get('guest-stats-games').innerText, 4);
+        }
+    }
+});
 
 test('legacy totals become arcade statistics, with all achievements preserved', () => {
     const stats = Stats.normalize({ gamesPlayed: 3, maxMoney: 6000000, achievements: { survivor: 2 } });
