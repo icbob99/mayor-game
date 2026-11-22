@@ -6,6 +6,35 @@ const { readFileSync } = require('node:fs');
 
 const game = difficulty => ({ difficulty, money: 1000000, wife: 50, health: 90, threat: 15, rating: 50, shopPrices: {} });
 
+test('Blitz always uses hard difficulty, including restored saves', () => {
+    const b = { GameModes: require('../app/game/modes.js'), Difficulty };
+    vm.createContext(b);
+    vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
+    for (const level of Object.keys(Difficulty.levels)) {
+        assert.equal(Difficulty.forMode('blitz', level), 'hard');
+        assert.equal(Difficulty.forMode('arcade', level), level);
+        assert.equal(Difficulty.forMode('daily', level), level);
+        b.saved = { mode: 'blitz', difficulty: level };
+        vm.runInContext('restoreDifficulty(saved)', b);
+        assert.equal(vm.runInContext('state.difficulty', b), 'hard');
+    }
+});
+
+test('arcade escalates only harmful decisions at days 11 and 21, before rounding', () => {
+    for (const [day, loss] of [[10, 13], [11, 14], [20, 14], [21, 16]]) {
+        const s = { ...game('hard'), mode: 'arcade', day };
+        Difficulty.applyChoice(s, { money: -10, health: 10, threat: 10 });
+        assert.equal(s.money, 1000000 - loss);
+        assert.equal(s.threat, 15 + loss + 2);
+        assert.equal(s.health, 98);
+    }
+    for (const mode of ['daily', 'blitz']) {
+        const s = { ...game('hard'), mode, day: 21 };
+        Difficulty.applyChoice(s, { money: -10 });
+        assert.equal(s.money, 999987);
+    }
+});
+
 test('difficulty scales gains and losses, reverses threat semantics and rounds symmetrically', () => {
     for (const [level, gain, loss] of [['easy', 12, 8], ['normal', 10, 10], ['hard', 8, 13], ['insane', 6, 16]]) {
         for (const stat of ['money', 'wife', 'health', 'rating']) {
@@ -63,11 +92,11 @@ test('inflation affects only the purchased perk and survives serialization', () 
 });
 
 function playing() {
-    const b = { AccountSession: { canPlay: () => true }, updateUI() {}, updateAuthUI() {}, checkAchievements() {},
+    const b = { AccountSession: { canPlay: () => true }, updateUI() {}, updateAuthUI() {}, checkAchievements() {}, stopBlitzTurn() {},
         saveGuestGame() { b.saves++; }, saves: 0, triggerGameOver(reason) { b.reason = reason; }, alert() {} };
     b.window = b;
     vm.createContext(b);
-    for (const file of ['game-state', 'difficulty', 'events', 'shop']) vm.runInContext(readFileSync(`app/game/${file}.js`, 'utf8'), b);
+    for (const file of ['modes', 'game-state', 'difficulty', 'events', 'shop']) vm.runInContext(readFileSync(`app/game/${file}.js`, 'utf8'), b);
     vm.runInContext(`loadNextEvent = () => {}; toggleShop = () => {};
         gameLogicEvents = [{ choices: [{ money: 100, wife: -5, threat: 5, health: 1, rating: 5 }] }];
         state.currentEventIndex = 0;
@@ -116,6 +145,7 @@ test('difficulty changes immediately on day one, confirms a running game and res
     c.b.document = { getElementById: () => ({ close() { closeCount++; } }) };
     c.b.resetGame = async level => { restart = level; };
     c.run("currentTexts.ui.difficulty = { restart: 'New term?' }");
+    c.b.confirmGameAction = text => c.b.confirm(text);
     vm.runInContext(readFileSync('app/ui/difficulty.js', 'utf8'), c.b);
     await c.run("selectDifficulty('hard')");
     assert.equal(c.s.difficulty, 'hard');
@@ -139,4 +169,12 @@ test('difficulty changes immediately on day one, confirms a running game and res
     assert.equal(restart, 'easy');
     assert.equal(confirmations, 2, 'finished games need no confirmation');
     assert.equal(closeCount, 4);
+    c.s.mode = 'blitz'; c.s.difficulty = 'hard'; restart = undefined;
+    for (const finished of [false, true]) {
+        c.s.gameOverRecorded = finished;
+        await c.run("selectDifficulty('insane'); toggleDifficulty(true)");
+        assert.equal(c.s.difficulty, 'hard');
+        assert.equal(restart, undefined);
+        assert.equal(closeCount, 4);
+    }
 });

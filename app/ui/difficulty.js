@@ -3,6 +3,7 @@ function renderDifficulty() {
     if (!texts) return;
     for (const id of ['btn-difficulty', 'btn-end-difficulty']) {
         const button = document.getElementById(id);
+        button.hidden = state.mode === 'blitz';
         button.textContent = `🎚️ ${texts[state.difficulty].name}`;
         button.disabled = !AccountSession.canPlay();
     }
@@ -26,15 +27,16 @@ function renderDifficulty() {
 function toggleDifficulty(show) {
     const dialog = document.getElementById('difficulty-modal');
     if (!show) { dialog.close(); return; }
-    if (!currentTexts?.ui.difficulty) return;
+    if (state.mode === 'blitz' || !currentTexts?.ui.difficulty) return;
     renderDifficulty();
     if (!dialog.open) dialog.showModal();
 }
 
 async function selectDifficulty(value) {
-    if (!AccountSession.canPlay() || !Object.hasOwn(Difficulty.levels, value)) return;
+    if (state.mode === 'blitz' || !AccountSession.canPlay() || !Object.hasOwn(Difficulty.levels, value)) return;
     if (value === state.difficulty) { toggleDifficulty(false); return; }
-    if (state.day > 1 && !state.gameOverRecorded && !confirm(currentTexts.ui.difficulty.restart)) return;
+    if (state.mode === 'daily' && GameModes.remaining(state) === 0) return;
+    if (state.day > 1 && !state.gameOverRecorded && !confirmGameAction(currentTexts.ui.difficulty.restart)) return;
     toggleDifficulty(false);
     if (state.gameOverRecorded || state.day > 1) {
         await resetGame(value);

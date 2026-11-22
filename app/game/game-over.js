@@ -1,4 +1,6 @@
 ﻿function getFinalTitle(reasonType) {
+    if (reasonType === 'resignation') return currentTexts.ui.titles[state.money >= 5000000 ? 'resignation_peak' : 'resignation'];
+    if (reasonType === 'indecision') return currentTexts.ui.titles.indecision;
     if (reasonType === 'arrest') return currentTexts.ui.titles.prisoner;
     if (reasonType === 'wife_left') return currentTexts.ui.titles.henpecked;
     if (['bankruptcy', 'too_popular', 'wife_abroad'].includes(reasonType)) return currentTexts.ui.titles[reasonType];
@@ -13,6 +15,7 @@
 }
 
 function triggerGameOver(reasonType) {
+    stopBlitzTurn();
     if (reasonType === 'arrest' && typeof playSirenSound === 'function') {
         playSirenSound();
     }
@@ -21,6 +24,7 @@ function triggerGameOver(reasonType) {
         state.gameOverRecorded = true;
         state.endReason = reasonType;
         state.finishedAt = Date.now();
+        GameModes.checkpoint(state);
         if (AccountSession.isMayor()) saveGuestGame();
         else inviteGuest(GuestSession.recordGameOver(state).gamesPlayed);
     }
@@ -52,7 +56,9 @@ function triggerGameOver(reasonType) {
         elections_lost: '🗳️',
         bankruptcy: '📉',
         too_popular: '🎯',
-        wife_abroad: '✈️'
+        wife_abroad: '✈️',
+        resignation: '🚪',
+        indecision: '⌛'
     };
     document.getElementById('game-over-icon').innerText = icons[reasonType] || '💀';
 
@@ -60,8 +66,10 @@ function triggerGameOver(reasonType) {
 }
 
 
-async function resetGame(difficulty = 'normal') {
+async function resetGame(difficulty = 'normal', mode = state.mode || 'arcade') {
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
+    if (!GameModes.available(mode) || (mode === 'daily' && GameModes.remaining(state) === 0)) { updateUI(); return; }
+    stopBlitzTurn();
     document.getElementById('game-over-screen').classList.add('hidden');
 
     state.money = 1000000;
@@ -70,10 +78,13 @@ async function resetGame(difficulty = 'normal') {
     state.health = 90;
     state.rating = 50;
     state.day = 1;
+    state.mode = mode;
     state.eventQueue = [];
     state.currentEventIndex = -1;
+    state.currentEventId = null;
+    state.choiceOrder = [];
     state.cooldowns = {};
-    state.difficulty = Object.hasOwn(Difficulty.levels, difficulty) ? difficulty : 'normal';
+    state.difficulty = Difficulty.forMode(mode, difficulty);
     state.shopPrices = {};
     state.unlockedAchievements = [];
     state.earnedAchievementsThisGame = [];

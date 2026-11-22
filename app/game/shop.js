@@ -1,4 +1,5 @@
 ﻿function toggleShop(show) {
+    if (show && state.mode === 'blitz') return;
     const modal = document.getElementById('shop-modal');
     if (!modal) return;
 
@@ -84,7 +85,7 @@ function renderShop() {
 }
 
 function buyPerk(key) {
-    if (state.gameOverRecorded) return;
+    if (state.gameOverRecorded || state.mode === 'blitz') return;
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
     if (!shopPerkKeys.includes(key)) {
         console.error(gameErrorText('perk_unknown', key));

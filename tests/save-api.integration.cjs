@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const Stats = require('../app/game/statistics.js');
 
 // Runs inside the existing disposable Docker test, against the actual Worker and libSQL.
 module.exports = async function checkSaves(base, instanceId) {
@@ -48,7 +49,7 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.deepEqual(first, { status: 204, data: '' }, 'ordinary saves return no receipt');
     const loaded = await api('/api/game/save', token);
     assert.deepEqual(loaded.data.state, body.state);
-    assert.deepEqual(loaded.data.stats, body.stats);
+    assert.deepEqual(loaded.data.stats, Stats.normalize(body.stats));
     assert.equal(typeof loaded.data.versionGuid, 'string');
     assert.deepEqual(await api('/api/game/save', token, body), first);
     const equalTimestamp = { ...body, state: { ...body.state, money: 1 }, stats: { ...body.stats, maxMoney: 1 } };
@@ -59,7 +60,9 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.deepEqual(conflict.data.save, loaded.data);
     assert.deepEqual(await counts(), [1, 1, 0], 'ordinary saves, retries and reads create no operation receipts');
 
-    for (const bad of [{ difficulty: 'impossible' }, { shopPrices: {} },
+    for (const bad of [{ difficulty: 'impossible' }, { mode: 'impossible' },
+        { daily: { date: 'bad', used: 0 } }, { daily: { date: '2026-11-21', used: 6 } },
+        { eventQueue: [{ eventId: 'followup', triggerDay: -1 }] }, { shopPrices: {} },
         { shopPrices: { police_bribe: 1, wife_spa: 1, assuta_vip: -1, pr_agency: 1 } }]) {
         assert.equal((await api('/api/game/save', token, { ...body, state: { ...body.state, ...bad } })).status, 400);
     }
@@ -80,7 +83,7 @@ module.exports = async function checkSaves(base, instanceId) {
     const completed = await api('/api/game/save', token);
     assert.equal(completed.data.writeTimestamp, 110);
     assert.deepEqual(completed.data.state, next.state);
-    assert.deepEqual(completed.data.stats, next.stats);
+    assert.deepEqual(completed.data.stats, Stats.normalize(next.stats));
     assert.deepEqual(await api('/api/game/save', token, next), newer);
     const stale = { ...next, writeTimestamp: 108, state: { ...next.state, gameId: randomUUID() },
         stats: { ...next.stats, gamesPlayed: 5 } };
@@ -107,7 +110,7 @@ module.exports = async function checkSaves(base, instanceId) {
     } finally { await sql('DROP TRIGGER fail_save_test'); }
     const recovered = await api('/api/game/save', token, failed);
     assert.equal(recovered.status, 204);
-    assert.deepEqual((await api('/api/game/save', token)).data.stats, failed.stats);
+    assert.deepEqual((await api('/api/game/save', token)).data.stats, Stats.normalize(failed.stats));
     assert.deepEqual(await counts(), [1, 1, 2]);
 
     const other = await api('/api/auth/register', null, { nickname: nickname + '-other', password: 'save-test' }, 'POST');
@@ -247,7 +250,7 @@ module.exports = async function checkSaves(base, instanceId) {
     assert.deepEqual(await api('/api/game/save', remoteLogin.data.authToken), savedBeforeSeed);
     assert.deepEqual(await sql('SELECT account_id, game_id FROM game_history ORDER BY account_id, game_id'), historyBeforeSeed);
     // Every new ending must be accepted and retained in both the snapshot and history.
-    for (const [i, reason] of ['bankruptcy', 'too_popular', 'wife_abroad'].entries()) {
+    for (const [i, reason] of ['bankruptcy', 'too_popular', 'wife_abroad', 'indecision', 'resignation'].entries()) {
         const end = { ...difficultySave, gameSessionId: bWriter.data.gameSessionId, writeTimestamp: Date.now() + i,
             state: { ...difficultySave.state, gameId: randomUUID(), isFinished: true, endReason: reason, finishedAt: Date.now() },
             stats: { ...body.stats, gamesPlayed: i + 1 } };
@@ -256,4 +259,30 @@ module.exports = async function checkSaves(base, instanceId) {
         const rows = await sql('SELECT end_reason FROM game_history WHERE account_id = ? AND game_id = ?', [cleanupAccount, end.state.gameId]);
         assert.equal(rows[0][0].value, reason);
     }
+    const modeStats = Stats.normalize({ gamesPlayed: 5, maxMoney: body.stats.maxMoney, achievements: flags });
+    modeStats.byMode.blitz = { gamesPlayed: 1, maxMoney: 7000000, resignations: 1, achievements: { ...flags, offshore_king: 1 } };
+    const modeEnd = { ...difficultySave, gameSessionId: bWriter.data.gameSessionId, writeTimestamp: Date.now() + 100,
+        state: { ...difficultySave.state, mode: 'blitz', gameId: randomUUID(), isFinished: true, endReason: 'resignation', finishedAt: Date.now() },
+        stats: Stats.normalize(modeStats) };
+    assert.equal((await api('/api/game/save', b.data.authToken, modeEnd)).status, 204);
+    const modeLoaded = await api('/api/game/save', b.data.authToken);
+    assert.deepEqual(modeLoaded.data.stats, modeEnd.stats);
+    const obsolete = { ...body, gameSessionId: bWriter.data.gameSessionId, writeTimestamp: modeEnd.writeTimestamp + 1 };
+    assert.equal((await api('/api/game/save', b.data.authToken, obsolete)).status, 409, 'an older open frontend cannot erase new-mode statistics');
+    assert.deepEqual(await api('/api/game/save', b.data.authToken), modeLoaded);
+    assert.deepEqual((await sql('SELECT mode, games_played, resignations FROM game_stats WHERE account_id=? ORDER BY mode', [cleanupAccount])).map(row=>row.map(c=>c.value)),
+        [['arcade','5','0'],['blitz','1','1'],['daily','0','0']]);
+    assert.deepEqual((await sql('SELECT mode,difficulty,end_reason FROM game_history WHERE account_id=? AND game_id=?', [cleanupAccount, modeEnd.state.gameId]))[0].map(c=>c.value), ['blitz','insane','resignation']);
+    const oldModes = { ...modeEnd, writeTimestamp: modeEnd.writeTimestamp - 1, stats: Stats.normalize() };
+    await api('/api/game/save', b.data.authToken, oldModes);
+    assert.deepEqual(await api('/api/game/save', b.data.authToken), modeLoaded);
+    const beforeModeFailure = await counts(cleanupAccount);
+    await sql(`CREATE TRIGGER fail_modes_test BEFORE UPDATE ON game_stats WHEN NEW.account_id='${cleanupAccount}' AND NEW.mode='daily' BEGIN SELECT RAISE(ABORT,'test_failure'); END`);
+    try {
+        assert.equal((await api('/api/game/save', b.data.authToken, { ...modeEnd, writeTimestamp: modeEnd.writeTimestamp + 1 })).status, 503);
+        assert.deepEqual(await api('/api/game/save', b.data.authToken), modeLoaded);
+        assert.deepEqual(await counts(cleanupAccount), beforeModeFailure);
+    } finally { await sql('DROP TRIGGER fail_modes_test'); }
+    const fields = await sql('PRAGMA table_info(game_statuses)');
+    assert(!fields.some(row=>row[1].value==='stats_json'));
 };

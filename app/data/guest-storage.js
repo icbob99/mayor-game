@@ -3,9 +3,9 @@
     root.GuestStorage = api;
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis, function () {
+    const Stats = typeof module !== 'undefined' && module.exports ? require('../game/statistics.js') : GameStats;
     const GAME_KEY = 'mayorGameState';
     const STATS_KEY = 'mayorGuestStats';
-    const emptyStats = () => ({ gamesPlayed: 0, maxMoney: 0, achievements: {} });
 
     function readJson(storage, key) {
         try {
@@ -24,28 +24,21 @@
             storage?.removeItem(GAME_KEY);
             return null;
         }
-        // Consequences last only until the game is reopened, including in old saves.
-        state.eventQueue = [];
+        // Daily games resume pending consequences; other modes keep the original rule.
+        if (state.mode !== 'daily') state.eventQueue = [];
         delete state.pendingChainEvents;
         return state;
     }
 
     function loadGuestStats(storage) {
         const stats = readJson(storage, STATS_KEY);
-        if (!stats || typeof stats !== 'object') return emptyStats();
-        return {
-            gamesPlayed: Number.isFinite(stats.gamesPlayed) ? stats.gamesPlayed : 0,
-            maxMoney: Number.isFinite(stats.maxMoney) ? stats.maxMoney : 0,
-            achievements: stats.achievements && typeof stats.achievements === 'object'
-                ? stats.achievements
-                : {}
-        };
+        return Stats.normalize(stats && typeof stats === 'object' ? stats : {});
     }
 
     function saveGameState(storage, state) {
         try {
-            const { eventQueue, ...savedState } = state;
-            storage?.setItem(GAME_KEY, JSON.stringify(savedState));
+            const { eventQueue, currentEventId, choiceOrder, ...savedState } = state;
+            storage?.setItem(GAME_KEY, JSON.stringify(state.mode === 'daily' ? state : savedState));
         } catch {
             // Private browsing or a full storage quota should not stop the game.
         }
@@ -64,19 +57,14 @@
     }
 
     function recordGameOver(storage, state) {
-        const stats = loadGuestStats(storage);
-        stats.gamesPlayed += 1;
-        stats.maxMoney = Math.max(stats.maxMoney, Number(state.money) || 0);
-        for (const achievementId of state.unlockedAchievements || []) {
-            stats.achievements[achievementId] = (stats.achievements[achievementId] || 0) + 1;
-        }
+        const stats = Stats.update(loadGuestStats(storage), { ...state,
+            achievements: Object.fromEntries((state.unlockedAchievements || []).map(id => [id, 1])) }, true);
         saveGuestStats(storage, stats);
         return stats;
     }
 
-    function updateMaxMoney(storage, money) {
-        const stats = loadGuestStats(storage);
-        stats.maxMoney = Math.max(stats.maxMoney, Number(money) || 0);
+    function updateMaxMoney(storage, money, mode = 'arcade') {
+        const stats = Stats.update(loadGuestStats(storage), { money, mode });
         saveGuestStats(storage, stats);
         return stats;
     }

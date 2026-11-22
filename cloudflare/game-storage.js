@@ -4,10 +4,19 @@ const saveJson = `CASE WHEN version_guid IS NULL THEN NULL ELSE json_object(
     'versionGuid', version_guid, 'writeTimestamp', write_timestamp, 'updatedAt', updated_at,
     'state', json(state_json), 'stats', json(stats_json)) END`;
 
+const perModeJson = `json_object('gamesPlayed', games_played, 'maxMoney', max_money, 'resignations', resignations,
+    'achievements', json_object('offshore_king', offshore_king, 'untouchable', untouchable, 'happy_wife', happy_wife, 'survivor', survivor))`;
+// The account predicate uses the statistics primary key; no scan of other players.
+const statsJson = `(SELECT json_object('gamesPlayed', COALESCE(SUM(games_played),0), 'maxMoney', COALESCE(MAX(max_money),0),
+    'resignations', COALESCE(SUM(resignations),0), 'achievements', json_object(
+        'offshore_king', COALESCE(SUM(offshore_king),0), 'untouchable', COALESCE(SUM(untouchable),0),
+        'happy_wife', COALESCE(SUM(happy_wife),0), 'survivor', COALESCE(SUM(survivor),0)),
+    'byMode', json_group_object(mode, ${perModeJson})) FROM game_stats WHERE account_id = a.account_id)`;
+
 function callerStatement(tokenHash, activeSince) {
     const caller = `WITH caller AS (
         SELECT a.account_id, a.id AS auth_id, g.id AS game_session_id, g.auth_session_id,
-            s.version_guid, s.state_json, s.stats_json, s.write_timestamp, s.updated_at
+            s.version_guid, s.state_json, ${statsJson} AS stats_json, s.write_timestamp, s.updated_at
         FROM auth_sessions a
         LEFT JOIN active_game_sessions g ON g.account_id = a.account_id
         LEFT JOIN game_statuses s ON s.account_id = a.account_id
@@ -50,21 +59,31 @@ export async function activateGame(env, tokenHash, activeSince, body, hash, newI
 
 export async function saveGame(env, tokenHash, activeSince, body, newId, now) {
     const stmt = callerStatement(tokenHash, activeSince);
-    const statements = [stmt(`INSERT INTO game_statuses (account_id, version_guid, state_json, stats_json, write_timestamp, updated_at)
-        SELECT account_id, ?, ?, ?, ?, ? FROM caller
+    const statements = [stmt(`INSERT INTO game_statuses (account_id, version_guid, state_json, write_timestamp, updated_at)
+        SELECT account_id, ?, ?, ?, ? FROM caller
         WHERE game_session_id = ? AND auth_session_id = auth_id AND (write_timestamp IS NULL OR write_timestamp < ?)
+            AND (? OR json_extract(state_json, '$.mode') IS NULL)
         ON CONFLICT (account_id) DO UPDATE SET version_guid = excluded.version_guid, state_json = excluded.state_json,
-            stats_json = excluded.stats_json, write_timestamp = excluded.write_timestamp, updated_at = excluded.updated_at`,
-    [newId, JSON.stringify(body.state), JSON.stringify(body.stats), body.writeTimestamp, now, body.gameSessionId, body.writeTimestamp])];
+            write_timestamp = excluded.write_timestamp, updated_at = excluded.updated_at`,
+    [newId, JSON.stringify(body.state), body.writeTimestamp, now, body.gameSessionId, body.writeTimestamp, Number(body.state.mode !== undefined)])];
+    for (const [mode, stats] of Object.entries(body.stats.byMode)) {
+        statements.push(stmt(`INSERT INTO game_stats (account_id, mode, games_played, max_money, resignations, offshore_king, untouchable, happy_wife, survivor)
+            SELECT account_id, ?, ?, ?, ?, ?, ?, ?, ? FROM caller WHERE version_guid = ?
+            ON CONFLICT (account_id,mode) DO UPDATE SET games_played=excluded.games_played, max_money=excluded.max_money,
+                resignations=excluded.resignations, offshore_king=excluded.offshore_king, untouchable=excluded.untouchable,
+                happy_wife=excluded.happy_wife, survivor=excluded.survivor`,
+        [mode, stats.gamesPlayed, stats.maxMoney, stats.resignations, stats.achievements.offshore_king,
+            stats.achievements.untouchable, stats.achievements.happy_wife, stats.achievements.survivor, newId]));
+    }
     if (body.state.isFinished) {
         const state = body.state;
         // The new version identifies only the write accepted by this transaction.
-        statements.push(stmt(`INSERT INTO game_history (account_id, game_id, finished_at, recorded_at, days, money, end_reason, achievements_json)
-            SELECT account_id, ?, ?, ?, ?, ?, ?, ? FROM caller WHERE version_guid = ?
+        statements.push(stmt(`INSERT INTO game_history (account_id, game_id, finished_at, recorded_at, days, money, end_reason, achievements_json, mode, difficulty)
+            SELECT account_id, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM caller WHERE version_guid = ?
             ON CONFLICT (account_id, game_id) DO NOTHING`,
-        [state.gameId, state.finishedAt, now, state.day, state.money, state.endReason, JSON.stringify(state.achievements), newId]));
+        [state.gameId, state.finishedAt, now, state.day, state.money, state.endReason, JSON.stringify(state.achievements), state.mode || 'arcade', state.difficulty || null, newId]));
     }
-    statements.push(stmt('SELECT game_session_id, auth_session_id, auth_id FROM caller'));
+    statements.push(stmt("SELECT game_session_id, auth_session_id, auth_id, json_extract(state_json, '$.mode') AS mode FROM caller"));
     const results = await query(env, statements, true);
     return results.at(-1)[0];
 }

@@ -1,6 +1,16 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const storage = require('../app/data/guest-storage.js');
+const Stats = require('../app/game/statistics.js');
+
+test('daily guest save keeps its queue, finished state and daily allowance', () => {
+    const browserStorage = createMemoryStorage();
+    const state = { mode: 'daily', day: 6, money: 123, wife: 50, health: 50, threat: 20, rating: 50,
+        daily: { date: '2026-11-21', used: 5 }, gameOverRecorded: true,
+        eventQueue: [{ eventId: 'followup', triggerDay: 7 }] };
+    storage.saveGameState(browserStorage, state);
+    assert.deepEqual(storage.loadGameState(browserStorage), state);
+});
 
 function createMemoryStorage(initial = {}) {
     const values = new Map(Object.entries(initial));
@@ -18,9 +28,9 @@ test('loads an old save without pending events and preserves shop cooldowns and 
     });
 
     assert.deepEqual(storage.loadGameState(browserStorage), { day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, eventQueue: [], cooldowns: { wife_spa: 10 }, lang: 'en' });
-    assert.deepEqual(storage.loadGuestStats(browserStorage), {
+    assert.deepEqual(storage.loadGuestStats(browserStorage), Stats.normalize({
         gamesPlayed: 2, maxMoney: 1500000, achievements: { survivor: 1 }
-    });
+    }));
 });
 
 test('saves progress without persisting or clearing the live event queue', () => {
@@ -40,9 +50,9 @@ test('discards invalid game state and starts with empty statistics', () => {
 
     assert.equal(storage.loadGameState(browserStorage), null);
     assert.equal(browserStorage.getItem('mayorGameState'), null);
-    assert.deepEqual(storage.loadGuestStats(browserStorage), {
+    assert.deepEqual(storage.loadGuestStats(browserStorage), Stats.normalize({
         gamesPlayed: 0, maxMoney: 0, achievements: {}
-    });
+    }));
 });
 
 test('records completed games, maximum money and repeated achievements', () => {
@@ -50,11 +60,11 @@ test('records completed games, maximum money and repeated achievements', () => {
     storage.recordGameOver(browserStorage, { money: 2000000, unlockedAchievements: ['survivor'] });
     storage.recordGameOver(browserStorage, { money: 1800000, unlockedAchievements: ['survivor', 'happy_wife'] });
 
-    assert.deepEqual(storage.loadGuestStats(browserStorage), {
+    assert.deepEqual(storage.loadGuestStats(browserStorage), Stats.normalize({
         gamesPlayed: 2,
         maxMoney: 2000000,
         achievements: { survivor: 2, happy_wife: 1 }
-    });
+    }));
 });
 
 test('updates maximum money before the guest finishes a game', () => {

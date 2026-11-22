@@ -21,6 +21,8 @@ function browser(initial = {}) {
     b.window = b;
     vm.createContext(b);
     vm.runInContext(readFileSync('app/infrastructure/browser-session.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/statistics.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/modes.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/mayor-save.js', 'utf8'), b);

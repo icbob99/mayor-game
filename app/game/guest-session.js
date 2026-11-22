@@ -10,6 +10,13 @@
     }
 
     root.GuestSession = {
+        refreshDaily(state) {
+            const saved = root.GuestStorage.loadGameState(storage());
+            if (saved?.daily?.date === GameModes.dateKey()) {
+                GameModes.remaining(state);
+                state.daily.used = Math.max(state.daily.used, saved.daily.used);
+            }
+        },
         load(state) {
             const browserStorage = storage();
             const savedState = root.GuestStorage.loadGameState(browserStorage);
@@ -25,17 +32,20 @@
         },
         save(state) {
             if (root.LocalEnvironment && !root.LocalEnvironment.isCurrent()) return;
+            this.refreshDaily(state);
             const browserStorage = storage();
             root.GuestStorage.saveGameState(browserStorage, state);
-            stats = root.GuestStorage.updateMaxMoney(browserStorage, state.money);
+            stats = root.GuestStorage.updateMaxMoney(browserStorage, state.money, state.mode);
         },
         recordGameOver(state) {
             if (root.LocalEnvironment && !root.LocalEnvironment.isCurrent()) return stats;
             stats = root.GuestStorage.recordGameOver(storage(), {
                 money: state.money,
+                mode: state.mode,
+                endReason: state.endReason,
                 unlockedAchievements: state.earnedAchievementsThisGame
             });
-            root.GuestStorage.clearGameState(storage());
+            root.GuestStorage.saveGameState(storage(), state);
             return stats;
         },
         getStats() {

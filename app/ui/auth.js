@@ -31,6 +31,7 @@ function updateAuthUI() {
     document.getElementById('auth-title').textContent = authText(authFormKind);
     document.getElementById('auth-submit').textContent = authText(authFormBusy ? 'working' : authFormKind);
     if (typeof updateSaveSyncUI === 'function') updateSaveSyncUI();
+    if (typeof renderModes === 'function') renderModes();
 }
 
 async function openAuth(kind) {
@@ -88,8 +89,9 @@ async function restoreMayor() {
         state.currentEventIndex = -1;
         await setLang(state.lang);
         if (state.gameOverRecorded) triggerGameOver(state.endReason);
-        else { document.getElementById('game-over-screen').classList.add('hidden'); loadNextEvent(); }
-    } else await resetGame();
+        else if (!GameModes.available(state.mode)) await resetGame(state.difficulty, 'arcade');
+        else { document.getElementById('game-over-screen').classList.add('hidden'); restoreCurrentEvent(); }
+    } else { state.daily = null; await resetGame('normal', 'arcade'); }
     saveGuestGame();
     updateAuthUI();
 }
@@ -97,7 +99,14 @@ async function restoreMayor() {
 async function becomeGuest() {
     saveGuestGame();
     AccountSession.becomeGuest();
-    await resetGame();
+    state.daily = null;
+    if (GuestSession.load(state) && state.mode === 'daily') {
+        document.getElementById('game-over-screen').classList.add('hidden');
+        await setLang(state.lang);
+        if (!GameModes.available(state.mode)) await resetGame(state.difficulty, 'arcade');
+        else if (state.gameOverRecorded) triggerGameOver(state.endReason);
+        else restoreCurrentEvent();
+    } else await resetGame('normal', 'arcade');
     updateAuthUI();
 }
 

@@ -8,7 +8,7 @@ function client(values = new Map()) {
     const b = { crypto: webcrypto, requestGameApi: async () => { throw new TypeError('offline'); } };
     b.window = b;
     vm.createContext(b);
-    for (const file of ['data/guest-storage', 'game/game-state', 'game/mayor-save']) {
+    for (const file of ['game/statistics', 'game/modes', 'data/guest-storage', 'game/game-state', 'game/mayor-save']) {
         vm.runInContext(readFileSync(`app/${file}.js`, 'utf8'), b);
     }
     const store = { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
@@ -17,6 +17,30 @@ function client(values = new Map()) {
     return { b, save, state, values };
 }
 const plain = value => JSON.parse(JSON.stringify(value));
+
+test('daily game and queue restore; resuming a finished daily archive cannot count it twice', () => {
+    const c = client();
+    Object.assign(c.state, { mode: 'daily', day: 4, currentEventId: 'burning_trucks', choiceOrder: [1, 0],
+        eventQueue: [{ eventId: 'followup', triggerDay: 6 }], daily: { date: '2026-11-21', used: 3 } });
+    c.b.GameModes.checkpoint(c.state);
+    c.save.save(c.state);
+    const before = JSON.parse(c.values.get('cloudSave'));
+    c.state.gameOverRecorded = true; c.state.endReason = 'resignation'; c.state.finishedAt = Date.now();
+    c.b.GameModes.checkpoint(c.state);
+    assert.equal(before.state.daily.game.gameOverRecorded, false);
+    c.save.save(c.state);
+    assert.equal(c.save.stats().byMode.daily.gamesPlayed, 1);
+    assert.equal(c.save.stats().resignations, 1);
+    const ended = plain(c.state);
+    Object.assign(c.state, { mode: 'arcade', gameOverRecorded: false, gameId: webcrypto.randomUUID() });
+    c.save.save(c.state);
+    c.save.save(ended);
+    assert.equal(c.save.stats().gamesPlayed, 1);
+    const restored = client(c.values).save.load();
+    assert.deepEqual(plain(restored.eventQueue), [{ eventId: 'followup', triggerDay: 6 }]);
+    assert.equal(restored.daily.used, 3);
+    assert.equal(restored.currentEventId, 'burning_trucks');
+});
 
 test('difficulty and inflated prices survive local and cloud restore, while old saves default to normal', async () => {
     const c = client();

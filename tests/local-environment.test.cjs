@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { spawn, execFile } = require('node:child_process');
 const { promisify } = require('node:util');
-const { mkdtempSync, readFileSync, existsSync } = require('node:fs');
+const { mkdtempSync, readFileSync, existsSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
 const run = promisify(execFile);
@@ -283,7 +283,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate('becomeGuest()');
     assert.equal(await page.evaluate('AccountSession.isMayor()'), false);
     assert.equal(await page.evaluate('state.money'), 1000000);
-    await checkStatsPopup(page, guestStatsBefore.gamesPlayed, Math.max(1000000, guestStatsBefore.maxMoney), []);
+    await checkStatsPopup(page, guestStatsBefore.gamesPlayed, Math.max(1000000, guestStatsBefore.maxMoney), [0, 0, 0, 0]);
     await page.evaluate("openAuth('login')");
     assert.equal(await page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open"), true,
         'returning from guest uses the existing authorization even offline');
@@ -338,10 +338,20 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
             await page.evaluate("triggerGameOver('arrest')");
             assert.equal(await page.evaluate("document.getElementById('auth-invite').open"), false, 'known mayor needs no registration invitation');
             await page.click('#btn-restart');
-            await until(() => page.evaluate('!state.gameOverRecorded'));
+            try {
+                await until(() => page.evaluate('!state.gameOverRecorded'));
+            } catch (error) {
+                const shot = await page.call('Page.captureScreenshot', { format: 'png' });
+                writeFileSync(path.join(tmpdir(), 'mayor-restart-failure.png'), Buffer.from(shot.data, 'base64'));
+                throw new Error(`${error.message}: ${await page.evaluate("JSON.stringify({mode:state.mode,day:state.day,ended:state.gameOverRecorded,canPlay:AccountSession.canPlay(),height:innerHeight,width:innerWidth,disabled:document.getElementById('btn-restart').disabled,rect:document.getElementById('btn-restart').getBoundingClientRect().toJSON(),dialogs:[...document.querySelectorAll('dialog[open]')].map(x=>x.id)})")}`);
+            }
         }
         await page.click('#btn-login');
-        await until(() => page.evaluate('AccountSession.isMayor() && AccountSession.canPlay() && state.money===500000'));
+        try {
+            await until(() => page.evaluate('AccountSession.isMayor() && AccountSession.canPlay() && state.money===500000'));
+        } catch (error) {
+            throw new Error(`${error.message}: guest return ${JSON.stringify(scenario)} ${await page.evaluate("JSON.stringify({mayor:AccountSession.isMayor(),canPlay:AccountSession.canPlay(),sync:AccountSession.syncStatus(),money:state.money,ended:state.gameOverRecorded,auth:document.getElementById('auth-dialog').open,invite:document.getElementById('auth-invite').open})")}`);
+        }
         assert.equal(await page.evaluate("document.getElementById('auth-dialog').open || document.getElementById('save-sync-dialog').open"), false);
         assert.equal(await page.evaluate("JSON.parse(BrowserSession.accountStore(AccountSession.account().id).getItem('cloudSave')).gameSessionId"), mayorWriter,
             'returning to mayor continues the existing writer instead of activating another');
@@ -475,7 +485,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await reopened.evaluate('becomeGuest()');
     assert.equal(await reopened.evaluate("document.getElementById('difficulty-panel')"), null);
     assert.deepEqual(await reopened.evaluate("Array.from(document.getElementById('game-nav').children, e => e.id || e.tagName)"),
-        ['H1', 'btn-audio', 'btn-shop', 'btn-difficulty', 'btn-achievements', 'lang-selector']);
+        ['H1', 'btn-audio', 'btn-shop', 'btn-mode', 'btn-difficulty', 'btn-achievements', 'lang-selector']);
     // Difficulty lives in a modal and remains available throughout the game.
     for (const lang of ['ru', 'en', 'he', 'uk']) {
         await reopened.evaluate(`setLang('${lang}')`);
@@ -561,6 +571,140 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal(await reopened.evaluate('state.difficulty'), 'normal');
     assert.equal(await reopened.evaluate("document.getElementById('btn-difficulty').disabled"), false);
     assert.deepEqual(await reopened.evaluate('state.shopPrices'), {});
+
+    // A mayor's daily checkpoint and budget survive real API delivery and reload.
+    await reopened.call('Page.bringToFront');
+    await reopened.evaluate('toggleModes(true)');
+    assert.equal(await reopened.evaluate("GameModes.settings.dailyEnabled || Boolean(document.querySelector('[data-mode=daily]'))"), false);
+    await reopened.evaluate('toggleModes(false); GameModes.settings.dailyEnabled=true');
+    // Exercise the retained optional mode without changing the released default.
+    await reopened.call('Page.addScriptToEvaluateOnNewDocument', { source: "document.addEventListener('DOMContentLoaded',()=>{GameModes.settings.dailyEnabled=true})" });
+    await reopened.evaluate("openAuth('register')");
+    await reopened.evaluate(`document.getElementById('auth-nickname').value='${nickname}-modes'; document.getElementById('auth-password').value='modes-test'`);
+    await reopened.click('#auth-submit');
+    await until(() => reopened.evaluate('AccountSession.isMayor() && AccountSession.canPlay()'));
+    await reopened.evaluate("resetGame('easy','daily')");
+    await showNoEffectChoice(reopened);
+    await reopened.click('#choices-container button');
+    await waitForCloud(reopened);
+    const mayorDaily = await reopened.evaluate('JSON.stringify({gameId:state.gameId,day:state.day,card:state.currentEventId,used:state.daily.used})');
+    const cloudDaily = await reopened.evaluate("requestGameApi('/api/game/save',{token:AccountSession.token()}).then(r=>({mode:r.state.mode,used:r.state.daily.used,card:r.state.currentEventId}))");
+    assert.equal(cloudDaily.mode, 'daily'); assert.equal(cloudDaily.used, 1);
+    await reopened.evaluate('window.beforeModeReload=true');
+    await reopened.call('Page.reload');
+    await until(() => reopened.evaluate("!window.beforeModeReload && typeof currentTexts!=='undefined' && currentTexts && state.currentEventIndex>=0"));
+    assert.equal(await reopened.evaluate('JSON.stringify({gameId:state.gameId,day:state.day,card:state.currentEventId,used:state.daily.used})'), mayorDaily);
+    // Modes run in the same real browser/Worker/libSQL stack as the account flows above.
+    await reopened.evaluate("becomeGuest()");
+    await reopened.evaluate("resetGame('easy', 'arcade')");
+    await reopened.click('#btn-mode');
+    await reopened.click('[data-mode=daily]');
+    assert.equal(await reopened.evaluate('state.mode'), 'daily');
+    for (let i = 0; i < 5; i++) {
+        await showNoEffectChoice(reopened);
+        if (i === 4) await reopened.evaluate('state.health=0');
+        await reopened.click('#choices-container button');
+        await until(() => reopened.evaluate(`state.daily.used === ${i + 1}`));
+    }
+    assert.equal(await reopened.evaluate('state.gameOverRecorded'), true);
+    assert.equal(await reopened.evaluate("document.getElementById('btn-restart').disabled"), true);
+    assert.equal(await reopened.evaluate("document.getElementById('btn-resign').disabled"), true);
+    const dailyCount = await reopened.evaluate('GuestSession.getStats().byMode.daily.gamesPlayed');
+    await reopened.evaluate('window.beforeModeReload=true');
+    await reopened.call('Page.reload');
+    await until(() => reopened.evaluate("!window.beforeModeReload && typeof currentTexts!=='undefined' && currentTexts && state.gameOverRecorded"));
+    assert.equal(await reopened.evaluate('state.daily.used'), 5);
+    assert.equal(await reopened.evaluate('GuestSession.getStats().byMode.daily.gamesPlayed'), dailyCount);
+    // Yesterday's persisted budget: refresh at a new date keeps the party, but unlocks the next term.
+    await reopened.evaluate("state.daily.date='2000-01-01'; LocalEnvironment.storage.setItem('mayorGameState',JSON.stringify(state)); refreshDailyDate()");
+    assert.equal(await reopened.evaluate('state.daily.used'), 0);
+    await reopened.click('#btn-restart');
+    await until(() => reopened.evaluate('state.day===1 && !state.gameOverRecorded'));
+    await showNoEffectChoice(reopened);
+    await reopened.click('#choices-container button');
+    await until(() => reopened.evaluate('state.daily.used===1'));
+    await reopened.evaluate("state.eventQueue=[{eventId:'burning_trucks',triggerDay:state.day+2}]; saveGuestGame()");
+    const dailyCheckpoint = await reopened.evaluate('JSON.stringify({gameId:state.gameId,day:state.day,card:state.currentEventId,queue:state.eventQueue,order:state.choiceOrder})');
+    async function dialogAction(action, accept) {
+        let dialog;
+        const listener = event => { const message=JSON.parse(event.data); if(message.method==='Page.javascriptDialogOpening') dialog=message.params; };
+        reopened.ws.addEventListener('message', listener);
+        const pending = action();
+        await until(() => Boolean(dialog));
+        await reopened.call('Page.handleJavaScriptDialog', { accept });
+        await pending;
+        reopened.ws.removeEventListener('message', listener);
+    }
+    await reopened.click('#btn-mode');
+    await dialogAction(() => reopened.click('[data-mode=arcade]'), true);
+    assert.equal(await reopened.evaluate('state.mode'), 'arcade');
+    await reopened.click('#btn-mode');
+    await reopened.click('[data-mode=daily]');
+    assert.equal(await reopened.evaluate('JSON.stringify({gameId:state.gameId,day:state.day,card:state.currentEventId,queue:state.eventQueue,order:state.choiceOrder})'), dailyCheckpoint);
+    await reopened.evaluate('window.beforeModeReload=true');
+    await reopened.call('Page.reload');
+    await until(() => reopened.evaluate("!window.beforeModeReload && typeof currentTexts!=='undefined' && currentTexts && state.currentEventIndex>=0"));
+    assert.equal(await reopened.evaluate('JSON.stringify({gameId:state.gameId,day:state.day,card:state.currentEventId,queue:state.eventQueue,order:state.choiceOrder})'), dailyCheckpoint);
+    await reopened.call('Page.enable');
+    const beforeResign = await reopened.evaluate('GuestSession.getStats().gamesPlayed');
+    await dialogAction(() => reopened.click('#btn-resign'), false);
+    assert.equal(await reopened.evaluate('state.gameOverRecorded'), false);
+    await reopened.evaluate('state.money=5000000');
+    await dialogAction(() => reopened.click('#btn-resign'), true);
+    assert.equal(await reopened.evaluate('state.endReason'), 'resignation');
+    assert.equal(await reopened.evaluate("document.getElementById('end-stat-title').textContent"), await reopened.evaluate('currentTexts.ui.titles.resignation_peak'));
+    assert.equal(await reopened.evaluate('GuestSession.getStats().gamesPlayed'), beforeResign + 1);
+    assert.equal(await reopened.evaluate('state.daily.used'), 1);
+    await reopened.click('#btn-end-mode');
+    await reopened.click('[data-mode=blitz]');
+    assert.equal(await reopened.evaluate('state.difficulty'), 'hard');
+    assert.equal(await reopened.evaluate("['btn-difficulty','btn-end-difficulty'].every(id=>document.getElementById(id).hidden)"), true);
+    await reopened.click('#btn-mode');
+    for (const [day, duration] of [[1,10000],[10,10000],[11,7000],[21,5000],[31,3000],[41,2000],[1,10000]]) {
+        await reopened.evaluate(`state.day=${day}; startBlitzTurn()`);
+        const left = await reopened.evaluate('blitzClock.remaining()');
+        assert.ok(left <= duration && left > duration - 100);
+        assert.ok(await reopened.evaluate("Number(document.getElementById('blitz-progress').style.transform.match(/scaleX\\(([^)]+)\\)/)[1]) > 0.99"));
+    }
+    const paused = await reopened.evaluate('blitzClock.remaining()');
+    await new Promise(resolve=>setTimeout(resolve,2200));
+    assert.equal(await reopened.evaluate('state.gameOverRecorded'), false);
+    assert.equal(await reopened.evaluate('blitzClock.remaining()'), paused);
+    assert.equal(await reopened.evaluate("document.getElementById('btn-shop').hidden"), true);
+    assert.deepEqual(await reopened.evaluate("['wife','threat','health','rating'].map(k=>document.getElementById('stat-'+k).parentElement.getClientRects().length)"), [0,0,0,0]);
+    assert.equal(await reopened.evaluate("document.getElementById('stat-money').getClientRects().length > 0"), true);
+    await reopened.evaluate('window.moneyBeforeBlitz=state.money; buyPerk("wife_spa")');
+    assert.equal(await reopened.evaluate('state.money===window.moneyBeforeBlitz'), true);
+    await reopened.click('#mode-dismiss');
+    await until(() => reopened.evaluate("state.endReason==='indecision'"), 12000);
+    const once = await reopened.evaluate('GuestSession.getStats().gamesPlayed');
+    await reopened.evaluate("triggerGameOver('indecision')");
+    assert.equal(await reopened.evaluate('GuestSession.getStats().gamesPlayed'), once);
+    await reopened.evaluate("GameModes.settings.dailyEnabled=false; toggleModes(true)");
+    assert.equal(await reopened.evaluate("Boolean(document.querySelector('[data-mode=daily]'))"), false);
+    assert.equal(await reopened.evaluate("Boolean(state.daily.game)"), true);
+    await reopened.evaluate('GameModes.settings.dailyEnabled=true; toggleModes(false)');
+
+    await reopened.evaluate("resetGame('normal','arcade')");
+    assert.equal(await reopened.evaluate("['btn-difficulty','btn-end-difficulty'].every(id=>!document.getElementById(id).hidden)"), true);
+    assert.equal(await reopened.evaluate("['wife','threat','health','rating'].every(k=>document.getElementById('stat-'+k).parentElement.getClientRects().length > 0)"), true);
+    for (const lang of ['ru','en','he','uk']) {
+        await reopened.evaluate(`setLang('${lang}')`);
+        await reopened.call('Emulation.setDeviceMetricsOverride', { width:390, height:844, deviceScaleFactor:1, mobile:true });
+        await reopened.click('#btn-mode');
+        assert.equal(await reopened.evaluate("document.querySelectorAll('#mode-options button').length"), 3);
+        assert.equal(await reopened.evaluate("/[0-9%]/.test(document.getElementById('mode-options').textContent)"), false);
+        assert.equal(await reopened.evaluate('document.documentElement.scrollWidth <= innerWidth'), true);
+        if (['ru','he'].includes(lang)) {
+            const shot = await reopened.call('Page.captureScreenshot', { format:'png' });
+            writeFileSync(path.join(tmpdir(), `mayor-modes-${lang}.png`), Buffer.from(shot.data,'base64'));
+        }
+        await reopened.click('#mode-dismiss');
+    }
+    await reopened.evaluate("setLang('ru'); resetGame('normal','daily')");
+    const cardShot = await reopened.call('Page.captureScreenshot', { format:'png' });
+    writeFileSync(path.join(tmpdir(),'mayor-modes-daily.png'), Buffer.from(cardShot.data,'base64'));
+    await reopened.call('Emulation.clearDeviceMetricsOverride');
 
     const expired = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
         { type: 'execute', stmt: { sql: 'UPDATE auth_sessions SET last_activity_at = 0' } },

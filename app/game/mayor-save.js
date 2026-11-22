@@ -9,6 +9,7 @@
         if (!record?.stats || !Number.isSafeInteger(record.writeTimestamp)) record = null;
         record ||= { state: null, stats: { gamesPlayed: 0, maxMoney: 0, achievements: counts() },
             versionGuid: null, writeTimestamp: 0, activation: null };
+        record.stats = GameStats.normalize(record.stats);
         // Preserve old local progress, but never replay the previous delivery queue.
         record.localChanged ??= record.writeTimestamp > (record.ackTimestamp || 0);
         delete record.pending;
@@ -26,6 +27,9 @@
                 gameId: state.gameId, day: state.day, money: state.money, health: state.health,
                 wife: state.wife, threat: state.threat, rating: state.rating,
                 difficulty: state.difficulty || 'normal',
+                mode: state.mode || 'arcade', daily: state.daily ? JSON.parse(JSON.stringify(state.daily)) : null,
+                ...(state.mode === 'daily' ? { eventQueue: state.eventQueue || [],
+                    currentEventId: state.currentEventId || null, choiceOrder: state.choiceOrder || [] } : {}),
                 shopPrices: Object.fromEntries(shopPerkKeys.map(id => [id, state.shopPrices?.[id] || shopPerkPrices[id]])),
                 cooldowns: Object.fromEntries(shopPerkKeys.map(id => [id, state.cooldowns?.[id] || 0])),
                 achievements: counts(Object.fromEntries((state.earnedAchievementsThisGame || []).map(id => [id, 1]))),
@@ -40,7 +44,7 @@
                 record.state = pack(legacy);
                 record.preferences = { lang: legacy.lang, audioMuted: legacy.audioMuted };
                 const stats = root.GuestStorage.loadGuestStats(store);
-                record.stats = { ...stats, achievements: counts(stats.achievements) };
+                record.stats = GameStats.normalize(stats);
                 record.writeTimestamp = Date.now();
                 record.localChanged = true;
                 persist();
@@ -83,7 +87,7 @@
             record.versionGuid = cloud?.versionGuid || null;
             if (selection === 'cloud' && !changedDuringActivation) {
                 record.state = cloud?.state || null;
-                record.stats = cloud?.stats || { gamesPlayed: 0, maxMoney: 0, achievements: counts() };
+                record.stats = GameStats.normalize(cloud?.stats);
                 record.writeTimestamp = cloud?.writeTimestamp || 0;
                 record.localChanged = false;
             } else if (record.state) {
@@ -109,7 +113,7 @@
                 ownsSession = true;
             }
             const cloud = await request('/api/game/save');
-            const sameSnapshot = cloud && equal(cloud.state, record.state) && equal(cloud.stats, record.stats);
+            const sameSnapshot = cloud && equal(cloud.state, record.state) && equal(GameStats.normalize(cloud.stats), record.stats);
             if (sameSnapshot) record.localChanged = false;
             if (!ownsSession && record.localChanged && !sameSnapshot && (cloud?.versionGuid || null) !== record.versionGuid) {
                 record.conflict = cloud;
@@ -184,7 +188,7 @@
                 if (!record.state) return null;
                 const s = record.state;
                 const earned = achievementIds.filter(id => s.achievements[id]);
-                return { ...s, ...record.preferences, currentEventIndex: -1, eventQueue: [],
+                return { ...s, ...record.preferences, currentEventIndex: -1, eventQueue: s.mode === 'daily' ? s.eventQueue || [] : [],
                     difficulty: s.difficulty || 'normal', shopPrices: { ...s.shopPrices },
                     cooldowns: { ...s.cooldowns },
                     gameOverRecorded: s.isFinished, earnedAchievementsThisGame: earned, unlockedAchievements: [...earned] };
@@ -195,11 +199,9 @@
                 const snapshot = pack(state);
                 record.preferences = { lang: state.lang, audioMuted: state.audioMuted };
                 if (equal(snapshot, record.state)) { persist(); return; }
-                if (snapshot.isFinished && !(record.state?.gameId === snapshot.gameId && record.state.isFinished)) {
-                    record.stats.gamesPlayed++;
-                    for (const id of achievementIds) record.stats.achievements[id] += snapshot.achievements[id];
-                }
-                record.stats.maxMoney = Math.max(record.stats.maxMoney, snapshot.money);
+                const alreadyFinished = (record.state?.gameId === snapshot.gameId && record.state.isFinished) ||
+                    (record.state?.daily?.game?.gameId === snapshot.gameId && record.state.daily.game.gameOverRecorded);
+                record.stats = GameStats.update(record.stats, snapshot, snapshot.isFinished && !alreadyFinished);
                 record.state = snapshot;
                 record.writeTimestamp = Math.max(Date.now(), record.writeTimestamp + 1);
                 record.localChanged = true;

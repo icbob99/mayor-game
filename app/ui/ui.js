@@ -1,4 +1,4 @@
-﻿function updateUI() {
+function updateUI() {
     if (!currentTexts) return;
     updateAuthUI();
     renderDifficulty();
@@ -14,6 +14,7 @@
     document.getElementById('stat-threat').innerText = state.threat + '%';
     document.getElementById('stat-health').innerText = state.health + '%';
     document.getElementById('stat-rating').innerText = state.rating + '%';
+    document.getElementById('game-stats').classList.toggle('blind-stats', state.mode === 'blitz');
     document.getElementById('day-counter').innerText = `${currentTexts.ui.day} ${state.day}`;
     document.getElementById('label-btn-shop').innerText = currentTexts.ui.btn_shop;
     document.getElementById('btn-achievements').setAttribute('aria-label', currentTexts.ui.btn_achievements);
@@ -40,6 +41,8 @@
 }
 
 function saveGuestGame() {
+    state.gameId ||= crypto.randomUUID();
+    GameModes.checkpoint(state);
     if (AccountSession.isMayor()) AccountSession.save(state);
     else GuestSession.save(state);
 }
@@ -65,7 +68,18 @@ function renderGuestStats() {
     document.getElementById('guest-stats-title').innerText = `📜 ${currentTexts.ui.guest_stats_title}`;
     document.getElementById('guest-stats-close-btn').innerText = currentTexts.ui.guest_stats_close;
     document.getElementById('guest-stats-dismiss-btn').setAttribute('aria-label', currentTexts.ui.guest_stats_close);
-    const stats = AccountSession.isMayor() ? AccountSession.getStats() : GuestSession.getStats();
+    const all = GameStats.normalize(AccountSession.isMayor() ? AccountSession.getStats() : GuestSession.getStats());
+    const select = document.getElementById('stats-mode');
+    const selected = select.value || 'all';
+    select.replaceChildren(...['all', ...GameModes.names].map(mode => {
+        const option = document.createElement('option');
+        option.value = mode; option.textContent = mode === 'all' ? currentTexts.ui.modes.all : currentTexts.ui.modes[mode].name;
+        return option;
+    }));
+    select.value = selected;
+    const stats = selected === 'all' ? all : all.byMode[selected];
+    document.getElementById('stats-resignations-label').innerText = currentTexts.ui.modes.resignations;
+    document.getElementById('stats-resignations').innerText = stats.resignations;
     document.getElementById('guest-stats-games').innerText = stats.gamesPlayed;
     document.getElementById('guest-stats-money').innerText = `${stats.maxMoney.toLocaleString()} ₪`;
 

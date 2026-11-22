@@ -27,8 +27,9 @@ window.onload = async () => {
         gameLocales = data.locales;
         if (!gameLocales[state.lang]) state.lang = 'en';
         await setLang(state.lang);
-        if (AccountSession.isMayor() && state.gameOverRecorded) triggerGameOver(state.endReason);
-        else loadNextEvent();
+        if (!GameModes.available(state.mode)) await resetGame(state.difficulty, 'arcade');
+        else if (state.gameOverRecorded) triggerGameOver(state.endReason);
+        else restoreCurrentEvent();
         saveGuestGame();
     } catch (error) {
         gameDataLoadFailed = true;

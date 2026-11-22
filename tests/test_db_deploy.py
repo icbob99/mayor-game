@@ -168,6 +168,59 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(self.db.execute('SELECT * FROM upgrade_probe'), [[42]])
             self.assertEqual(len(history(self.db)), len(files))
 
+    def test_mode_stats_upgrade_and_compensation_preserve_player_totals(self):
+        end = SQL_FILES.index('db/migrations/005_mode_statistics.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('modes-player','Modes','modes','synthetic',1)")
+        stats = '{"gamesPlayed":7,"maxMoney":8000000,"achievements":{"survivor":3,"happy_wife":2,"offshore_king":4,"untouchable":1}}'
+        self.db.execute("INSERT INTO game_statuses VALUES ('modes-player','old','{}',?,1,1)", [stats])
+        self.db.execute("INSERT INTO game_history VALUES ('modes-player','old-game',1,1,12,3000000,'arrest','{}')")
+        apply(self.db, self.files[:end + 1])
+        self.assertEqual(self.db.execute('SELECT mode,games_played,max_money,resignations,survivor,happy_wife,offshore_king,untouchable FROM game_stats'),
+                         [['arcade',7,8000000,0,3,2,4,1]])
+        self.assertNotIn('stats_json', [row[1] for row in self.db.execute('PRAGMA table_info(game_statuses)')])
+        self.assertEqual(self.db.execute('SELECT mode,difficulty FROM game_history'), [['arcade',None]])
+        apply(self.db, self.files[:end + 1])
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM game_stats'), [[1]])
+        rollback = scripts(ROOT, ('db/rollbacks/005_mode_statistics.sql',))
+        self.db.execute("INSERT INTO game_stats(account_id,mode,max_money) VALUES ('modes-player','daily',1000000)")
+        with self.assertRaisesRegex(RuntimeError, 'CHECK constraint failed'):
+            apply(self.db, self.files[:end + 1] + rollback)
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM game_stats'), [[2]])
+        self.assertEqual(self.db.execute("SELECT name FROM sqlite_master WHERE name='mode_rollback_guard'"), [])
+        self.db.execute("DELETE FROM game_stats WHERE mode='daily'")
+        apply(self.db, self.files[:end + 1] + rollback)
+        restored = self.db.execute('SELECT stats_json FROM game_statuses')[0][0]
+        import json
+        restored = json.loads(restored)
+        self.assertEqual(restored['gamesPlayed'], 7)
+        self.assertEqual(restored['maxMoney'], 8000000)
+        self.assertEqual(restored['achievements'], json.loads(stats)['achievements'])
+        self.assertEqual(self.db.execute('SELECT game_id,end_reason FROM game_history'), [['old-game','arrest']])
+
+    def test_mode_translations_upgrade_repeat_and_compensation(self):
+        end = SQL_FILES.index('db/seeds/027_modes_ui.sql')
+        apply(self.db, self.files[:end])
+        before = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        apply(self.db, self.files)
+        after = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        import json
+        for lang, ui, alerts in after:
+            texts = json.loads(ui)['modes']
+            self.assertIn('{remaining}', texts['turns'])
+            self.assertIn('{remaining}', texts['reminder'])
+            for mode in ('arcade', 'daily', 'blitz'):
+                self.assertTrue(texts[mode]['name'])
+                self.assertFalse(any(ch.isdigit() or ch == '%' for ch in texts[mode]['description']))
+            self.assertTrue(json.loads(alerts)['resignation'])
+            self.assertTrue(json.loads(alerts)['indecision'])
+        apply(self.db, self.files)
+        self.assertEqual(self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang'), after)
+        apply(self.db, self.files + scripts(ROOT, ('db/rollbacks/027_modes_ui.sql',)))
+        restored = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        self.assertEqual([(lang,json.loads(ui),json.loads(alerts)) for lang,ui,alerts in restored],
+                         [(lang,json.loads(ui),json.loads(alerts)) for lang,ui,alerts in before])
+
     def test_park_copy_upgrade_and_compensation_preserve_other_data(self):
         self.legacy_database()
         baseline(self.db)

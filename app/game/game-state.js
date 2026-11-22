@@ -10,6 +10,11 @@
     eventQueue: [],
     cooldowns: {},
     difficulty: 'normal',
+    mode: 'arcade',
+    daily: null,
+    gameOverRecorded: false,
+    endReason: null,
+    finishedAt: null,
     shopPrices: {},
     audioMuted: false,
     unlockedAchievements: [],
@@ -32,9 +37,16 @@ const shopPerkCooldownDays = 7;
 
 function restoreDifficulty(saved) {
     // Old saves use normal rules; the day determines whether switching requires a restart.
-    state.difficulty = saved.difficulty || 'normal';
+    state.difficulty = Difficulty.forMode(saved.mode, saved.difficulty);
     delete state.difficultyLocked;
     state.shopPrices = { ...saved.shopPrices };
+    state.mode = GameModes.names.includes(saved.mode) ? saved.mode : 'arcade';
+    state.daily = saved.daily ? JSON.parse(JSON.stringify(saved.daily)) : null;
+    state.currentEventId = saved.currentEventId || null;
+    state.choiceOrder = saved.choiceOrder || [];
+    state.gameOverRecorded = Boolean(saved.gameOverRecorded);
+    state.endReason = saved.endReason || null;
+    state.finishedAt = saved.finishedAt || null;
 }
 const LANGUAGE_OPTIONS = [
     { id: 'en', label: 'English', flag: 'assets/flags/gb.svg' },

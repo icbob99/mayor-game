@@ -3,12 +3,53 @@ import { idleMs, tokenHash } from './auth.js';
 
 const achievements = ['offshore_king', 'untouchable', 'happy_wife', 'survivor'];
 const perks = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
-const reasons = ['arrest', 'wife_left', 'heart_attack', 'elections_lost', 'bankruptcy', 'too_popular', 'wife_abroad'];
+const reasons = ['arrest', 'wife_left', 'heart_attack', 'elections_lost', 'bankruptcy', 'too_popular', 'wife_abroad', 'resignation', 'indecision'];
+const modes = ['arcade', 'daily', 'blitz'];
 const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
 const integer = (value, min = 0) => Number.isSafeInteger(value) && value >= min;
 const counts = (value, keys, max = Number.MAX_SAFE_INTEGER) => value &&
     Object.keys(value).length === keys.length && keys.every(key => integer(value[key]) && value[key] <= max);
 const ending = value => reasons.includes(value.endReason) && integer(value.finishedAt, 1);
+
+function validDaily(daily) {
+    if (daily == null) return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(daily.date) || !integer(daily.used) || daily.used > 5) return false;
+    const game = daily.game;
+    if (game == null) return true;
+    return game.mode === 'daily' && uuid(game.gameId) && game.daily === undefined &&
+        integer(game.day, 1) && Number.isSafeInteger(game.money) &&
+        ['health', 'wife', 'threat', 'rating'].every(key => integer(game[key]) && game[key] <= 100) &&
+        validCard(game) && ['easy', 'normal', 'hard', 'insane'].includes(game.difficulty) &&
+        (!game.gameOverRecorded || ending(game));
+}
+function validCard(s) {
+    return (s.eventQueue === undefined || (Array.isArray(s.eventQueue) && s.eventQueue.every(e =>
+        e && typeof e.eventId === 'string' && integer(e.triggerDay, 1)))) &&
+        (s.currentEventId == null || typeof s.currentEventId === 'string') &&
+        (s.choiceOrder === undefined || (Array.isArray(s.choiceOrder) && s.choiceOrder.every(i => integer(i)) && new Set(s.choiceOrder).size === s.choiceOrder.length));
+}
+function validTotals(stats) {
+    return stats && integer(stats.gamesPlayed) && integer(stats.maxMoney) &&
+        integer(stats.resignations ?? 0) && (stats.resignations || 0) <= stats.gamesPlayed &&
+        counts(stats.achievements, achievements, stats.gamesPlayed);
+}
+function validStats(stats) {
+    if (!validTotals(stats)) return false;
+    if (stats.byMode === undefined) return true;
+    if (!stats.byMode || Object.keys(stats.byMode).length !== 3 || !modes.every(mode => validTotals(stats.byMode[mode]))) return false;
+    const rows = Object.values(stats.byMode);
+    return stats.gamesPlayed === rows.reduce((n, r) => n + r.gamesPlayed, 0) &&
+        stats.maxMoney === Math.max(...rows.map(r => r.maxMoney)) &&
+        (stats.resignations || 0) === rows.reduce((n, r) => n + (r.resignations || 0), 0) &&
+        achievements.every(id => stats.achievements[id] === rows.reduce((n, r) => n + r.achievements[id], 0));
+}
+function normalizeStats(stats) {
+    return { ...stats, byMode: Object.fromEntries(modes.map(mode => {
+        const row = stats.byMode?.[mode] || (mode === 'arcade' && !stats.byMode ? stats :
+            { gamesPlayed: 0, maxMoney: 0, achievements: Object.fromEntries(achievements.map(id => [id, 0])) });
+        return [mode, { ...row, resignations: row.resignations || 0 }];
+    })) };
+}
 
 function validSave(body) {
     const s = body.state, stats = body.stats;
@@ -17,9 +58,10 @@ function validSave(body) {
         ['health', 'wife', 'threat', 'rating'].every(key => integer(s[key]) && s[key] <= 100) &&
         counts(s.cooldowns, perks) && counts(s.achievements, achievements, 1) &&
         (s.difficulty === undefined || ['easy', 'normal', 'hard', 'insane'].includes(s.difficulty)) &&
+        (s.mode === undefined || modes.includes(s.mode)) && validDaily(s.daily) && validCard(s) &&
         (s.shopPrices === undefined || (counts(s.shopPrices, perks) && perks.every(key => s.shopPrices[key] > 0))) &&
         (s.isFinished === true ? ending(s) : s.isFinished === false && s.endReason === null && s.finishedAt === null) &&
-        stats && integer(stats.gamesPlayed) && integer(stats.maxMoney) && counts(stats.achievements, achievements, stats.gamesPlayed);
+        validStats(stats);
 }
 
 // Property order does not change an operation's identity.
@@ -65,11 +107,13 @@ export async function handleSave(request, env, headers) {
         }
         const newId = crypto.randomUUID();
         if (!activation) {
+            body.stats = normalizeStats(body.stats);
             const row = await saveGame(env, hashedToken, now - idleMs, body, newId, now);
             if (!row) return reply({ error: 'auth_expired' }, 401);
             if (row.game_session_id !== body.gameSessionId || row.auth_session_id !== row.auth_id) {
                 return reply({ error: 'session_replaced' }, 403);
             }
+            if (body.state.mode === undefined && row.mode != null) return reply({ error: 'client_outdated' }, 409);
             return new Response(null, { status: 204, headers: responseHeaders });
         }
         const hash = await tokenHash(route + JSON.stringify(canonical(body)));

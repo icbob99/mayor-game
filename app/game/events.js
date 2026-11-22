@@ -23,18 +23,40 @@
         btn.onclick = () => handleChoice(choiceIndex);
         container.appendChild(btn);
     });
+    renderModes();
 }
 
-function showEventAtIndex(eventIndex) {
+function showEventAtIndex(eventIndex, order) {
     state.currentEventIndex = eventIndex;
     const choices = gameLogicEvents[eventIndex]?.choices || [];
-    currentChoiceOrder = shuffleChoiceOrder(choices.length);
+    currentChoiceOrder = order?.length === choices.length && new Set(order).size === choices.length &&
+        order.every(i => Number.isInteger(i) && i >= 0 && i < choices.length) ? order : shuffleChoiceOrder(choices.length);
+    state.currentEventId = gameLogicEvents[eventIndex].id;
+    state.choiceOrder = [...currentChoiceOrder];
     renderCurrentEvent();
+    startBlitzTurn();
+}
+
+function restoreCurrentEvent() {
+    const index = state.mode === 'daily' ? gameLogicEvents.findIndex(e => e.id === state.currentEventId) : -1;
+    if (index >= 0) showEventAtIndex(index, state.choiceOrder);
+    else loadNextEvent();
 }
 
 function handleChoice(choiceIndex) {
+    if (state.mode === 'daily' && !AccountSession.isMayor()) {
+        // Serialize guest daily moves across tabs sharing this origin.
+        const act = () => { GuestSession.refreshDaily(state); applyChoice(choiceIndex); };
+        return navigator.locks ? navigator.locks.request('mayor-daily-turn', act) : act();
+    }
+    return applyChoice(choiceIndex);
+}
+
+function applyChoice(choiceIndex) {
     if (state.gameOverRecorded) return;
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
+    if (!GameModes.canAct(state)) { updateUI(); return; }
+    if (state.mode === 'blitz' && blitzClock.tick()) return;
     if (typeof initAudio === 'function') initAudio();
     if (typeof startBgMusic === 'function') startBgMusic();
     if (typeof playClickSound === 'function') playClickSound();
@@ -42,6 +64,8 @@ function handleChoice(choiceIndex) {
     const currentEvent = gameLogicEvents[state.currentEventIndex];
     const choice = currentEvent.choices[choiceIndex];
     if (!choice) return;
+    if (!GameModes.useTurn(state)) return;
+    stopBlitzTurn();
     const reason = Difficulty.applyChoice(state, choice);
     if (choice.nextEvent) state.eventQueue.push({ eventId: choice.nextEvent.id, triggerDay: state.day + choice.nextEvent.delay });
     state.day++;
@@ -50,8 +74,8 @@ function handleChoice(choiceIndex) {
         if (reason !== 'arrest' && typeof playLoseSound === 'function') playLoseSound();
         return triggerGameOver(reason);
     }
-    saveGuestGame();
     loadNextEvent();
+    saveGuestGame();
 }
 
 function loadNextEvent() {
