@@ -106,6 +106,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
+    await require('./layout-checks.cjs')(page);
     async function showNoEffectChoice(tab) {
         // These flows test delivery and statistics, not randomly selected card rewards.
         await tab.evaluate("showEventAtIndex(gameLogicEvents.findIndex(e=>e.id==='shitty_burger')); currentChoiceOrder=[1,0,2]; renderCurrentEvent()");
@@ -206,6 +207,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const guestProgress = "JSON.stringify((({currentEventIndex, ...progress}) => progress)(JSON.parse(LocalEnvironment.storage.getItem('mayorGameState'))))";
     const guestBefore = await page.evaluate(guestProgress);
     const guestStatsBefore = await page.evaluate('GuestSession.getStats()');
+    await page.click('#profile-toggle');
     await page.click('#btn-register');
     assert.equal(await page.evaluate("document.getElementById('auth-dialog').open"), true, 'registration is available after reconnect');
     await page.evaluate(`document.getElementById('auth-nickname').value = '${nickname}-ui'; document.getElementById('auth-password').value = 'browser-password'`);
@@ -326,6 +328,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0]);
     assert.deepEqual(await storedCounts(), countsBeforeGuest, 'viewing statistics creates no database rows');
     for (const scenario of [{ moves: 0, endings: 0 }, { moves: 5, endings: 0 }, { moves: 0, endings: 3 }]) {
+        await page.click('#profile-toggle');
         await page.click('#btn-become-guest');
         await until(() => page.evaluate('!AccountSession.isMayor() && state.day===1'));
         for (let move = 0; move < scenario.moves; move++) {
@@ -346,6 +349,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
                 throw new Error(`${error.message}: ${await page.evaluate("JSON.stringify({mode:state.mode,day:state.day,ended:state.gameOverRecorded,canPlay:AccountSession.canPlay(),height:innerHeight,width:innerWidth,disabled:document.getElementById('btn-restart').disabled,rect:document.getElementById('btn-restart').getBoundingClientRect().toJSON(),dialogs:[...document.querySelectorAll('dialog[open]')].map(x=>x.id)})")}`);
             }
         }
+        await page.click('#profile-toggle');
         await page.click('#btn-login');
         try {
             await until(() => page.evaluate('AccountSession.isMayor() && AccountSession.canPlay() && state.money===500000'));
@@ -484,8 +488,10 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
 
     await reopened.evaluate('becomeGuest()');
     assert.equal(await reopened.evaluate("document.getElementById('difficulty-panel')"), null);
-    assert.deepEqual(await reopened.evaluate("Array.from(document.getElementById('game-nav').children, e => e.id || e.tagName)"),
-        ['H1', 'btn-audio', 'btn-shop', 'btn-mode', 'btn-difficulty', 'btn-achievements', 'lang-selector']);
+    assert.deepEqual(await reopened.evaluate("Array.from(document.querySelectorAll('#game-nav button'), e => e.id).filter(id => !['btn-ru','btn-en','btn-he','btn-uk'].includes(id))"),
+        ['btn-achievements', 'btn-audio', 'lang-toggle']);
+    assert.deepEqual(await reopened.evaluate("Array.from(document.getElementById('party-controls').children, e => e.id)"),
+        ['account-controls', 'btn-difficulty', 'btn-mode']);
     // Difficulty lives in a modal and remains available throughout the game.
     for (const lang of ['ru', 'en', 'he', 'uk']) {
         await reopened.evaluate(`setLang('${lang}')`);

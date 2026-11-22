@@ -3,6 +3,10 @@ let authFormBusy = false;
 
 function authText(key) { return currentTexts?.ui.auth?.[key] || key; }
 
+function closeProfileMenu() {
+    document.getElementById('account-controls').open = false;
+}
+
 function updateAuthUI() {
     const mayor = AccountSession.isMayor();
     const status = AccountSession.check();
@@ -10,7 +14,9 @@ function updateAuthUI() {
     document.getElementById('btn-register').textContent = authText('register');
     document.getElementById('btn-login').hidden = mayor && Boolean(AccountSession.token()) && status !== 'expired' && AccountSession.syncStatus() !== 'session_replaced';
     document.getElementById('btn-register').hidden = mayor;
-    document.getElementById('auth-account').textContent = mayor ? AccountSession.account().nickname : '';
+    const profileName = mayor ? AccountSession.account().nickname : currentTexts.ui.auth.profile || authText('login');
+    document.getElementById('auth-account').textContent = profileName;
+    document.getElementById('profile-toggle').title = profileName;
     document.getElementById('btn-become-guest').hidden = !mayor;
     document.getElementById('btn-become-guest').textContent = authText('guest');
     const notice = document.getElementById('auth-notice');

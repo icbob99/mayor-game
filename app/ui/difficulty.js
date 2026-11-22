@@ -5,6 +5,7 @@ function renderDifficulty() {
         const button = document.getElementById(id);
         button.hidden = state.mode === 'blitz';
         button.textContent = `🎚️ ${texts[state.difficulty].name}`;
+        button.title = button.textContent;
         button.disabled = !AccountSession.canPlay();
     }
     document.getElementById('difficulty-title').textContent = texts.label;

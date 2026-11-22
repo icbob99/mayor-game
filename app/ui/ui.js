@@ -8,6 +8,10 @@ function updateUI() {
     document.getElementById('label-threat').innerText = currentTexts.ui.threat;
     document.getElementById('label-health').innerText = currentTexts.ui.health;
     document.getElementById('label-rating').innerText = currentTexts.ui.rating;
+    for (const tile of document.querySelectorAll('.stat-tile')) {
+        tile.querySelector('.stat-tooltip').textContent = tile.querySelector('.stat-label').textContent;
+    }
+    updateAudioButton();
 
     document.getElementById('stat-money').innerText = state.money.toLocaleString() + ' ₪';
     document.getElementById('stat-wife').innerText = state.wife + '%';
@@ -18,6 +22,7 @@ function updateUI() {
     document.getElementById('day-counter').innerText = `${currentTexts.ui.day} ${state.day}`;
     document.getElementById('label-btn-shop').innerText = currentTexts.ui.btn_shop;
     document.getElementById('btn-achievements').setAttribute('aria-label', currentTexts.ui.btn_achievements);
+    document.getElementById('btn-achievements').title = currentTexts.ui.btn_achievements;
     document.getElementById('btn-guest-stats').setAttribute('aria-label', currentTexts.ui.guest_stats_title);
     document.getElementById('guest-stats-games-label').innerText = currentTexts.ui.guest_stats_games;
     document.getElementById('guest-stats-money-label').innerText = currentTexts.ui.guest_stats_max_money;
@@ -38,6 +43,32 @@ function updateUI() {
     if (!document.getElementById('guest-stats-modal').classList.contains('hidden')) {
         renderGuestStats();
     }
+}
+
+function initializeHeaderControls() {
+    const profile = document.getElementById('account-controls');
+    const tiles = document.querySelectorAll('.stat-tile');
+    const closeTooltips = () => tiles.forEach(tile => tile.classList.remove('tooltip-open'));
+    for (const tile of tiles) {
+        const show = () => { closeTooltips(); tile.classList.add('tooltip-open'); };
+        tile.addEventListener('pointerenter', event => { if (event.pointerType === 'mouse') show(); });
+        tile.addEventListener('pointerleave', () => tile.classList.remove('tooltip-open'));
+        tile.addEventListener('focus', () => { if (tile.matches(':focus-visible')) show(); });
+        tile.addEventListener('blur', () => tile.classList.remove('tooltip-open'));
+        tile.addEventListener('click', show);
+    }
+    document.addEventListener('click', event => {
+        if (!profile.contains(event.target)) closeProfileMenu();
+        if (!event.target.closest('.stat-tile')) closeTooltips();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        if (profile.open) {
+            closeProfileMenu();
+            document.getElementById('profile-toggle').focus();
+        }
+        closeTooltips();
+    });
 }
 
 function saveGuestGame() {

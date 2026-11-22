@@ -37,6 +37,11 @@ function updateAudioButton() {
     const statusText = document.getElementById('audio-status');
     const btn = document.getElementById('btn-audio');
     if (!statusText || !btn) return;
+    const soundLabel = typeof currentTexts !== 'undefined' && currentTexts?.ui.sound || 'Sound';
+    document.getElementById('audio-icon').textContent = isMuted ? '🔇' : '🔊';
+    btn.setAttribute('aria-pressed', String(!isMuted));
+    btn.setAttribute('aria-label', soundLabel);
+    btn.title = `${isMuted ? '🔇' : '🔊'} ${soundLabel}`;
     if (isMuted) {
         statusText.innerText = 'OFF';
         btn.classList.add('opacity-50');

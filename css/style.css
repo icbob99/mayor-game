@@ -9,17 +9,44 @@ body {
     justify-content: center;
 }
 
-#game-nav > * { flex-shrink: 0; }
+#game-nav { flex-wrap: nowrap; max-width: 648px; }
+#game-nav h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.system-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.system-actions > button { min-width: 40px; min-height: 40px; }
+#lang-toggle { min-height: 40px; white-space: nowrap; }
 #lang-menu { inset-inline-end: 0; inset-inline-start: auto; }
 body { min-height: 100svh; }
-main { max-width: 42rem !important; }
-footer { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px !important; }
+main { max-width: 42rem !important; padding: 14px 12px 12px !important; }
+footer { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px !important; margin-top: auto; }
 #btn-guest-stats { margin-top: 0; }
 [hidden] { display: none !important; }
 #blitz-progress { transform-origin: left; }
 [dir="rtl"] #blitz-progress { transform-origin: right; }
-#game-stats.blind-stats > div:not(:first-child) { display: none; }
-#game-stats.blind-stats { grid-template-columns: minmax(0, 160px); justify-content: center; }
+#game-stats { max-width: 648px; }
+.money-row { display: flex; align-items: stretch; gap: 8px; margin-bottom: 8px; }
+.money-tile { flex: 1; min-width: 0; text-align: start; padding-inline: 12px; }
+.money-value { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+#stat-money { font-size: clamp(16px, 4vw, 26px); }
+#btn-shop { padding: 8px 12px; max-width: 45%; }
+.stat-tile { position: relative; min-width: 0; padding: 8px 4px; border-radius: 8px; background: rgb(51 65 85 / .5); }
+.stat-caption { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+.stat-label { color: #94a3b8; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-tile bdi { display: block; font-size: 18px; white-space: nowrap; }
+.stat-tooltip { display: none; position: absolute; bottom: calc(100% + 8px); inset-inline-start: 0; width: max-content; max-width: 180px; padding: 8px 10px; border: 1px solid #64748b; border-radius: 8px; background: #0f172a; color: #f8fafc; font-size: 13px; line-height: 1.4; box-shadow: 0 4px 12px #0006; z-index: 35; text-align: start; }
+.stat-tile:nth-child(n+3) .stat-tooltip { inset-inline-start: auto; inset-inline-end: 0; }
+.stat-tile.tooltip-open .stat-tooltip { display: block; }
+.stat-tile:focus-visible, #profile-toggle:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 2px; }
+#game-stats.blind-stats #secondary-stats { display: none; }
+#game-stats.blind-stats .money-row { margin-bottom: 0; }
+#party-controls { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 42rem; margin-inline: auto; padding: 12px 12px 0; }
+#party-controls > button { min-width: 0; padding: 8px 10px; min-height: 40px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+#account-controls { position: relative; flex: 1; min-width: 0; margin-inline-end: auto; max-width: 220px; }
+#profile-toggle { display: flex; align-items: center; gap: 5px; min-height: 40px; padding: 8px 10px; cursor: pointer; list-style: none; font-size: 14px; }
+#profile-toggle::-webkit-details-marker { display: none; }
+#auth-account { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+#profile-menu { position: absolute; top: calc(100% + 6px); inset-inline-start: 0; min-width: 180px; max-width: calc(100vw - 24px); padding: 6px; z-index: 40; }
+#profile-menu button { display: block; width: 100%; text-align: start; }
+#profile-menu button + button { margin-top: 6px; }
 #choices-container button:disabled, #btn-resign:disabled, #btn-restart:disabled { opacity: .5; cursor: default; }
 #event-card > div:first-child { flex-wrap: wrap; gap: 6px; }
 #daily-turns { white-space: nowrap; }
@@ -27,8 +54,6 @@ footer { display: flex; align-items: center; justify-content: center; gap: 8px; 
 @media (min-width: 768px) and (max-height: 900px) {
     #game-header { padding: 10px; }
     #game-nav { margin-bottom: 8px; }
-    #account-controls { padding-top: 8px; }
-    main { padding: 12px !important; }
     #event-card { padding: 18px; }
     #event-card > div:first-child { margin-bottom: 8px; }
     #event-avatar { font-size: 26px; padding: 4px; }
@@ -40,17 +65,15 @@ footer { display: flex; align-items: center; justify-content: center; gap: 8px; 
 
 /* Keep the card readable within a phone viewport without hiding any text. */
 @media (max-width: 767px) {
-    #game-header { padding: 8px; }
+    #game-header { padding: 12px; }
     #game-nav { gap: 4px; margin-bottom: 8px; }
-    #game-nav h1 { width: 100%; text-align: center; font-size: 12px; margin-bottom: 2px; }
-    #game-nav > button, #lang-toggle { font-size: 11px; padding: 6px; }
-    #game-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-    #game-stats > div { padding: 6px 2px; }
-    #game-stats [id^="label-"] { font-size: 9px; line-height: 1.2; min-height: 2.4em; }
-    #game-stats [id^="stat-"] { font-size: 13px; white-space: nowrap; }
-    #account-controls { padding-top: 8px; gap: 6px; font-size: 13px; }
-    #account-controls button { padding: 6px 10px; }
-    main { padding: 10px !important; }
+    #game-nav h1 { font-size: 12px; }
+    #lang-toggle { font-size: 11px; padding: 6px; gap: 4px; }
+    #party-controls { gap: 6px; }
+    #party-controls > button, #profile-toggle { font-size: 12px; padding: 8px; }
+    .stat-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .stat-tile { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 42px; }
+    .stat-tile bdi { font-size: 15px; }
     #event-card { padding: 14px; }
     #event-card > div:first-child { margin-bottom: 8px; }
     #event-avatar { font-size: 24px; padding: 4px; }
@@ -61,12 +84,7 @@ footer { display: flex; align-items: center; justify-content: center; gap: 8px; 
 }
 
 @media (max-width: 767px) and (max-height: 740px) {
-    #game-header { padding: 6px; }
     #game-nav { margin-bottom: 6px; }
-    #game-nav > button, #lang-toggle { font-size: 10px; padding: 5px; }
-    #account-controls { padding-top: 4px; }
-    #account-controls button { padding: 4px 8px; }
-    main { padding: 8px !important; }
     #event-card { padding: 10px; }
     #event-card > div:first-child { margin-bottom: 4px; }
     #event-avatar { font-size: 20px; padding: 2px; }
@@ -78,16 +96,18 @@ footer { display: flex; align-items: center; justify-content: center; gap: 8px; 
 }
 
 @media (max-width: 767px) and (max-height: 600px) {
-    #game-header { padding: 4px; }
     footer { padding: 3px !important; }
     #game-nav { gap: 3px; }
-    #game-nav > button, #lang-toggle { font-size: 9px; padding: 4px; }
     #lang-toggle img { width: 18px; height: 12px; }
-    #game-stats > div { padding: 3px 1px; }
-    #stat-money { font-size: 11px; }
     #event-card { padding: 8px; }
     #event-desc, #choices-container button { font-size: 12px; line-height: 1.25; }
     #choices-container button { padding: 5px; }
     #choices-container > :not([hidden]) ~ :not([hidden]) { margin-top: 4px; }
     #event-title { font-size: 16px; }
+}
+
+@media (max-width: 479px) {
+    .game-subtitle { display: none; }
+    .system-actions { gap: 4px; }
+    #lang-toggle img { width: 18px; height: 12px; }
 }

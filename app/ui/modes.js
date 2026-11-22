@@ -43,6 +43,7 @@ function renderModes() {
     for (const id of ['btn-mode', 'btn-end-mode']) {
         const button = document.getElementById(id);
         button.textContent = `${modeIcons[state.mode]} ${texts[state.mode].name}`;
+        button.title = button.textContent;
         button.disabled = !AccountSession.canPlay();
     }
     document.getElementById('mode-title').textContent = texts.label;

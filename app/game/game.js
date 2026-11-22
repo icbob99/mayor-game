@@ -9,6 +9,7 @@ function renderStartupStatus() {
 window.onload = async () => {
     state.lang = detectInitialLanguage(navigator.language);
     initializeLanguageSelector();
+    initializeHeaderControls();
     await setLang(state.lang);
     try {
         if (typeof LocalEnvironment !== 'undefined') await LocalEnvironment.ready;

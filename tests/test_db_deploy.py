@@ -200,9 +200,10 @@ class DeploymentTests(unittest.TestCase):
 
     def test_mode_translations_upgrade_repeat_and_compensation(self):
         end = SQL_FILES.index('db/seeds/027_modes_ui.sql')
+        files = self.files[:end + 1]
         apply(self.db, self.files[:end])
         before = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
-        apply(self.db, self.files)
+        apply(self.db, files)
         after = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
         import json
         for lang, ui, alerts in after:
@@ -214,12 +215,31 @@ class DeploymentTests(unittest.TestCase):
                 self.assertFalse(any(ch.isdigit() or ch == '%' for ch in texts[mode]['description']))
             self.assertTrue(json.loads(alerts)['resignation'])
             self.assertTrue(json.loads(alerts)['indecision'])
-        apply(self.db, self.files)
+        apply(self.db, files)
         self.assertEqual(self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang'), after)
-        apply(self.db, self.files + scripts(ROOT, ('db/rollbacks/027_modes_ui.sql',)))
+        apply(self.db, files + scripts(ROOT, ('db/rollbacks/027_modes_ui.sql',)))
         restored = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
         self.assertEqual([(lang,json.loads(ui),json.loads(alerts)) for lang,ui,alerts in restored],
                          [(lang,json.loads(ui),json.loads(alerts)) for lang,ui,alerts in before])
+
+    def test_header_labels_upgrade_repeat_and_compensation(self):
+        end = SQL_FILES.index('db/seeds/028_header_ui.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('header-player','Header','header','synthetic',1)")
+        before = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        apply(self.db, self.files[:end + 1])
+        after = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        expected = {'ru': 'Профиль', 'en': 'Profile', 'uk': 'Профіль', 'he': 'פרופיל'}
+        for lang, ui, _ in after:
+            self.assertEqual(json.loads(ui)['auth']['profile'], expected[lang])
+            self.assertTrue(json.loads(ui)['sound'])
+        apply(self.db, self.files[:end + 1])
+        self.assertEqual(self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang'), after)
+        apply(self.db, self.files[:end + 1] + scripts(ROOT, ('db/rollbacks/028_header_ui.sql',)))
+        restored = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        self.assertEqual([(lang, json.loads(ui), json.loads(alerts)) for lang, ui, alerts in restored],
+                         [(lang, json.loads(ui), json.loads(alerts)) for lang, ui, alerts in before])
+        self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='header-player'"), [['Header']])
 
     def test_park_copy_upgrade_and_compensation_preserve_other_data(self):
         self.legacy_database()
