@@ -75,7 +75,7 @@ async function resetGame(difficulty = 'normal', mode = state.mode || 'arcade') {
     state.money = 1000000;
     state.wife = 50;
     state.threat = 15;
-    state.health = 90;
+    state.health = Difficulty.initialHealth(mode, difficulty);
     state.rating = 50;
     state.day = 1;
     state.mode = mode;

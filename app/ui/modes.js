@@ -104,6 +104,8 @@ async function selectMode(mode) {
     } else if (state.day === 1 && !state.gameOverRecorded) {
         // The archived daily term and the new mode must not share a history identity.
         if (state.mode === 'daily') state.gameId = crypto.randomUUID();
+        const healthChange = Difficulty.initialHealth(mode, state.difficulty) - Difficulty.initialHealth(state.mode, state.difficulty);
+        state.health = Math.min(100, state.health + healthChange);
         state.mode = mode;
         state.difficulty = Difficulty.forMode(mode, state.difficulty);
         saveGuestGame(); updateUI(); startBlitzTurn();

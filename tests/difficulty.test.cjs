@@ -36,7 +36,7 @@ test('arcade escalates only harmful decisions at days 11 and 21, before rounding
 });
 
 test('difficulty scales gains and losses, reverses threat semantics and rounds symmetrically', () => {
-    for (const [level, gain, loss] of [['easy', 12, 8], ['normal', 10, 10], ['hard', 8, 13], ['insane', 6, 16]]) {
+    for (const [level, gain, loss] of [['easy', 10, 10], ['hard', 8, 13], ['insane', 6, 16]]) {
         for (const stat of ['money', 'wife', 'health', 'rating']) {
             assert.equal(Difficulty.effect(10, stat, level), gain);
             assert.equal(Difficulty.effect(-10, stat, level), -loss);
@@ -46,6 +46,35 @@ test('difficulty scales gains and losses, reverses threat semantics and rounds s
     }
     assert.equal(Difficulty.effect(-5, 'money', 'hard'), -7);
     assert.equal(Difficulty.effect(1, 'money', 'easy'), 1);
+});
+
+test('Normal rounds configured card effects before Arcade escalation', () => {
+    const cases = [
+        ['health', 10, 9, 9], ['health', -7, -7, -8],
+        ['wife', -20, -19, -23], ['wife', 20, 20, 20],
+        ['threat', 17, 18, 22], ['threat', -17, -17, -17],
+        ['rating', -23, -21, -25], ['rating', 23, 23, 23],
+        ['money', -10, -10, -12]
+    ];
+    for (const [stat, value, first, later] of cases) {
+        assert.equal(Difficulty.effect(value, stat, 'normal'), first, stat);
+        assert.equal(Difficulty.effect(value, stat, 'normal', 1.2), later, stat);
+        assert.equal(Difficulty.effect(0, stat, 'normal', 1.2), 0);
+    }
+    // Two-stage rounding is intentional: round(19*.97)=18, then round(18*1.1)=20.
+    assert.equal(Difficulty.effect(-19, 'wife', 'normal', 1.1), -20);
+});
+
+test('starting health respects the resolved difficulty, including forced-hard Blitz', () => {
+    assert.equal(Difficulty.initialHealth('arcade', 'normal'), 77);
+    for (const level of ['easy', 'hard', 'insane']) assert.equal(Difficulty.initialHealth('arcade', level), 90);
+    assert.equal(Difficulty.initialHealth('blitz', 'normal'), 90);
+});
+
+test('Normal clinic perk still restores 30 health without modifiers or drift', () => {
+    const c = playing(); c.s.health = 40;
+    c.run("buyPerk('assuta_vip')");
+    assert.deepEqual([c.s.health, c.s.money, c.s.threat, c.s.rating, c.s.day], [70, 500000, 15, 50, 1]);
 });
 
 test('one decision applies one passive drift with percentage bounds', () => {
@@ -140,6 +169,7 @@ test('legacy restore clears the previous mode difficulty and prices', () => {
 
 test('difficulty changes immediately on day one, confirms a running game and restarts a finished game', async () => {
     const c = playing();
+    c.s.health = 77;
     let confirmations = 0, closeCount = 0, restart;
     c.b.confirm = () => { confirmations++; return false; };
     c.b.document = { getElementById: () => ({ close() { closeCount++; } }) };
@@ -149,6 +179,7 @@ test('difficulty changes immediately on day one, confirms a running game and res
     vm.runInContext(readFileSync('app/ui/difficulty.js', 'utf8'), c.b);
     await c.run("selectDifficulty('hard')");
     assert.equal(c.s.difficulty, 'hard');
+    assert.equal(c.s.health, 90);
     assert.equal(confirmations, 0);
     assert.equal(c.b.saves, 1);
     c.s.day = 2;
@@ -177,4 +208,18 @@ test('difficulty changes immediately on day one, confirms a running game and res
         assert.equal(restart, undefined);
         assert.equal(closeCount, 4);
     }
+});
+
+test('reset uses mode starting health, while restoring a save preserves its health', async () => {
+    const c = playing();
+    c.b.crypto = require('node:crypto').webcrypto;
+    c.b.document = { getElementById: () => ({ classList: { add() {} } }) };
+    c.b.setLang = async () => {};
+    vm.runInContext(readFileSync('app/game/game-over.js', 'utf8'), c.b);
+    for (const [level, mode, health] of [['normal', 'arcade', 77], ['easy', 'arcade', 90], ['normal', 'blitz', 90]]) {
+        await c.run(`resetGame('${level}', '${mode}')`);
+        assert.equal(c.s.health, health);
+    }
+    c.run("Object.assign(state, {health: 63, difficulty: 'normal', mode: 'arcade'}); restoreDifficulty(state)");
+    assert.equal(c.s.health, 63);
 });

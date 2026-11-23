@@ -106,6 +106,11 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
+    assert.equal(await page.evaluate('state.health'), 77, 'fresh Normal game uses calibrated initial health');
+    await page.evaluate("selectDifficulty('easy')");
+    assert.equal(await page.evaluate('state.health'), 90, 'Easy retains default starting health');
+    await page.evaluate("selectDifficulty('normal')");
+    assert.equal(await page.evaluate('state.health'), 77, 'day-one return to Normal restores its starting health');
     await require('./layout-checks.cjs')(page);
     async function showNoEffectChoice(tab) {
         // These flows test delivery and statistics, not randomly selected card rewards.

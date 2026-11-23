@@ -44,6 +44,8 @@ SQL_FILES = (
     'db/migrations/005_mode_statistics.sql',
     'db/seeds/027_modes_ui.sql',
     'db/seeds/028_header_ui.sql',
+    'db/seeds/029_scenario_balance.sql',
+    'db/seeds/030_calibrated_balance.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'

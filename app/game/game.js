@@ -7,6 +7,7 @@ function renderStartupStatus() {
 }
 
 window.onload = async () => {
+    state.health = Difficulty.initialHealth(state.mode, state.difficulty);
     state.lang = detectInitialLanguage(navigator.language);
     initializeLanguageSelector();
     initializeHeaderControls();

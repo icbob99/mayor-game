@@ -42,6 +42,8 @@ async function selectDifficulty(value) {
     if (state.gameOverRecorded || state.day > 1) {
         await resetGame(value);
     } else {
+        const healthChange = Difficulty.initialHealth(state.mode, value) - Difficulty.initialHealth(state.mode, state.difficulty);
+        state.health = Math.min(100, state.health + healthChange);
         state.difficulty = value;
         saveGuestGame();
         updateUI();

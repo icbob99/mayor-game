@@ -21,6 +21,17 @@ function modeUI(state) {
     return b;
 }
 
+test('day-one mode changes use the resolved starting health', async () => {
+    const state = {mode: 'arcade', difficulty: 'normal', day: 1, health: 77, daily: null};
+    const b = modeUI(state);
+    await b.selectMode('blitz');
+    assert.equal(state.difficulty, 'hard');
+    assert.equal(state.health, 90);
+    await b.selectMode('arcade');
+    assert.equal(state.difficulty, 'hard');
+    assert.equal(state.health, 90);
+});
+
 test('day-one mode switch forks daily identity and later resumes the original daily game', async () => {
     const state = { mode: 'daily', day: 1, difficulty: 'normal', gameId: webcrypto.randomUUID(), daily: { date: Modes.dateKey(), used: 2 } };
     const originalId = state.gameId;

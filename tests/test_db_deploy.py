@@ -241,6 +241,27 @@ class DeploymentTests(unittest.TestCase):
                          [(lang, json.loads(ui), json.loads(alerts)) for lang, ui, alerts in before])
         self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='header-player'"), [['Header']])
 
+    def test_calibrated_balance_upgrade_repeat_and_compensation(self):
+        end = SQL_FILES.index('db/seeds/030_calibrated_balance.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('balance-player','Balance','balance','synthetic',1)")
+        tables = [r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> 'db_deployments'")]
+        snapshot = lambda: {t: self.db.execute('SELECT * FROM "' + t + '" ORDER BY rowid') for t in tables}
+        before = snapshot()
+        links = self.db.execute('SELECT event_id,choice_index,next_event_id,delay_days FROM game_choices ORDER BY event_id,choice_index')
+        apply(self.db, self.files[:end + 1])
+        after = snapshot()
+        self.assertNotEqual(after['game_choices'], before['game_choices'])
+        self.assertEqual(len(after['game_choices']), 123)
+        self.assertEqual(links, self.db.execute('SELECT event_id,choice_index,next_event_id,delay_days FROM game_choices ORDER BY event_id,choice_index'))
+        for table in tables:
+            if table != 'game_choices':
+                self.assertEqual(after[table], before[table], table)
+        apply(self.db, self.files[:end + 1])
+        self.assertEqual(snapshot(), after)
+        apply(self.db, self.files[:end + 1] + scripts(ROOT, ('db/rollbacks/030_calibrated_balance.sql',)))
+        self.assertEqual(snapshot(), before)
+
     def test_park_copy_upgrade_and_compensation_preserve_other_data(self):
         self.legacy_database()
         baseline(self.db)
