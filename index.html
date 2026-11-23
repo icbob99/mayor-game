@@ -21,9 +21,9 @@
             <button id="btn-achievements" onclick="toggleAchievements(true)"
                 class="bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition"
                 aria-label="Achievements">🏆</button>
-            <button id="btn-audio" onclick="toggleAudio()"
-                class="rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-white transition" aria-pressed="true">
-                <span id="audio-icon" aria-hidden="true">🔊</span><span id="audio-status" class="sr-only">ON</span>
+            <button id="btn-audio" onclick="toggleAudio()" aria-haspopup="dialog" aria-controls="audio-modal"
+                class="rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-white transition" aria-expanded="false">
+                <span id="audio-icon" aria-hidden="true">🔊</span><span id="audio-status" class="sr-only"></span>
             </button>
             <!-- Language switcher -->
             <div id="lang-selector" class="relative text-xs">
@@ -211,6 +211,31 @@
         </div>
     </div>
 
+    <dialog id="audio-modal" aria-labelledby="audio-title" onclick="if (event.target === this) toggleAudio(false)"
+        class="bg-slate-800 text-white rounded-2xl p-5 w-[calc(100%_-_2rem)] max-w-sm border border-slate-600 backdrop:bg-black/70">
+        <div class="flex items-center justify-between gap-3 mb-5">
+            <h2 id="audio-title" class="text-xl font-bold"></h2>
+            <button id="audio-dismiss" type="button" onclick="toggleAudio(false)" class="text-2xl text-slate-400 hover:text-white">×</button>
+        </div>
+        <fieldset class="rounded-xl bg-slate-700/60 p-3 mb-4">
+            <legend id="audio-music-label" class="font-bold px-1"></legend>
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <button id="audio-music-toggle" type="button" onclick="setAudioSetting('musicEnabled', !AudioSettings.get().musicEnabled)" class="rounded-lg bg-slate-600 px-3 py-2 text-sm font-bold"></button>
+                <output id="audio-music-percent" for="audio-music-volume" class="tabular-nums"></output>
+            </div>
+            <input id="audio-music-volume" type="range" min="0" max="100" step="1" value="25" oninput="setAudioSetting('musicVolume', this.valueAsNumber)" class="w-full accent-indigo-400">
+        </fieldset>
+        <fieldset class="rounded-xl bg-slate-700/60 p-3 mb-5">
+            <legend id="audio-sfx-label" class="font-bold px-1"></legend>
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <button id="audio-sfx-toggle" type="button" onclick="setAudioSetting('sfxEnabled', !AudioSettings.get().sfxEnabled)" class="rounded-lg bg-slate-600 px-3 py-2 text-sm font-bold"></button>
+                <output id="audio-sfx-percent" for="audio-sfx-volume" class="tabular-nums"></output>
+            </div>
+            <input id="audio-sfx-volume" type="range" min="0" max="100" step="1" value="70" oninput="setAudioSetting('sfxVolume', this.valueAsNumber)" class="w-full accent-indigo-400">
+        </fieldset>
+        <button id="audio-close" type="button" onclick="toggleAudio(false)" class="rounded-lg bg-indigo-600 px-4 py-2 font-bold hover:bg-indigo-500"></button>
+    </dialog>
+
     <!-- Difficulty uses a native dialog for focus trapping, Escape and modal stacking. -->
     <dialog id="difficulty-modal" aria-labelledby="difficulty-title" onclick="if (event.target === this) toggleDifficulty(false)"
         class="fixed inset-0 m-0 w-full h-full max-w-none max-h-none bg-transparent text-white p-4 backdrop:bg-slate-950/80 backdrop:backdrop-blur-md">
@@ -311,6 +336,8 @@
 
     <!-- Load data and game logic -->
     <script src="app/infrastructure/offline.js"></script>
+    <script src="app/infrastructure/music-player.js"></script>
+    <script src="app/game/audio-settings.js"></script>
     <script src="app/ui/audio.js"></script>
     <script src="app/infrastructure/data-proxy.js"></script>
     <script src="app/infrastructure/browser-session.js"></script>

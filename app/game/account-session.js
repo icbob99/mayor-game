@@ -20,7 +20,13 @@
     function accountStorage() {
         return root.BrowserSession.accountStore(auth.account.id);
     }
-    function notify() { root.updateAuthUI?.(); }
+    function syncAudioAccount() {
+        root.AudioSettings?.setAccount(auth?.mode === 'mayor' && auth.authToken ? { id: auth.account.id, token: auth.authToken } : null);
+    }
+    function notify() {
+        syncAudioAccount();
+        root.updateAuthUI?.();
+    }
     function openSave() {
         const owner = auth;
         mayorSave = root.createMayorSave(accountStorage(), () => owner.authToken,
@@ -87,6 +93,7 @@
                     this.check(); notify();
                 }
             });
+            syncAudioAccount();
         },
         async authenticate(kind, credentials) {
             await root.BrowserSession.init(storage());
@@ -95,6 +102,7 @@
             });
             auth = { ...result, mode: 'mayor', lastActivityAt: Date.now() };
             persist();
+            syncAudioAccount();
             openSave();
             switching = true;
             try { await mayorSave.resume(true, result.activeGameSessionId); } finally { switching = false; }
@@ -136,9 +144,10 @@
             try { await mayorSave.resume(); } finally { switching = false; }
             if (!auth.authToken || mayorSave.status() === 'session_replaced') return false;
             auth.mode = 'mayor'; persist();
+            syncAudioAccount();
             return true;
         },
-        becomeGuest() { if (auth) { auth.mode = 'guest'; persist(); } },
+        becomeGuest() { if (auth) { auth.mode = 'guest'; persist(); syncAudioAccount(); } },
         shouldInvite(count) {
             if (auth?.account || ![3, 8, 18].includes(count) || Number(read('mayorRegistrationPrompt')) >= count) return false;
             try { storage()?.setItem('mayorRegistrationPrompt', JSON.stringify(count)); } catch { /* Invitations are optional. */ }

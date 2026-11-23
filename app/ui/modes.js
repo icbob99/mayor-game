@@ -35,6 +35,7 @@ function confirmGameAction(text) {
     finally { syncBlitzPause(); }
 }
 function renderModes() {
+    if (typeof startBgMusic === 'function') startBgMusic();
     const texts = currentTexts?.ui.modes;
     if (!texts) return;
     const remaining = GameModes.remaining(state);

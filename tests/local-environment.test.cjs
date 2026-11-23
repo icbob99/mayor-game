@@ -84,7 +84,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         return (await (await fetch(base + '/api/dev-info')).json()).instance_id;
     }
     const firstId = await start();
-    chrome = spawn(browserPath, ['--headless=new', '--no-first-run', '--no-default-browser-check',
+    chrome = spawn(browserPath, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--autoplay-policy=document-user-activation-required',
         '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore', windowsHide: true });
     const portFile = path.join(profile, 'DevToolsActivePort');
     await until(() => existsSync(portFile));
@@ -106,6 +106,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
+    await require('./audio-ui.integration.cjs')(page);
     assert.equal(await page.evaluate('state.health'), 77, 'fresh Normal game uses calibrated initial health');
     await page.evaluate("selectDifficulty('easy')");
     assert.equal(await page.evaluate('state.health'), 90, 'Easy retains default starting health');
@@ -201,6 +202,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await authRequest('session', 'DELETE', null, signedIn.body.authToken);
     assert.equal((await authRequest('session', 'GET', null, signedIn.body.authToken)).status, 401);
     await require('./save-api.integration.cjs')(base, firstId);
+    await require('./audio-api.integration.cjs')(base, firstId);
 
     // Observe delivery from the test, without adding acknowledgements to the browser game.
     async function waitForCloud(tab) {
@@ -233,11 +235,15 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     t.diagnostic('Guest and mayor offline reloads, saved moves, and registration after reconnect passed.');
     const cachedUrls = await page.evaluate(`caches.keys().then(async names => (await Promise.all(names.filter(n => n.startsWith('mayor-offline:')).map(async n => (await (await caches.open(n)).keys()).map(r => r.url)))).flat())`);
     assert.ok(cachedUrls.some(url => url.endsWith('/api/game-data')), 'shared game content is cached');
-    assert.ok(!cachedUrls.some(url => /\/api\/(auth|game)\//.test(url)), 'account responses are never cached');
+    assert.ok(!cachedUrls.some(url => /\/api\/(auth|game|profile)\//.test(url)), 'account responses are never cached');
     const mayorSaved = await page.evaluate('JSON.stringify({day:state.day,money:state.money})');
+    await page.evaluate('AudioSettings.set({musicVolume:31,sfxVolume:66})');
+    await until(() => page.evaluate("requestGameApi('/api/profile/audio',{token:AccountSession.token()}).then(p=>p.audio?.musicVolume===31 && p.audio?.sfxVolume===66)"));
+    await page.evaluate("LocalEnvironment.storage.setItem('mayorAudioSettings',JSON.stringify({...AudioSettings.get(),musicVolume:7}))");
     await page.evaluate('window.beforeAuthReload = true');
     await page.call('Page.reload');
     await until(() => page.evaluate(`!window.beforeAuthReload && typeof AccountSession !== 'undefined' && AccountSession.isMayor() && currentTexts?.ui.auth && gameLogicEvents.length > 0 && JSON.stringify({day:state.day,money:state.money}) === ${JSON.stringify(mayorSaved)}`));
+    await until(() => page.evaluate('AudioSettings.get().musicVolume===31 && AudioSettings.get().sfxVolume===66'));
     await page.call('Network.enable');
     await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
     await page.evaluate('window.realNow = Date.now; Date.now = () => realNow() + 25 * 60000; updateAuthUI()');

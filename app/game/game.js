@@ -14,6 +14,7 @@ window.onload = async () => {
     await setLang(state.lang);
     try {
         if (typeof LocalEnvironment !== 'undefined') await LocalEnvironment.ready;
+        initializeAudio();
         await AccountSession.init();
         if (AccountSession.isMayor()) {
             const saved = AccountSession.loadGame();
@@ -21,9 +22,8 @@ window.onload = async () => {
             state.currentEventIndex = -1;
         } else GuestSession.load(state);
         await setLang(state.lang);
-        if (typeof applyAudioPreference === 'function') {
-            applyAudioPreference(Boolean(state.audioMuted));
-        }
+        AudioSettings.migrateLegacy(state.audioMuted);
+        startBgMusic();
         const data = await loadGameData();
         gameLogicEvents = data.events;
         gameLocales = data.locales;

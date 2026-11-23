@@ -78,11 +78,6 @@ function saveGuestGame() {
     else GuestSession.save(state);
 }
 
-function setAudioPreference(muted) {
-    state.audioMuted = Boolean(muted);
-    saveGuestGame();
-}
-
 function toggleGuestStats(show) {
     const modal = document.getElementById('guest-stats-modal');
     if (!modal) return;

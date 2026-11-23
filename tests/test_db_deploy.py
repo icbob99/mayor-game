@@ -262,6 +262,29 @@ class DeploymentTests(unittest.TestCase):
         apply(self.db, self.files[:end + 1] + scripts(ROOT, ('db/rollbacks/030_calibrated_balance.sql',)))
         self.assertEqual(snapshot(), before)
 
+    def test_audio_preferences_upgrade_and_compensation_preserve_existing_players(self):
+        end = SQL_FILES.index('db/migrations/006_account_preferences.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('audio-player','Audio','audio','synthetic',1)")
+        before = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        apply(self.db, self.files[:end + 2])
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM account_preferences'), [[0]])
+        self.db.execute('INSERT INTO account_preferences VALUES (?, ?)', ['audio-player', json.dumps({'musicEnabled': True, 'musicVolume': 25, 'sfxEnabled': True, 'sfxVolume': 70})])
+        after = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        for old, new in zip(before, after):
+            value = json.loads(new[1])
+            self.assertEqual(set(value.pop('audio')), {'title', 'music', 'sfx', 'enabled', 'disabled', 'volume', 'close'})
+            self.assertEqual(value, json.loads(old[1]))
+            self.assertEqual(old[2], new[2])
+        apply(self.db, self.files[:end + 2])
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM account_preferences'), [[1]])
+        apply(self.db, self.files[:end + 2] + scripts(ROOT, ('db/rollbacks/031_audio_settings.sql', 'db/rollbacks/006_account_preferences.sql')))
+        restored = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        self.assertEqual([(lang, json.loads(ui), alerts) for lang, ui, alerts in restored],
+                         [(lang, json.loads(ui), alerts) for lang, ui, alerts in before])
+        self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='audio-player'"), [['Audio']])
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM sqlite_master WHERE name='account_preferences'"), [[0]])
+
     def test_park_copy_upgrade_and_compensation_preserve_other_data(self):
         self.legacy_database()
         baseline(self.db)

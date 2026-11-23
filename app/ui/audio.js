@@ -1,101 +1,108 @@
-// Audio engine based on the Web Audio API.
+// File-based music and the original synthesized SFX use independent volume buses.
 let audioCtx = null;
-let isMuted = false;
-let isMusicPlaying = false;
-let musicInterval = null;
-
-// A quiet background theme in an Eastern mode.
-const bgNotes = [
-    220.00, 233.08, 277.18, 293.66, 329.63, 349.23, 415.30, 440.00,
-    349.23, 329.63, 293.66, 277.18, 233.08
-];
-let noteStep = 0;
+let musicBus = null;
+let sfxBus = null;
+let musicPlayer = null;
+let audioInitialized = false;
 
 function initAudio() {
     if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const Context = window.AudioContext || window.webkitAudioContext;
+        if (!Context) return false;
+        audioCtx = new Context();
+        musicBus = audioCtx.createGain(); musicBus.connect(audioCtx.destination);
+        sfxBus = audioCtx.createGain(); sfxBus.connect(audioCtx.destination);
+        musicPlayer = createMusicPlayer(audioCtx, musicBus, document.baseURI);
+        applyAudioSettings();
     }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
+    if (audioCtx.state === 'suspended') audioCtx.resume().then(startBgMusic).catch(() => {});
+    return true;
 }
 
-function toggleAudio() {
-    isMuted = !isMuted;
+function initializeAudio() {
+    if (audioInitialized) return;
+    audioInitialized = true;
+    AudioSettings.subscribe(applyAudioSettings);
+    AudioSettings.init();
+    const unlock = () => {
+        const settings = AudioSettings.get();
+        if ((settings.musicEnabled || settings.sfxEnabled) && initAudio()) startBgMusic();
+    };
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('click', unlock);
+    window.addEventListener('keydown', unlock);
+    document.getElementById('audio-modal').addEventListener('close', updateAudioButton);
+    unlock();
+}
+
+function applyAudioSettings() {
+    const settings = AudioSettings.get();
+    if (audioCtx) {
+        musicBus.gain.setTargetAtTime(settings.musicVolume / 100, audioCtx.currentTime, .04);
+        sfxBus.gain.setTargetAtTime(settings.sfxEnabled ? settings.sfxVolume / 100 : 0, audioCtx.currentTime, .02);
+        if (settings.musicEnabled) startBgMusic();
+        else stopBgMusic();
+    }
     updateAudioButton();
-    if (typeof setAudioPreference === 'function') setAudioPreference(isMuted);
-    if (isMuted) {
-        stopBgMusic();
-    } else {
-        initAudio();
-        startBgMusic();
-        playClickSound();
-    }
-}
-
-function updateAudioButton() {
-    const statusText = document.getElementById('audio-status');
-    const btn = document.getElementById('btn-audio');
-    if (!statusText || !btn) return;
-    const soundLabel = typeof currentTexts !== 'undefined' && currentTexts?.ui.sound || 'Sound';
-    document.getElementById('audio-icon').textContent = isMuted ? '🔇' : '🔊';
-    btn.setAttribute('aria-pressed', String(!isMuted));
-    btn.setAttribute('aria-label', soundLabel);
-    btn.title = `${isMuted ? '🔇' : '🔊'} ${soundLabel}`;
-    if (isMuted) {
-        statusText.innerText = 'OFF';
-        btn.classList.add('opacity-50');
-    } else {
-        statusText.innerText = 'ON';
-        btn.classList.remove('opacity-50');
-    }
-}
-
-function applyAudioPreference(muted) {
-    isMuted = Boolean(muted);
-    updateAudioButton();
-    if (isMuted) stopBgMusic();
 }
 
 function startBgMusic() {
-    if (isMuted || isMusicPlaying) return;
-    isMusicPlaying = true;
-    
-    musicInterval = setInterval(() => {
-        if (isMuted || !audioCtx) return;
-        
-        const freq = bgNotes[noteStep % bgNotes.length];
-        noteStep++;
-
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        // Soft sine wave with minimal volume (0.01).
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-        gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0005, audioCtx.currentTime + 0.3);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-    }, 350);
+    if (!AudioSettings.get().musicEnabled || !audioCtx || audioCtx.state !== 'running') return;
+    const mode = typeof state === 'undefined' ? 'arcade' : state.mode;
+    void musicPlayer.play(mode === 'blitz' ? 'blitz' : 'theme');
 }
 
-function stopBgMusic() {
-    isMusicPlaying = false;
-    if (musicInterval) {
-        clearInterval(musicInterval);
-        musicInterval = null;
+function stopBgMusic() { musicPlayer?.stop(); }
+
+function toggleAudio(show = true) {
+    const dialog = document.getElementById('audio-modal');
+    if (show) {
+        if (!currentTexts?.ui.audio) return;
+        updateAudioButton();
+        if (!dialog.open) dialog.showModal();
+        initAudio(); startBgMusic();
+    } else dialog.close();
+    updateAudioButton();
+    if (typeof syncBlitzPause === 'function') syncBlitzPause();
+}
+
+function setAudioSetting(key, value) {
+    AudioSettings.set({ [key]: value });
+}
+
+function updateAudioButton() {
+    const button = document.getElementById('btn-audio');
+    if (!button) return;
+    const settings = AudioSettings.get();
+    const active = (settings.musicEnabled && settings.musicVolume > 0) || (settings.sfxEnabled && settings.sfxVolume > 0);
+    const texts = typeof currentTexts !== 'undefined' ? currentTexts?.ui.audio : null;
+    const title = texts?.title || (typeof currentTexts !== 'undefined' ? currentTexts?.ui.sound : '') || '';
+    document.getElementById('audio-icon').textContent = active ? '🔊' : '🔇';
+    document.getElementById('audio-status').textContent = texts ? (active ? texts.enabled : texts.disabled) : '';
+    button.classList.toggle('opacity-50', !active);
+    button.setAttribute('aria-label', title); button.title = title;
+    button.setAttribute('aria-expanded', String(document.getElementById('audio-modal').open));
+    button.disabled = !texts;
+    if (!texts) return;
+    document.getElementById('audio-title').textContent = texts.title;
+    for (const channel of ['music', 'sfx']) {
+        const enabled = settings[channel + 'Enabled'], volume = settings[channel + 'Volume'];
+        document.getElementById('audio-' + channel + '-label').textContent = texts[channel];
+        const toggle = document.getElementById('audio-' + channel + '-toggle');
+        toggle.textContent = (enabled ? '🔊 ' : '🔇 ') + (enabled ? texts.enabled : texts.disabled);
+        toggle.setAttribute('aria-pressed', String(enabled));
+        toggle.setAttribute('aria-label', texts[channel] + ': ' + (enabled ? texts.enabled : texts.disabled));
+        const slider = document.getElementById('audio-' + channel + '-volume');
+        slider.value = volume;
+        slider.setAttribute('aria-label', texts[channel] + ': ' + texts.volume);
+        document.getElementById('audio-' + channel + '-percent').textContent = volume + '%';
     }
+    document.getElementById('audio-close').textContent = texts.close;
+    document.getElementById('audio-dismiss').setAttribute('aria-label', texts.close);
 }
 
 function playClickSound() {
-    if (isMuted) return;
-    initAudio();
+    if (!AudioSettings.get().sfxEnabled || !initAudio()) return;
 
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -108,15 +115,14 @@ function playClickSound() {
     gain.gain.exponentialRampToValueAtTime(0.005, audioCtx.currentTime + 0.08);
 
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(sfxBus);
 
     osc.start();
     osc.stop(audioCtx.currentTime + 0.08);
 }
 
 function playCashSound() {
-    if (isMuted) return;
-    initAudio();
+    if (!AudioSettings.get().sfxEnabled || !initAudio()) return;
 
     const now = audioCtx.currentTime;
     const osc1 = audioCtx.createOscillator();
@@ -135,7 +141,7 @@ function playCashSound() {
 
     osc1.connect(gain);
     osc2.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(sfxBus);
 
     osc1.start(now);
     osc2.start(now);
@@ -144,8 +150,7 @@ function playCashSound() {
 }
 
 function playSirenSound() {
-    if (isMuted) return;
-    initAudio();
+    if (!AudioSettings.get().sfxEnabled || !initAudio()) return;
 
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -159,15 +164,14 @@ function playSirenSound() {
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
 
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(sfxBus);
 
     osc.start();
     osc.stop(audioCtx.currentTime + 0.6);
 }
 
 function playLoseSound() {
-    if (isMuted) return;
-    initAudio();
+    if (!AudioSettings.get().sfxEnabled || !initAudio()) return;
 
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -180,7 +184,7 @@ function playLoseSound() {
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
 
     osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    gain.connect(sfxBus);
 
     osc.start();
     osc.stop(audioCtx.currentTime + 0.4);
