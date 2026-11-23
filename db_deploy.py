@@ -50,6 +50,7 @@ SQL_FILES = (
     'db/seeds/031_audio_settings.sql',
     'db/migrations/007_retirement_achievements.sql',
     'db/seeds/032_retirement_ui.sql',
+    'db/seeds/033_restore_author_balance.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'

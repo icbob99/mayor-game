@@ -107,11 +107,11 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
     await require('./audio-ui.integration.cjs')(page);
-    assert.equal(await page.evaluate('state.health'), 77, 'fresh Normal game uses calibrated initial health');
+    assert.equal(await page.evaluate('state.health'), 90, 'fresh Normal game uses reference initial health');
     await page.evaluate("selectDifficulty('easy')");
     assert.equal(await page.evaluate('state.health'), 90, 'Easy retains default starting health');
     await page.evaluate("selectDifficulty('normal')");
-    assert.equal(await page.evaluate('state.health'), 77, 'day-one return to Normal restores its starting health');
+    assert.equal(await page.evaluate('state.health'), 90, 'day-one return to Normal restores its starting health');
     await require('./layout-checks.cjs')(page);
     async function showNoEffectChoice(tab) {
         // These flows test delivery and statistics, not randomly selected card rewards.
@@ -568,7 +568,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         ["state.wife=80; buyPerk('wife_spa')", 'wife_abroad', '✈️']
     ]) {
         await reopened.evaluate("resetGame()");
-        await reopened.evaluate("selectDifficulty('insane'); state.money=10000000");
+        await reopened.evaluate("selectDifficulty('insane'); state.day=5; state.money=10000000");
         if (reason === 'bankruptcy') {
             // Keep the chosen card deterministic without changing the loaded content.
             await reopened.evaluate("window.savedChoices=gameLogicEvents[state.currentEventIndex].choices; gameLogicEvents[state.currentEventIndex].choices=window.savedChoices.map(()=>({money:0,wife:0,health:0,threat:0,rating:0}))");
@@ -725,6 +725,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await reopened.call('Emulation.clearDeviceMetricsOverride');
 
     await require('./retirement-ui.integration.cjs')(reopened);
+    await require('./opening-ui.integration.cjs')(reopened);
 
     const expired = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
         { type: 'execute', stmt: { sql: 'UPDATE auth_sessions SET last_activity_at = 0' } },

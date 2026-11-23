@@ -22,7 +22,7 @@ function modeUI(state) {
 }
 
 test('day-one mode changes use the resolved starting health', async () => {
-    const state = {mode: 'arcade', difficulty: 'normal', day: 1, health: 77, daily: null};
+    const state = {mode: 'arcade', difficulty: 'normal', day: 1, health: 90, daily: null};
     const b = modeUI(state);
     await b.selectMode('blitz');
     assert.equal(state.difficulty, 'hard');

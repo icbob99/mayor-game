@@ -1,11 +1,7 @@
 (function (root) {
     const levels = {
-        easy: { gain: 1, loss: 1, drift: {} },
-        normal: {
-            gain: 1, loss: 1, drift: { threat: 1, rating: -1 },
-            initialHealth: 77, healthGain: 0.85, healthLoss: 1,
-            threatGain: 1.07, wifeLoss: 0.97, ratingLoss: 0.91
-        },
+        easy: { gain: 1.2, loss: 0.8, drift: {} },
+        normal: { gain: 1, loss: 1, drift: { threat: 1, rating: -1 } },
         hard: { gain: 0.8, loss: 1.3, drift: { threat: 2, wife: -1, rating: -1 } },
         insane: { gain: 0.6, loss: 1.6, drift: { threat: 4, wife: -2, rating: -2 } }
     };
@@ -18,12 +14,18 @@
     function effect(value, stat, level, escalation = 1) {
         const rules = levels[level] || levels.normal;
         const beneficial = stat === 'threat' ? value < 0 : value > 0;
-        let magnitude = Math.abs(value);
-        const modifier = rules[stat + (value > 0 ? 'Gain' : 'Loss')];
-        // Match the calibrated two-stage rounding; shop effects do not use this path.
-        if (value !== 0 && modifier !== undefined) magnitude = Math.max(1, Math.round(magnitude * modifier));
         // Round magnitudes so equal positive/negative halves round consistently.
-        return Math.sign(value) * Math.round(magnitude * (beneficial ? rules.gain : rules.loss * escalation));
+        return Math.sign(value) * Math.round(Math.abs(value) * (beneficial ? rules.gain : rules.loss * escalation));
+    }
+    function protectOpening(s, completedTurns = s.day) {
+        if (!Number.isInteger(completedTurns) || completedTurns < 0 || completedTurns > 3) return;
+        // Decisions use their current day; purchases use the number of completed decisions.
+        s.threat = Math.min(s.threat, 99);
+        s.health = Math.max(s.health, 1);
+        for (const stat of ['wife', 'rating']) {
+            s[stat] = Math.max(1, Math.min(s.difficulty === 'insane' ? 99 : 100, s[stat]));
+        }
+        if (['hard', 'insane'].includes(s.difficulty)) s.money = Math.max(0, s.money);
     }
     function defeat(s) {
         if (s.threat >= 100) return 'arrest';
@@ -41,12 +43,14 @@
             const value = s[stat] + effect(choice[stat] || 0, stat, s.difficulty, escalation);
             s[stat] = stat === 'money' ? value : Math.max(0, Math.min(100, value));
         }
-        // A terminal decision cannot be rescued by passive drift.
+        protectOpening(s);
+        // After the opening, a terminal decision cannot be rescued by passive drift.
         const reason = defeat(s);
         if (reason) return reason;
         for (const [stat, delta] of Object.entries((levels[s.difficulty] || levels.normal).drift)) {
             s[stat] = Math.max(0, Math.min(100, s[stat] + delta));
         }
+        protectOpening(s);
         return defeat(s);
     }
     function price(s, key, base) { return s.difficulty === 'easy' ? base : s.shopPrices?.[key] || base; }
@@ -54,6 +58,6 @@
         s.shopPrices ||= {};
         s.shopPrices[key] = s.difficulty === 'easy' ? cost : Math.min(Number.MAX_SAFE_INTEGER, Math.round(cost * 1.5));
     }
-    root.Difficulty = { levels, forMode, initialHealth, effect, defeat, applyChoice, price, purchased };
+    root.Difficulty = { levels, forMode, initialHealth, effect, protectOpening, defeat, applyChoice, price, purchased };
     if (typeof module !== 'undefined' && module.exports) module.exports = root.Difficulty;
 })(typeof window !== 'undefined' ? window : globalThis);

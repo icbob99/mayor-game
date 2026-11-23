@@ -36,7 +36,7 @@ test('arcade escalates only harmful decisions at days 11 and 21, before rounding
 });
 
 test('difficulty scales gains and losses, reverses threat semantics and rounds symmetrically', () => {
-    for (const [level, gain, loss] of [['easy', 10, 10], ['hard', 8, 13], ['insane', 6, 16]]) {
+    for (const [level, gain, loss] of [['easy', 12, 8], ['normal', 10, 10], ['hard', 8, 13], ['insane', 6, 16]]) {
         for (const stat of ['money', 'wife', 'health', 'rating']) {
             assert.equal(Difficulty.effect(10, stat, level), gain);
             assert.equal(Difficulty.effect(-10, stat, level), -loss);
@@ -48,12 +48,12 @@ test('difficulty scales gains and losses, reverses threat semantics and rounds s
     assert.equal(Difficulty.effect(1, 'money', 'easy'), 1);
 });
 
-test('Normal rounds configured card effects before Arcade escalation', () => {
+test('Normal is the unmodified reference and rounds only after Arcade escalation', () => {
     const cases = [
-        ['health', 10, 9, 9], ['health', -7, -7, -8],
-        ['wife', -20, -19, -23], ['wife', 20, 20, 20],
-        ['threat', 17, 18, 22], ['threat', -17, -17, -17],
-        ['rating', -23, -21, -25], ['rating', 23, 23, 23],
+        ['health', 10, 10, 10], ['health', -7, -7, -8],
+        ['wife', -20, -20, -24], ['wife', 20, 20, 20],
+        ['threat', 17, 17, 20], ['threat', -17, -17, -17],
+        ['rating', -23, -23, -28], ['rating', 23, 23, 23],
         ['money', -10, -10, -12]
     ];
     for (const [stat, value, first, later] of cases) {
@@ -61,12 +61,11 @@ test('Normal rounds configured card effects before Arcade escalation', () => {
         assert.equal(Difficulty.effect(value, stat, 'normal', 1.2), later, stat);
         assert.equal(Difficulty.effect(0, stat, 'normal', 1.2), 0);
     }
-    // Two-stage rounding is intentional: round(19*.97)=18, then round(18*1.1)=20.
-    assert.equal(Difficulty.effect(-19, 'wife', 'normal', 1.1), -20);
+    assert.equal(Difficulty.effect(-19, 'wife', 'normal', 1.1), -21);
 });
 
 test('starting health respects the resolved difficulty, including forced-hard Blitz', () => {
-    assert.equal(Difficulty.initialHealth('arcade', 'normal'), 77);
+    assert.equal(Difficulty.initialHealth('arcade', 'normal'), 90);
     for (const level of ['easy', 'hard', 'insane']) assert.equal(Difficulty.initialHealth('arcade', level), 90);
     assert.equal(Difficulty.initialHealth('blitz', 'normal'), 90);
 });
@@ -75,6 +74,39 @@ test('Normal clinic perk still restores 30 health without modifiers or drift', (
     const c = playing(); c.s.health = 40;
     c.run("buyPerk('assuta_vip')");
     assert.deepEqual([c.s.health, c.s.money, c.s.threat, c.s.rating, c.s.day], [70, 500000, 15, 50, 1]);
+});
+
+test('the first three decisions cannot lose on any stat, including drift and Insane upper bounds', () => {
+    const harmful = [{ threat: 1000 }, { health: -1000 }, { wife: -1000 }, { rating: -1000 },
+        { money: -100000000 }, { wife: 1000 }, { rating: 1000 }];
+    for (const mode of ['arcade', 'blitz', 'daily']) for (const level of Object.keys(Difficulty.levels)) {
+        for (const choice of harmful) {
+            let s = { ...game(Difficulty.forMode(mode, level)), mode, day: 1 };
+            for (let turn = 1; turn <= 3; turn++) {
+                s.day = turn;
+                assert.equal(Difficulty.applyChoice(s, choice), null, `${mode}/${level}/${turn}`);
+                assert.equal(Difficulty.defeat(s), null);
+                s = JSON.parse(JSON.stringify(s));
+            }
+        }
+    }
+    const s = { ...game('normal'), mode: 'arcade', day: 3, threat: 99 };
+    assert.equal(Difficulty.applyChoice(s, {}), null);
+    assert.equal(s.threat, 99);
+    s.day = 4;
+    assert.equal(Difficulty.applyChoice(s, {}), 'arrest');
+});
+
+test('opening shop protection includes the interval after decision three and ends after decision four', () => {
+    for (const [perk, stat] of [['wife_spa', 'wife'], ['pr_agency', 'rating']]) {
+        for (const day of [1, 4, 5]) {
+            const c = playing();
+            Object.assign(c.s, { difficulty: 'insane', money: 10000000, day, [stat]: 90 });
+            c.run(`buyPerk('${perk}')`);
+            assert.equal(c.s[stat], day <= 4 ? 99 : 100);
+            assert.equal(c.b.reason, day <= 4 ? undefined : stat === 'wife' ? 'wife_abroad' : 'too_popular');
+        }
+    }
 });
 
 test('one decision applies one passive drift with percentage bounds', () => {
@@ -169,7 +201,7 @@ test('legacy restore clears the previous mode difficulty and prices', () => {
 
 test('difficulty changes immediately on day one, confirms a running game and restarts a finished game', async () => {
     const c = playing();
-    c.s.health = 77;
+    c.s.health = 90;
     let confirmations = 0, closeCount = 0, restart;
     c.b.confirm = () => { confirmations++; return false; };
     c.b.document = { getElementById: () => ({ close() { closeCount++; } }) };
@@ -216,7 +248,7 @@ test('reset uses mode starting health, while restoring a save preserves its heal
     c.b.document = { getElementById: () => ({ classList: { add() {} } }) };
     c.b.setLang = async () => {};
     vm.runInContext(readFileSync('app/game/game-over.js', 'utf8'), c.b);
-    for (const [level, mode, health] of [['normal', 'arcade', 77], ['easy', 'arcade', 90], ['normal', 'blitz', 90]]) {
+    for (const [level, mode, health] of [['normal', 'arcade', 90], ['easy', 'arcade', 90], ['normal', 'blitz', 90]]) {
         await c.run(`resetGame('${level}', '${mode}')`);
         assert.equal(c.s.health, health);
     }

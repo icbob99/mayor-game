@@ -127,6 +127,7 @@ function buyPerk(key) {
         state.rating = Math.min(100, state.rating + 25);
     }
 
+    Difficulty.protectOpening(state, state.day - 1);
     state.cooldowns[key] = state.day + shopPerkCooldownDays;
 
     if (typeof playClickSound === 'function') playClickSound();

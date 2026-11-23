@@ -262,6 +262,32 @@ class DeploymentTests(unittest.TestCase):
         apply(self.db, self.files[:end + 1] + scripts(ROOT, ('db/rollbacks/030_calibrated_balance.sql',)))
         self.assertEqual(snapshot(), before)
 
+    def test_author_balance_restores_every_effect_preserves_players_and_compensates(self):
+        author_end = SQL_FILES.index('db/seeds/029_scenario_balance.sql') + 1
+        apply(self.db, self.files[:author_end])
+        author = self.db.execute('SELECT event_id,choice_index,money,wife,health,threat,rating FROM game_choices ORDER BY event_id,choice_index')
+        end = SQL_FILES.index('db/seeds/033_restore_author_balance.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('human-player','Human','human','synthetic',1)")
+        self.db.execute("INSERT INTO game_statuses VALUES ('human-player','existing','{\"day\":12,\"health\":63}',1,1)")
+        tables = [r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> 'db_deployments'")]
+        snapshot = lambda: {t: self.db.execute('SELECT * FROM "' + t + '" ORDER BY rowid') for t in tables}
+        before = snapshot()
+        links = self.db.execute('SELECT event_id,choice_index,next_event_id,delay_days FROM game_choices ORDER BY event_id,choice_index')
+        apply(self.db, self.files[:end + 1])
+        after = snapshot()
+        updated = self.db.execute('SELECT event_id,choice_index,money,wife,health,threat,rating FROM game_choices ORDER BY event_id,choice_index')
+        self.assertEqual(len(updated), 123)
+        self.assertEqual(updated, author, 'All 615 effects must match the author reference exactly')
+        self.assertEqual(links, self.db.execute('SELECT event_id,choice_index,next_event_id,delay_days FROM game_choices ORDER BY event_id,choice_index'))
+        for table in tables:
+            if table != 'game_choices':
+                self.assertEqual(after[table], before[table], table)
+        apply(self.db, self.files[:end + 1])
+        self.assertEqual(snapshot(), after)
+        apply(self.db, self.files[:end + 1] + scripts(ROOT, ('db/rollbacks/033_restore_author_balance.sql',)))
+        self.assertEqual(snapshot(), before)
+
     def test_retirement_upgrade_preserves_players_and_blocks_unsafe_compensation(self):
         end = SQL_FILES.index('db/migrations/007_retirement_achievements.sql')
         before_files = self.files[:end]
