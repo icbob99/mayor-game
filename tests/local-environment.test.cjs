@@ -203,6 +203,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal((await authRequest('session', 'GET', null, signedIn.body.authToken)).status, 401);
     await require('./save-api.integration.cjs')(base, firstId);
     await require('./audio-api.integration.cjs')(base, firstId);
+    await require('./retirement-api.integration.cjs')(base, firstId);
 
     // Observe delivery from the test, without adding acknowledgements to the browser game.
     async function waitForCloud(tab) {
@@ -288,7 +289,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate('resetGame();');
     await until(() => page.evaluate('state.day === 1 && !state.gameOverRecorded'));
     assert.notEqual(await page.evaluate('state.gameId'), finishedGame);
-    await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0]);
+    await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0, 0]);
     await waitForCloud(page);
     await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
     await page.evaluate("buyPerk('assuta_vip'); state.eventQueue.push({eventId:'never-restore',triggerDay:99}); saveGuestGame()");
@@ -296,7 +297,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate('becomeGuest()');
     assert.equal(await page.evaluate('AccountSession.isMayor()'), false);
     assert.equal(await page.evaluate('state.money'), 1000000);
-    await checkStatsPopup(page, guestStatsBefore.gamesPlayed, Math.max(1000000, guestStatsBefore.maxMoney), [0, 0, 0, 0]);
+    await checkStatsPopup(page, guestStatsBefore.gamesPlayed, Math.max(1000000, guestStatsBefore.maxMoney), [0, 0, 0, 0, 0]);
     await page.evaluate("openAuth('login')");
     assert.equal(await page.evaluate("AccountSession.isMayor() && !document.getElementById('auth-dialog').open"), true,
         'returning from guest uses the existing authorization even offline');
@@ -336,7 +337,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     }
     const countsBeforeGuest = await storedCounts();
     assert.equal(countsBeforeGuest[2], 3, 'each completed mayor game has one history row');
-    await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0]);
+    await checkStatsPopup(page, 3, 3000000, [0, 0, 2, 0, 0]);
     assert.deepEqual(await storedCounts(), countsBeforeGuest, 'viewing statistics creates no database rows');
     for (const scenario of [{ moves: 0, endings: 0 }, { moves: 5, endings: 0 }, { moves: 0, endings: 3 }]) {
         await page.click('#profile-toggle');
@@ -462,7 +463,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal(await remotePage.evaluate('state.cooldowns.assuta_vip'), 8);
     assert.deepEqual(await remotePage.evaluate('state.earnedAchievementsThisGame'), ['survivor']);
     assert.equal(await remotePage.evaluate('state.eventQueue.length'), 0);
-    await checkStatsPopup(remotePage, 3, 3000000, [0, 0, 2, 0]);
+    await checkStatsPopup(remotePage, 3, 3000000, [0, 0, 2, 0, 0]);
     await otherTab.evaluate('AccountSession.checkSession()');
     assert.equal(await otherTab.evaluate('AccountSession.syncStatus()'), 'session_replaced');
     await remotePage.evaluate("triggerGameOver('arrest'); AccountSession.checkSession()");
@@ -491,7 +492,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     assert.equal(await reopened.evaluate('Boolean(AccountSession.token())'), true);
     assert.equal(await reopened.evaluate('AccountSession.check()'), 'active');
     assert.equal(await reopened.evaluate("document.getElementById('auth-dialog').open || document.getElementById('save-sync-dialog').open"), false);
-    await checkStatsPopup(reopened, 4, 3000000, [0, 0, 2, 1]);
+    await checkStatsPopup(reopened, 4, 3000000, [0, 0, 2, 1, 0]);
     assert.deepEqual(await storedCounts(), countsBeforeReopen, 'reopening restores authorization without creating database rows');
     // Keep several tabs/profiles open for the generation-reset checks below.
     pages.push(await openPage(port));
@@ -722,6 +723,8 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const cardShot = await reopened.call('Page.captureScreenshot', { format:'png' });
     writeFileSync(path.join(tmpdir(),'mayor-modes-daily.png'), Buffer.from(cardShot.data,'base64'));
     await reopened.call('Emulation.clearDeviceMetricsOverride');
+
+    await require('./retirement-ui.integration.cjs')(reopened);
 
     const expired = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
         { type: 'execute', stmt: { sql: 'UPDATE auth_sessions SET last_activity_at = 0' } },

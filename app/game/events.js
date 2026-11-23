@@ -66,14 +66,14 @@ function applyChoice(choiceIndex) {
     if (!choice) return;
     if (!GameModes.useTurn(state)) return;
     stopBlitzTurn();
-    const reason = Difficulty.applyChoice(state, choice);
+    const reason = Difficulty.applyChoice(state, choice) || GameModes.retirement(state);
     if (choice.nextEvent) state.eventQueue.push({ eventId: choice.nextEvent.id, triggerDay: state.day + choice.nextEvent.delay });
-    state.day++;
-    checkAchievements();
+    if (reason !== 'honorable_retirement') state.day++;
     if (reason) {
-        if (reason !== 'arrest' && typeof playLoseSound === 'function') playLoseSound();
+        if (!['arrest', 'honorable_retirement'].includes(reason) && typeof playLoseSound === 'function') playLoseSound();
         return triggerGameOver(reason);
     }
+    checkAchievements();
     loadNextEvent();
     saveGuestGame();
 }

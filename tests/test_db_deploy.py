@@ -262,6 +262,42 @@ class DeploymentTests(unittest.TestCase):
         apply(self.db, self.files[:end + 1] + scripts(ROOT, ('db/rollbacks/030_calibrated_balance.sql',)))
         self.assertEqual(snapshot(), before)
 
+    def test_retirement_upgrade_preserves_players_and_blocks_unsafe_compensation(self):
+        end = SQL_FILES.index('db/migrations/007_retirement_achievements.sql')
+        before_files = self.files[:end]
+        apply(self.db, before_files)
+        self.db.execute("INSERT INTO accounts VALUES ('retirement-player','Mayor','mayor','synthetic',1)")
+        self.db.execute("INSERT INTO game_stats(account_id,mode,games_played,max_money,survivor) VALUES ('retirement-player','arcade',3,8000000,2)")
+        before_stats = self.db.execute('SELECT * FROM game_stats')
+        before_ui = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        after_files = self.files[:end + 2]
+        apply(self.db, after_files)
+        apply(self.db, after_files)
+        self.assertEqual(self.db.execute('SELECT * FROM game_stats'), [before_stats[0] + [0]])
+        for old, new in zip(before_ui, self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')):
+            ui, alerts = json.loads(new[1]), json.loads(new[2])
+            self.assertTrue(ui.pop('end_victory'))
+            self.assertTrue(ui.pop('end_score'))
+            self.assertTrue(ui.pop('end_score_bonus'))
+            self.assertTrue(ui['titles'].pop('honorable_retirement').startswith('👑'))
+            for key in ('unsinkable',):
+                self.assertEqual(set(ui['achievements'].pop(key)), {'name', 'desc'})
+            self.assertTrue(alerts.pop('honorable_retirement'))
+            self.assertEqual(ui, json.loads(old[1]))
+            self.assertEqual(alerts, json.loads(old[2]))
+        rollback = scripts(ROOT, ('db/rollbacks/007_retirement_achievements.sql', 'db/rollbacks/032_retirement_ui.sql'))
+        self.db.execute("INSERT INTO game_statuses VALUES ('retirement-player','new',?,1,1)", ['{"achievements":{"unsinkable":0}}'])
+        with self.assertRaisesRegex(RuntimeError, 'CHECK constraint failed'):
+            apply(self.db, after_files + rollback)
+        self.assertIn('unsinkable', [r[1] for r in self.db.execute('PRAGMA table_info(game_stats)')])
+        self.db.execute("DELETE FROM game_statuses WHERE account_id='retirement-player'")
+        apply(self.db, after_files + rollback)
+        self.assertEqual(self.db.execute('SELECT * FROM game_stats'), before_stats)
+        restored = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        parse = lambda rows: [(lang, json.loads(ui), json.loads(alerts)) for lang, ui, alerts in rows]
+        self.assertEqual(parse(restored), parse(before_ui))
+        self.assertEqual(self.db.execute('SELECT COUNT(*) FROM accounts'), [[1]])
+
     def test_audio_preferences_upgrade_and_compensation_preserve_existing_players(self):
         end = SQL_FILES.index('db/migrations/006_account_preferences.sql')
         apply(self.db, self.files[:end])

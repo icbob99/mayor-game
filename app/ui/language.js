@@ -49,6 +49,7 @@
     if (state.currentEventIndex !== -1) {
         renderCurrentEvent();
     }
+    if (state.gameOverRecorded) renderGameOver();
 }
 
 function toggleLanguageMenu() {

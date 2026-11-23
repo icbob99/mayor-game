@@ -5,12 +5,14 @@ const saveJson = `CASE WHEN version_guid IS NULL THEN NULL ELSE json_object(
     'state', json(state_json), 'stats', json(stats_json)) END`;
 
 const perModeJson = `json_object('gamesPlayed', games_played, 'maxMoney', max_money, 'resignations', resignations,
-    'achievements', json_object('offshore_king', offshore_king, 'untouchable', untouchable, 'happy_wife', happy_wife, 'survivor', survivor))`;
+    'achievements', json_object('offshore_king', offshore_king, 'untouchable', untouchable, 'happy_wife', happy_wife, 'survivor', survivor,
+        'unsinkable', unsinkable))`;
 // The account predicate uses the statistics primary key; no scan of other players.
 const statsJson = `(SELECT json_object('gamesPlayed', COALESCE(SUM(games_played),0), 'maxMoney', COALESCE(MAX(max_money),0),
     'resignations', COALESCE(SUM(resignations),0), 'achievements', json_object(
         'offshore_king', COALESCE(SUM(offshore_king),0), 'untouchable', COALESCE(SUM(untouchable),0),
-        'happy_wife', COALESCE(SUM(happy_wife),0), 'survivor', COALESCE(SUM(survivor),0)),
+        'happy_wife', COALESCE(SUM(happy_wife),0), 'survivor', COALESCE(SUM(survivor),0),
+        'unsinkable', COALESCE(SUM(unsinkable),0)),
     'byMode', json_group_object(mode, ${perModeJson})) FROM game_stats WHERE account_id = a.account_id)`;
 
 function callerStatement(tokenHash, activeSince) {
@@ -63,17 +65,20 @@ export async function saveGame(env, tokenHash, activeSince, body, newId, now) {
         SELECT account_id, ?, ?, ?, ? FROM caller
         WHERE game_session_id = ? AND auth_session_id = auth_id AND (write_timestamp IS NULL OR write_timestamp < ?)
             AND (? OR json_extract(state_json, '$.mode') IS NULL)
+            AND (? OR json_type(state_json, '$.achievements.unsinkable') IS NULL)
         ON CONFLICT (account_id) DO UPDATE SET version_guid = excluded.version_guid, state_json = excluded.state_json,
             write_timestamp = excluded.write_timestamp, updated_at = excluded.updated_at`,
-    [newId, JSON.stringify(body.state), body.writeTimestamp, now, body.gameSessionId, body.writeTimestamp, Number(body.state.mode !== undefined)])];
+    [newId, JSON.stringify(body.state), body.writeTimestamp, now, body.gameSessionId, body.writeTimestamp,
+        Number(body.state.mode !== undefined), Number(body.state.achievements.unsinkable !== undefined)])];
     for (const [mode, stats] of Object.entries(body.stats.byMode)) {
-        statements.push(stmt(`INSERT INTO game_stats (account_id, mode, games_played, max_money, resignations, offshore_king, untouchable, happy_wife, survivor)
-            SELECT account_id, ?, ?, ?, ?, ?, ?, ?, ? FROM caller WHERE version_guid = ?
+        statements.push(stmt(`INSERT INTO game_stats (account_id, mode, games_played, max_money, resignations, offshore_king, untouchable, happy_wife, survivor, unsinkable)
+            SELECT account_id, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM caller WHERE version_guid = ?
             ON CONFLICT (account_id,mode) DO UPDATE SET games_played=excluded.games_played, max_money=excluded.max_money,
                 resignations=excluded.resignations, offshore_king=excluded.offshore_king, untouchable=excluded.untouchable,
-                happy_wife=excluded.happy_wife, survivor=excluded.survivor`,
+                happy_wife=excluded.happy_wife, survivor=excluded.survivor, unsinkable=excluded.unsinkable`,
         [mode, stats.gamesPlayed, stats.maxMoney, stats.resignations, stats.achievements.offshore_king,
-            stats.achievements.untouchable, stats.achievements.happy_wife, stats.achievements.survivor, newId]));
+            stats.achievements.untouchable, stats.achievements.happy_wife, stats.achievements.survivor,
+            stats.achievements.unsinkable, newId]));
     }
     if (body.state.isFinished) {
         const state = body.state;
@@ -83,7 +88,7 @@ export async function saveGame(env, tokenHash, activeSince, body, newId, now) {
             ON CONFLICT (account_id, game_id) DO NOTHING`,
         [state.gameId, state.finishedAt, now, state.day, state.money, state.endReason, JSON.stringify(state.achievements), state.mode || 'arcade', state.difficulty || null, newId]));
     }
-    statements.push(stmt("SELECT game_session_id, auth_session_id, auth_id, json_extract(state_json, '$.mode') AS mode FROM caller"));
+    statements.push(stmt("SELECT game_session_id, auth_session_id, auth_id, json_extract(state_json, '$.mode') AS mode, json_type(state_json, '$.achievements.unsinkable') AS retirement_format FROM caller"));
     const results = await query(env, statements, true);
     return results.at(-1)[0];
 }

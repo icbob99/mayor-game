@@ -43,7 +43,8 @@ test('legacy totals become arcade statistics, with all achievements preserved', 
     assert.equal(stats.byMode.arcade.gamesPlayed, 3);
     assert.equal(stats.byMode.daily.gamesPlayed, 0);
     assert.equal(stats.achievements.survivor, 2);
-    assert.equal(Object.keys(stats.achievements).length, 4);
+    assert.equal(Object.keys(stats.achievements).length, 5);
+    assert.equal(stats.achievements.unsinkable, 0);
 });
 
 test('mode totals include resignation once and preserve achieved maximum during play', () => {

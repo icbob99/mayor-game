@@ -75,7 +75,7 @@ function checkAchievements() {
             state.unlockedAchievements.push(achievement.id);
             state.earnedAchievementsThisGame.push(achievement.id);
             if (typeof playCashSound === 'function') playCashSound();
-            showAchievementToast(achievement);
+            if (!state.gameOverRecorded) showAchievementToast(achievement);
         }
     });
 }

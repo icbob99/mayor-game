@@ -1,4 +1,5 @@
 ﻿function getFinalTitle(reasonType) {
+    if (reasonType === 'honorable_retirement') return currentTexts.ui.titles.honorable_retirement;
     if (reasonType === 'resignation') return currentTexts.ui.titles[state.money >= 5000000 ? 'resignation_peak' : 'resignation'];
     if (reasonType === 'indecision') return currentTexts.ui.titles.indecision;
     if (reasonType === 'arrest') return currentTexts.ui.titles.prisoner;
@@ -24,11 +25,16 @@ function triggerGameOver(reasonType) {
         state.gameOverRecorded = true;
         state.endReason = reasonType;
         state.finishedAt = Date.now();
+        checkAchievements();
         GameModes.checkpoint(state);
         if (AccountSession.isMayor()) saveGuestGame();
         else inviteGuest(GuestSession.recordGameOver(state).gamesPlayed);
     }
 
+    renderGameOver(reasonType);
+}
+
+function renderGameOver(reasonType = state.endReason) {
     const screen = document.getElementById('game-over-screen');
     if (!screen) return;
     updateUI();
@@ -38,12 +44,23 @@ function triggerGameOver(reasonType) {
     document.getElementById('label-stat-offshore').innerText = currentTexts.ui.end_offshore;
     document.getElementById('label-stat-title').innerText = currentTexts.ui.end_title;
     document.getElementById('btn-restart').innerText = currentTexts.ui.btn_restart;
-    document.getElementById('game-over-title').innerText = currentTexts.ui.end_game_over;
+    const victory = reasonType === 'honorable_retirement';
+    document.getElementById('game-over-title').innerText = victory ? currentTexts.ui.end_victory : currentTexts.ui.end_game_over;
+    document.getElementById('game-over-title').classList.toggle('text-amber-300', victory);
+    document.getElementById('game-over-title').classList.toggle('text-white', !victory);
 
     // Fill in the final statistics.
     document.getElementById('end-stat-days').innerText = state.day;
     document.getElementById('end-stat-money').innerText = state.money.toLocaleString() + ' ₪';
     document.getElementById('end-stat-title').innerText = getFinalTitle(reasonType);
+    document.getElementById('label-stat-score').innerText = currentTexts.ui.end_score;
+    document.getElementById('end-stat-score').innerText = GameModes.mayorScore(state).toLocaleString();
+    document.getElementById('end-score-bonus').innerText = victory ? currentTexts.ui.end_score_bonus : '';
+    document.getElementById('end-score-bonus').hidden = !victory;
+    const bonusAchievement = document.getElementById('end-bonus-achievement');
+    const unsinkable = state.earnedAchievementsThisGame.includes('unsinkable');
+    bonusAchievement.hidden = !unsinkable;
+    bonusAchievement.innerText = unsinkable ? '🦾 ' + currentTexts.ui.achievements.unsinkable.name : '';
 
     // Set the reason and icon.
     const reasonText = currentTexts.alerts[reasonType];
@@ -58,7 +75,8 @@ function triggerGameOver(reasonType) {
         too_popular: '🎯',
         wife_abroad: '✈️',
         resignation: '🚪',
-        indecision: '⌛'
+        indecision: '⌛',
+        honorable_retirement: '👑'
     };
     document.getElementById('game-over-icon').innerText = icons[reasonType] || '💀';
 

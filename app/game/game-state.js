@@ -58,6 +58,7 @@ const ACHIEVEMENTS_DEF = [
     { id: 'offshore_king', icon: '💎', req: s => s.money >= 5000000 },
     { id: 'untouchable', icon: '🕵️‍♂️', req: s => s.threat === 0 },
     { id: 'happy_wife', icon: '👠', req: s => s.wife >= 100 },
-    { id: 'survivor', icon: '⏳', req: s => s.day >= 30 }
+    { id: 'survivor', icon: '⏳', req: s => s.day >= 30 },
+    { id: 'unsinkable', icon: '🦾', req: s => s.gameOverRecorded && s.endReason === 'honorable_retirement' && s.health > 0 && s.health <= 20 }
 ];
 

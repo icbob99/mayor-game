@@ -4,6 +4,17 @@
     const names = ['arcade', 'daily', 'blitz'];
     const copy = value => JSON.parse(JSON.stringify(value));
     const available = mode => names.includes(mode) && (mode !== 'daily' || settings.dailyEnabled);
+    function maxTurns(s) {
+        if (s.mode === 'daily') return Infinity;
+        return s.mode === 'blitz' ? 25 : ({ easy: 60, normal: 50, hard: 40, insane: 30 }[s.difficulty] || 50);
+    }
+    // Called after resolving a decision and its drift, before advancing to the next day.
+    function retirement(s) {
+        if (s.day < maxTurns(s) || s.health <= 0 || s.wife <= 0 || s.rating <= 0 || s.threat >= 70) return null;
+        if (s.difficulty === 'insane' && (s.rating >= 70 || s.wife >= 70)) return null;
+        return 'honorable_retirement';
+    }
+    function mayorScore(s) { return Math.round(s.money * (s.endReason === 'honorable_retirement' ? 1.5 : 1)); }
     function blitzDuration(day) {
         return [10000, 7000, 5000, 3000, 2000][Math.min(4, Math.floor((day - 1) / 10))];
     }
@@ -50,6 +61,6 @@
             remaining, tick
         };
     }
-    root.GameModes = { settings, names, available, blitzDuration, dateKey, remaining, canAct, useTurn, checkpoint, resumeDaily, createClock };
+    root.GameModes = { settings, names, available, maxTurns, retirement, mayorScore, blitzDuration, dateKey, remaining, canAct, useTurn, checkpoint, resumeDaily, createClock };
     if (typeof module !== 'undefined' && module.exports) module.exports = root.GameModes;
 })(globalThis);

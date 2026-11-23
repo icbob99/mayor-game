@@ -18,6 +18,23 @@ function client(values = new Map()) {
 }
 const plain = value => JSON.parse(JSON.stringify(value));
 
+test('honorable retirement and its achievements survive reload without inflating money or totals', () => {
+    const c = client();
+    Object.assign(c.state, { day:50, money:2000001, health:10, gameOverRecorded:true,
+        endReason:'honorable_retirement', finishedAt:Date.now(), earnedAchievementsThisGame:['unsinkable'] });
+    c.save.save(c.state); c.save.save(c.state);
+    const loaded = client(c.values);
+    const restored = loaded.save.load();
+    assert.equal(restored.endReason,'honorable_retirement');
+    assert.equal(restored.money,2000001);
+    assert.equal(loaded.b.GameModes.mayorScore(restored),3000002);
+    assert.deepEqual(plain(restored.earnedAchievementsThisGame),['unsinkable']);
+    loaded.save.save(restored);
+    assert.equal(loaded.save.stats().gamesPlayed,1);
+    assert.equal(loaded.save.stats().resignations,0);
+    assert.equal(loaded.save.stats().achievements.unsinkable,1);
+});
+
 test('daily game and queue restore; resuming a finished daily archive cannot count it twice', () => {
     const c = client();
     Object.assign(c.state, { mode: 'daily', day: 4, currentEventId: 'burning_trucks', choiceOrder: [1, 0],

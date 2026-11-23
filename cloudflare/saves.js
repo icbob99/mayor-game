@@ -1,15 +1,18 @@
 import { readGame, readGameSession, activateGame, saveGame } from './game-storage.js';
 import { idleMs, tokenHash } from './auth.js';
 
-const achievements = ['offshore_king', 'untouchable', 'happy_wife', 'survivor'];
+const legacyAchievements = ['offshore_king', 'untouchable', 'happy_wife', 'survivor'];
+const achievements = [...legacyAchievements, 'unsinkable'];
 const perks = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
-const reasons = ['arrest', 'wife_left', 'heart_attack', 'elections_lost', 'bankruptcy', 'too_popular', 'wife_abroad', 'resignation', 'indecision'];
+const reasons = ['arrest', 'wife_left', 'heart_attack', 'elections_lost', 'bankruptcy', 'too_popular', 'wife_abroad', 'resignation', 'indecision', 'honorable_retirement'];
 const modes = ['arcade', 'daily', 'blitz'];
 const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
 const integer = (value, min = 0) => Number.isSafeInteger(value) && value >= min;
 const counts = (value, keys, max = Number.MAX_SAFE_INTEGER) => value &&
     Object.keys(value).length === keys.length && keys.every(key => integer(value[key]) && value[key] <= max);
 const ending = value => reasons.includes(value.endReason) && integer(value.finishedAt, 1);
+const achievementCounts = (value, max) => counts(value, achievements, max) || counts(value, legacyAchievements, max);
+const completeAchievements = value => Object.fromEntries(achievements.map(id => [id, value?.[id] || 0]));
 
 function validDaily(daily) {
     if (daily == null) return true;
@@ -31,7 +34,7 @@ function validCard(s) {
 function validTotals(stats) {
     return stats && integer(stats.gamesPlayed) && integer(stats.maxMoney) &&
         integer(stats.resignations ?? 0) && (stats.resignations || 0) <= stats.gamesPlayed &&
-        counts(stats.achievements, achievements, stats.gamesPlayed);
+        achievementCounts(stats.achievements, stats.gamesPlayed);
 }
 function validStats(stats) {
     if (!validTotals(stats)) return false;
@@ -41,13 +44,13 @@ function validStats(stats) {
     return stats.gamesPlayed === rows.reduce((n, r) => n + r.gamesPlayed, 0) &&
         stats.maxMoney === Math.max(...rows.map(r => r.maxMoney)) &&
         (stats.resignations || 0) === rows.reduce((n, r) => n + (r.resignations || 0), 0) &&
-        achievements.every(id => stats.achievements[id] === rows.reduce((n, r) => n + r.achievements[id], 0));
+        achievements.every(id => (stats.achievements[id] || 0) === rows.reduce((n, r) => n + (r.achievements[id] || 0), 0));
 }
 function normalizeStats(stats) {
-    return { ...stats, byMode: Object.fromEntries(modes.map(mode => {
+    return { ...stats, achievements: completeAchievements(stats.achievements), byMode: Object.fromEntries(modes.map(mode => {
         const row = stats.byMode?.[mode] || (mode === 'arcade' && !stats.byMode ? stats :
             { gamesPlayed: 0, maxMoney: 0, achievements: Object.fromEntries(achievements.map(id => [id, 0])) });
-        return [mode, { ...row, resignations: row.resignations || 0 }];
+        return [mode, { ...row, resignations: row.resignations || 0, achievements: completeAchievements(row.achievements) }];
     })) };
 }
 
@@ -56,7 +59,7 @@ function validSave(body) {
     return uuid(body.gameSessionId) && integer(body.writeTimestamp, 1) && s && uuid(s.gameId) &&
         integer(s.day, 1) && Number.isSafeInteger(s.money) &&
         ['health', 'wife', 'threat', 'rating'].every(key => integer(s[key]) && s[key] <= 100) &&
-        counts(s.cooldowns, perks) && counts(s.achievements, achievements, 1) &&
+        counts(s.cooldowns, perks) && achievementCounts(s.achievements, 1) &&
         (s.difficulty === undefined || ['easy', 'normal', 'hard', 'insane'].includes(s.difficulty)) &&
         (s.mode === undefined || modes.includes(s.mode)) && validDaily(s.daily) && validCard(s) &&
         (s.shopPrices === undefined || (counts(s.shopPrices, perks) && perks.every(key => s.shopPrices[key] > 0))) &&
@@ -114,6 +117,7 @@ export async function handleSave(request, env, headers) {
                 return reply({ error: 'session_replaced' }, 403);
             }
             if (body.state.mode === undefined && row.mode != null) return reply({ error: 'client_outdated' }, 409);
+            if (body.state.achievements.unsinkable === undefined && row.retirement_format != null) return reply({ error: 'client_outdated' }, 409);
             return new Response(null, { status: 204, headers: responseHeaders });
         }
         const hash = await tokenHash(route + JSON.stringify(canonical(body)));

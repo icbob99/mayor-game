@@ -1,6 +1,6 @@
 (function (root) {
     const modes = ['arcade', 'daily', 'blitz'];
-    const achievements = ['offshore_king', 'untouchable', 'happy_wife', 'survivor'];
+    const achievements = ['offshore_king', 'untouchable', 'happy_wife', 'survivor', 'unsinkable'];
     const count = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
     function totals(value = {}) {
         return { gamesPlayed: count(value.gamesPlayed), maxMoney: count(value.maxMoney), resignations: count(value.resignations),
