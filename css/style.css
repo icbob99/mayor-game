@@ -11,6 +11,7 @@ body {
 
 #game-nav { flex-wrap: nowrap; max-width: 648px; }
 #game-nav h1 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#game-title-short { display: none; }
 .system-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .system-actions > button { min-width: 40px; min-height: 40px; }
 #lang-toggle { min-height: 40px; white-space: nowrap; }
@@ -107,7 +108,8 @@ footer { display: flex; align-items: center; justify-content: center; gap: 8px; 
 }
 
 @media (max-width: 479px) {
-    .game-subtitle { display: none; }
+    #game-title { display: none; }
+    #game-title-short { display: inline; }
     .system-actions { gap: 4px; }
     #lang-toggle img { width: 18px; height: 12px; }
 }

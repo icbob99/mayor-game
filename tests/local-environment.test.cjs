@@ -510,6 +510,10 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         assert.equal(await reopened.evaluate("document.querySelectorAll('#difficulty-options button').length"), 4);
         assert.equal(await reopened.evaluate("document.documentElement.dir"), lang === 'he' ? 'rtl' : 'ltr');
         assert.ok(await reopened.evaluate("document.getElementById('btn-difficulty').textContent.includes(currentTexts.ui.difficulty[state.difficulty].name)"));
+        for (const [level, icon] of Object.entries({ easy: '🌱', normal: '⚖️', hard: '🔥', insane: '💀' })) {
+            await reopened.evaluate(`selectDifficulty('${level}')`);
+            assert.equal(await reopened.evaluate(`['btn-difficulty', 'btn-end-difficulty'].every(id => document.getElementById(id).textContent === '${icon} ' + currentTexts.ui.difficulty['${level}'].name)`), true);
+        }
         await reopened.click('#btn-difficulty');
         assert.equal(await reopened.evaluate("document.getElementById('difficulty-modal').open"), true);
         assert.equal(await reopened.evaluate("document.querySelectorAll('#difficulty-options [aria-pressed=true]').length"), 1);

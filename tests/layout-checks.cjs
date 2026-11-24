@@ -3,6 +3,12 @@ const { mkdirSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
 
 module.exports = async function checkLayout(page) {
+    const titles = {
+        en: ['Mayor: Chronicles of Embezzlement', 'Mayor'],
+        he: ['ראש העיר: יומני השחיתות', 'ראש העיר'],
+        ru: ['Мэр: Хроники распила', 'Мэр'],
+        uk: ['Мер: Хроніки розпилу', 'Мер']
+    };
     for (const width of [320, 390, 479, 480, 768, 1280]) {
         await page.call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 480 });
         for (const lang of ['ru', 'en', 'uk', 'he']) {
@@ -19,6 +25,8 @@ module.exports = async function checkLayout(page) {
                     overflow: document.documentElement.scrollWidth > innerWidth, dir: document.documentElement.dir };
             })()`);
             const label = `${width}px ${lang}`;
+            assert.deepEqual(await page.evaluate("['game-title', 'game-title-short'].map(id => document.getElementById(id).textContent)"), titles[lang], `${label}: localized titles`);
+            assert.equal(await page.evaluate("document.querySelector('#game-nav h1').innerText.trim()"), `🏛️ ${titles[lang][width < 480 ? 1 : 0]}`, `${label}: responsive title`);
             assert.equal(layout.overflow, false, `${label}: no horizontal overflow`);
             const system = [layout.title, layout.language, layout.audio, layout.achievements];
             assert.ok(Math.max(...system.map(r => r.y)) < Math.min(...system.map(r => r.bottom)), `${label}: system controls share one row`);

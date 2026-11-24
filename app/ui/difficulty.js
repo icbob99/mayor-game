@@ -1,10 +1,12 @@
+const difficultyIcons = { easy: '🌱', normal: '⚖️', hard: '🔥', insane: '💀' };
+
 function renderDifficulty() {
     const texts = currentTexts?.ui.difficulty;
     if (!texts) return;
     for (const id of ['btn-difficulty', 'btn-end-difficulty']) {
         const button = document.getElementById(id);
         button.hidden = state.mode === 'blitz';
-        button.textContent = `🎚️ ${texts[state.difficulty].name}`;
+        button.textContent = `${difficultyIcons[state.difficulty]} ${texts[state.difficulty].name}`;
         button.title = button.textContent;
         button.disabled = !AccountSession.canPlay();
     }
@@ -15,7 +17,7 @@ function renderDifficulty() {
         const active = state.difficulty === key;
         button.type = 'button';
         button.dataset.difficulty = key;
-        button.textContent = texts[key].name;
+        button.textContent = `${difficultyIcons[key]} ${texts[key].name}`;
         button.setAttribute('aria-pressed', String(active));
         button.disabled = !AccountSession.canPlay();
         button.className = `w-full rounded-xl border p-4 text-start font-bold transition ${active

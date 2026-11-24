@@ -241,6 +241,33 @@ class DeploymentTests(unittest.TestCase):
                          [(lang, json.loads(ui), json.loads(alerts)) for lang, ui, alerts in before])
         self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='header-player'"), [['Header']])
 
+    def test_header_titles_upgrade_repeat_and_compensation(self):
+        end = SQL_FILES.index('db/seeds/034_header_titles.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('title-player','Title','title','synthetic',1)")
+        before = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        files = self.files[:end + 1]
+        apply(self.db, files)
+        after = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        expected = {
+            'en': ('Mayor: Chronicles of Embezzlement', 'Mayor'),
+            'he': ('ראש העיר: יומני השחיתות', 'ראש העיר'),
+            'ru': ('Мэр: Хроники распила', 'Мэр'),
+            'uk': ('Мер: Хроніки розпилу', 'Мер'),
+        }
+        for (lang, ui, alerts), (_, old_ui, old_alerts) in zip(after, before):
+            fields = json.loads(ui)
+            self.assertEqual((fields.pop('game_title'), fields.pop('game_title_short')), expected[lang])
+            self.assertEqual(fields, json.loads(old_ui))
+            self.assertEqual(alerts, old_alerts)
+        apply(self.db, files)
+        self.assertEqual(self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang'), after)
+        apply(self.db, files + scripts(ROOT, ('db/rollbacks/034_header_titles.sql',)))
+        restored = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        self.assertEqual([(lang, json.loads(ui), alerts) for lang, ui, alerts in restored],
+                         [(lang, json.loads(ui), alerts) for lang, ui, alerts in before])
+        self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='title-player'"), [['Title']])
+
     def test_calibrated_balance_upgrade_repeat_and_compensation(self):
         end = SQL_FILES.index('db/seeds/030_calibrated_balance.sql')
         apply(self.db, self.files[:end])

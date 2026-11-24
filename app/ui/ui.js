@@ -3,6 +3,10 @@ function updateUI() {
     updateAuthUI();
     renderDifficulty();
 
+    for (const key of ['game_title', 'game_title_short']) {
+        if (currentTexts.ui[key]) document.getElementById(key.replaceAll('_', '-')).textContent = currentTexts.ui[key];
+    }
+
     document.getElementById('label-money').innerText = currentTexts.ui.money;
     document.getElementById('label-wife').innerText = currentTexts.ui.wife;
     document.getElementById('label-threat').innerText = currentTexts.ui.threat;
