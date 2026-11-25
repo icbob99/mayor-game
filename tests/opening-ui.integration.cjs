@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 module.exports = async function checkOpening(page) {
     assert.equal(await page.evaluate('AccountSession.isMayor()'), false);
     await page.evaluate("document.getElementById('auth-invite').close(); resetGame('normal','arcade')");
-    // Use real cards loaded from the new SQL, in a possible non-repeating sequence.
+    // Use unchanged author cards, in a possible non-repeating sequence.
     for (const [i, id] of ['shelters_budget', 'tama_38', 'bench_tender'].entries()) {
         await page.evaluate(`showEventAtIndex(gameLogicEvents.findIndex(e=>e.id==='${id}'),[0,1,2])`);
         await page.click('#choices-container button');
@@ -11,12 +11,12 @@ module.exports = async function checkOpening(page) {
         assert.equal(await page.evaluate('state.day'), i + 2);
         if (i === 0) {
             assert.equal(await page.evaluate('state.money'), 2400000);
-            assert.equal(await page.evaluate('state.threat'), 41);
-            assert.equal(await page.evaluate('state.rating'), 27);
+            assert.equal(await page.evaluate('state.threat'), 40);
+            assert.equal(await page.evaluate('state.rating'), 28);
         }
     }
-    assert.equal(await page.evaluate('state.rating'), 1);
-    assert.equal(await page.evaluate('state.threat'), 93);
+    assert.equal(await page.evaluate('state.rating'), 5);
+    assert.equal(await page.evaluate('state.threat'), 90);
     await page.evaluate('window.beforeOpeningReload=true');
     await page.call('Page.reload');
     let ready = false;

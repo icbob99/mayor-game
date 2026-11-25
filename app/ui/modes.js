@@ -2,7 +2,7 @@ import { AccountSession } from '../game/account-session.js';
 import { Difficulty } from '../game/difficulty.js';
 import { restoreCurrentEvent } from '../game/events.js';
 import { resetGame, triggerGameOver } from '../game/game-over.js';
-import { currentTexts, state } from '../game/game-state.js';
+import { currentTexts, shopPerkKeys, state } from '../game/game-state.js';
 import { GuestSession } from '../game/guest-session.js';
 import { GameModes } from '../game/modes.js';
 import { startBgMusic } from './audio.js';
@@ -107,6 +107,7 @@ async function selectMode(mode) {
     toggleModes(false);
     const saved = mode === 'daily' ? GameModes.resumeDaily(state) : null;
     if (saved) {
+        saved.purchaseCount = Object.fromEntries(shopPerkKeys.map(key => [key, Difficulty.purchaseCount(saved, key)]));
         Object.assign(state, saved);
         document.getElementById('game-over-screen').classList.add('hidden');
         if (state.gameOverRecorded) triggerGameOver(state.endReason);

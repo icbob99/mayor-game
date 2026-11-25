@@ -54,6 +54,7 @@ SQL_FILES = (
     'db/seeds/034_header_titles.sql',
     'db/migrations/008_game_config.sql',
     'db/seeds/035_game_config.sql',
+    'db/seeds/036_opening_progression.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'

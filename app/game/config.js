@@ -2,14 +2,15 @@
 const fallback = {
     initialStats: { money: 1000000, wife: 50, threat: 15, health: 90, rating: 50 },
     openingProtectedTurns: 3,
+    openingProtection: { statFloor: 5, threatCeiling: 95, upperStatCeiling: 95, penaltyCap: 1 },
     difficulties: {
         easy: { gain: 1.2, loss: 0.8, drift: {}, shopPriceMultiplier: 1, maxTurns: 60, bankruptcy: false, upperBounds: false },
         normal: { gain: 1, loss: 1, drift: { threat: 1, rating: -1 }, shopPriceMultiplier: 1.5, maxTurns: 50, bankruptcy: false, upperBounds: false },
         hard: { gain: 0.8, loss: 1.3, drift: { threat: 2, wife: -1, rating: -1 }, shopPriceMultiplier: 1.5, maxTurns: 40, bankruptcy: true, upperBounds: false },
         insane: { gain: 0.6, loss: 1.6, drift: { threat: 4, wife: -2, rating: -2 }, shopPriceMultiplier: 1.5, maxTurns: 30, bankruptcy: true, upperBounds: true }
     },
-    arcade: { escalationEvery: 10, escalationDivisor: 10 },
-    shop: { cooldownDays: 7, perks: {
+    arcade: { escalationEvery: 10, escalationDivisor: 10, driftIncrement: 1 },
+    shop: { cooldownDays: 7, cooldownIncrementDays: 3, perks: {
         police_bribe: { price: 1500000, effects: { threat: -20 } },
         wife_spa: { price: 800000, effects: { wife: 30 } },
         assuta_vip: { price: 500000, effects: { health: 30 } },
@@ -42,6 +43,11 @@ function validate(value) {
         number(value.initialStats?.[stat], 0, stat === 'money' ? Number.MAX_SAFE_INTEGER : 100, true);
     }
     number(value.openingProtectedTurns, 0, Number.MAX_SAFE_INTEGER, true);
+    const opening = value.openingProtection;
+    number(opening?.statFloor, 1, 99, true);
+    number(opening?.threatCeiling, 0, 99, true);
+    number(opening?.upperStatCeiling, opening.statFloor, 99, true);
+    number(opening?.penaltyCap, 0, 1);
     for (const level of Object.keys(fallback.difficulties)) {
         const rule = value.difficulties?.[level];
         if (!rule) fail();
@@ -50,7 +56,9 @@ function validate(value) {
         if (typeof rule.bankruptcy !== 'boolean' || typeof rule.upperBounds !== 'boolean') fail();
     }
     positiveInt(value.arcade?.escalationEvery); number(value.arcade?.escalationDivisor, Number.MIN_VALUE);
+    number(value.arcade?.driftIncrement, 0, 100, true);
     number(value.shop?.cooldownDays, 0, Number.MAX_SAFE_INTEGER, true);
+    number(value.shop?.cooldownIncrementDays, 0, Number.MAX_SAFE_INTEGER, true);
     for (const key of Object.keys(fallback.shop.perks)) {
         const perk = value.shop?.perks?.[key];
         positiveInt(perk?.price); effects(perk?.effects);

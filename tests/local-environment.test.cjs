@@ -170,7 +170,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await page.evaluate("setLang('en')");
     await page.evaluate("document.querySelector('[data-perk=assuta_vip]').click()");
     assert.equal(await page.evaluate('state.money'), 500000);
-    assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 11);
     await page.evaluate("buyPerk('assuta_vip'); toggleShop(false)");
     assert.equal(await page.evaluate('state.money'), 500000, 'cooldown prevents a second charge');
     await page.evaluate('resetGame()');
@@ -324,7 +324,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => page.evaluate("!window.beforeCloudReload && typeof AccountSession !== 'undefined' && AccountSession.syncStatus() === 'transfer_required' && document.getElementById('save-sync-dialog').open"));
     await page.evaluate("document.getElementById('save-sync-confirm').click()");
     await until(() => page.evaluate("!saveSyncBusy && !AccountSession.syncStatus() && state.money === 500000"));
-    assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.equal(await page.evaluate('state.cooldowns.assuta_vip'), 11);
     assert.equal(await page.evaluate('AccountSession.getStats().gamesPlayed'), 3);
 
     // Actual clicks after no play, several guest moves and completed guest games.
@@ -447,7 +447,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await otherTab.evaluate("document.getElementById('save-sync-cloud').click()");
     await until(() => otherTab.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
     assert.equal(await otherTab.evaluate('state.money'), 999000);
-    assert.equal(await otherTab.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.equal(await otherTab.evaluate('state.cooldowns.assuta_vip'), 11);
     assert.equal(await otherTab.evaluate('AccountSession.getStats().gamesPlayed'), 3, 'choices never add the two statistics together');
     await page.evaluate('AccountSession.checkSession()');
     assert.equal(await page.evaluate('AccountSession.syncStatus()'), 'session_replaced');
@@ -468,7 +468,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await until(() => remotePage.evaluate('!saveSyncBusy && AccountSession.canPlay()'));
     assert.equal(await remotePage.evaluate('state.money'), 999000);
     assert.equal(await remotePage.evaluate('state.day'), 12);
-    assert.equal(await remotePage.evaluate('state.cooldowns.assuta_vip'), 8);
+    assert.equal(await remotePage.evaluate('state.cooldowns.assuta_vip'), 11);
     assert.deepEqual(await remotePage.evaluate('state.earnedAchievementsThisGame'), ['survivor']);
     assert.equal(await remotePage.evaluate('state.eventQueue.length'), 0);
     await checkStatsPopup(remotePage, 3, 3000000, [0, 0, 2, 0, 0]);
@@ -532,6 +532,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await reopened.evaluate("setLang('en'); selectDifficulty('hard'); state.money=4000000; state.wife=50; buyPerk('wife_spa')");
     assert.equal(await reopened.evaluate('state.money'), 3200000);
     assert.equal(await reopened.evaluate('state.shopPrices.wife_spa'), 1200000);
+    assert.equal(await reopened.evaluate('state.purchaseCount.wife_spa'), 1);
     assert.equal(await reopened.evaluate('state.day'), 1, 'shopping does not apply passive drift or advance the day');
     assert.equal(await reopened.evaluate("document.getElementById('btn-difficulty').disabled"), false);
     await reopened.evaluate("window.beforeDifficultyReload=true");

@@ -20,6 +20,7 @@ const state = {
     endReason: null,
     finishedAt: null,
     shopPrices: {},
+    purchaseCount: {},
     audioMuted: false,
     unlockedAchievements: [],
     earnedAchievementsThisGame: []
@@ -40,6 +41,7 @@ function restoreDifficulty(saved) {
     state.difficulty = Difficulty.forMode(saved.mode, saved.difficulty);
     delete state.difficultyLocked;
     state.shopPrices = { ...saved.shopPrices };
+    state.purchaseCount = Object.fromEntries(shopPerkKeys.map(key => [key, Difficulty.purchaseCount(saved, key)]));
     state.mode = GameModes.names.includes(saved.mode) ? saved.mode : 'arcade';
     state.daily = saved.daily ? JSON.parse(JSON.stringify(saved.daily)) : null;
     state.currentEventId = saved.currentEventId || null;

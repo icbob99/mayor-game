@@ -11,6 +11,7 @@ beforeEach(() => { Modes.settings.dailyEnabled = true; });
 function modeUI(state) {
     const element = { close() {}, classList: { add() {}, contains() { return true; } }, style: {} };
     const b = { state, GameModes: Modes, Difficulty: require('../app/game/difficulty.js').Difficulty, crypto: webcrypto, performance,
+        shopPerkKeys: Object.keys(GameConfig.current.shop.perks),
         currentTexts: { ui: { modes: { restart: 'reset?', pauseDaily: 'pause?', confirmResign: 'resign?' } } },
         AccountSession: { canPlay: () => true, isMayor: () => true },
         document: { hidden: false, querySelector: () => null, querySelectorAll: () => [], getElementById: () => element, addEventListener() {} },
@@ -60,6 +61,17 @@ test('mode confirmation cancellation preserves game and daily archive; retiremen
     b.resign(); assert.equal(b.ending, 'resignation');
     b.ending = null; s.daily.used = 5;
     b.resign(); assert.equal(b.ending, null);
+});
+
+test('resuming a legacy Daily archive restores its purchases rather than the current Arcade counters', async () => {
+    const state = { mode: 'arcade', difficulty: 'normal', day: 1, purchaseCount: { wife_spa: 0 },
+        daily: { date: Modes.dateKey(), used: 0, game: { mode: 'daily', difficulty: 'normal', day: 12,
+            shopPrices: { wife_spa: 2700000 }, cooldowns: { wife_spa: 20 } } } };
+    const b = modeUI(state);
+    await b.selectMode('daily');
+    assert.equal(state.purchaseCount.wife_spa, 3);
+    assert.equal(b.Difficulty.price(state, 'wife_spa', 800000), 2000000);
+    assert.equal(state.cooldowns.wife_spa, 20);
 });
 
 test('daily allowance survives a new game and resets only on the next local date', () => {

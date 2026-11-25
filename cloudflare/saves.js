@@ -63,6 +63,7 @@ function validSave(body) {
         (s.difficulty === undefined || ['easy', 'normal', 'hard', 'insane'].includes(s.difficulty)) &&
         (s.mode === undefined || modes.includes(s.mode)) && validDaily(s.daily) && validCard(s) &&
         (s.shopPrices === undefined || (counts(s.shopPrices, perks) && perks.every(key => s.shopPrices[key] > 0))) &&
+        (s.purchaseCount === undefined || counts(s.purchaseCount, perks)) &&
         (s.isFinished === true ? ending(s) : s.isFinished === false && s.endReason === null && s.finishedAt === null) &&
         validStats(stats);
 }

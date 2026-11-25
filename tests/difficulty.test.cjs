@@ -6,7 +6,57 @@ const Difficulty = require('../app/game/difficulty.js').Difficulty;
 const vm = require('node:vm');
 const { readUnit: readFileSync } = require('./unit-source.cjs');
 
-const game = difficulty => ({ difficulty, money: 1000000, wife: 50, health: 90, threat: 15, rating: 50, shopPrices: {} });
+const game = difficulty => ({ difficulty, day: 4, money: 1000000, wife: 50, health: 90, threat: 15, rating: 50, shopPrices: {} });
+
+test('opening decisions cap penalties, retain rewards and disable all drift until day four', () => {
+    for (const level of ['easy', 'normal', 'hard', 'insane']) {
+        for (const day of [1, 2, 3, 4]) {
+            const s = { ...game(level), day, mode: 'arcade' };
+            const rule = GameConfig.current.difficulties[level];
+            const loss = day <= 3 ? Math.min(rule.loss, 1) : rule.loss;
+            assert.equal(Difficulty.applyChoice(s, { money: -100, health: 5, threat: 10, wife: -10 }), null);
+            assert.equal(s.money, 1000000 - Math.round(100 * loss));
+            assert.equal(s.health, 90 + Math.round(5 * rule.gain));
+            assert.equal(s.threat, 15 + Math.round(10 * loss) + (day <= 3 ? 0 : rule.drift.threat || 0));
+            assert.equal(s.wife, 50 - Math.round(10 * loss) + (day <= 3 ? 0 : rule.drift.wife || 0));
+            assert.equal(s.rating, 50 + (day <= 3 ? 0 : rule.drift.rating || 0));
+        }
+    }
+});
+
+test('opening clamps every death boundary to the configured safety margin', () => {
+    const s = { ...game('insane'), day: 3, money: -1, wife: 100, rating: 100, health: 0, threat: 100 };
+    Difficulty.protectOpening(s);
+    assert.deepEqual([s.money, s.wife, s.rating, s.health, s.threat], [0, 95, 95, 5, 95]);
+    assert.equal(Difficulty.defeat(s), null);
+    const custom = GameConfig.fallback;
+    custom.openingProtection = { statFloor: 9, threatCeiling: 91, upperStatCeiling: 89, penaltyCap: 0.5 };
+    GameConfig.use(custom);
+    try {
+        Object.assign(s, { money: -1, wife: 100, rating: 0, health: 0, threat: 100 });
+        Difficulty.protectOpening(s);
+        assert.deepEqual([s.money, s.wife, s.rating, s.health, s.threat], [0, 89, 9, 9, 91]);
+        const t = { ...game('hard'), day: 1 };
+        Difficulty.applyChoice(t, { money: -100 });
+        assert.equal(t.money, 999950);
+    } finally { GameConfig.use(GameConfig.fallback); }
+});
+
+test('progressive drift increases only nonzero configured drifts and preserves their signs', () => {
+    const custom = GameConfig.fallback;
+    custom.difficulties.normal.drift = { threat: 2, rating: -1, health: 0 };
+    GameConfig.use(custom);
+    try {
+        for (const [day, step] of [[9, 0], [10, 1], [19, 1], [20, 2]]) {
+            const s = { ...game('normal'), day, mode: 'arcade' };
+            Difficulty.applyChoice(s, {});
+            assert.deepEqual([s.threat, s.rating, s.health, s.wife], [17 + step, 49 - step, 90, 50]);
+        }
+        const easy = { ...game('easy'), day: 20 };
+        Difficulty.applyChoice(easy, {});
+        assert.deepEqual([easy.threat, easy.rating, easy.health, easy.wife], [15, 50, 90, 50]);
+    } finally { GameConfig.use(GameConfig.fallback); }
+});
 
 test('Blitz always uses hard difficulty, including restored saves', () => {
     const b = { GameConfig, GameModes: require('../app/game/modes.js').GameModes, Difficulty };
@@ -22,19 +72,23 @@ test('Blitz always uses hard difficulty, including restored saves', () => {
     }
 });
 
-test('arcade escalates only harmful decisions at days 11 and 21, before rounding', () => {
-    for (const [day, loss] of [[10, 13], [11, 14], [20, 14], [21, 16]]) {
+test('arcade escalates only harmful decisions at days 10 and 20, before rounding', () => {
+    for (const [day, loss, drift] of [[9, 13, 2], [10, 14, 3], [19, 14, 3], [20, 16, 4]]) {
         const s = { ...game('hard'), mode: 'arcade', day };
         Difficulty.applyChoice(s, { money: -10, health: 10, threat: 10 });
         assert.equal(s.money, 1000000 - loss);
-        assert.equal(s.threat, 15 + loss + 2);
+        assert.equal(s.threat, 15 + loss + drift);
         assert.equal(s.health, 98);
     }
     for (const mode of ['daily', 'blitz']) {
         const s = { ...game('hard'), mode, day: 21 };
-        Difficulty.applyChoice(s, { money: -10 });
+        Difficulty.applyChoice(s, { money: -10, threat: -10 });
         assert.equal(s.money, 999987);
+        assert.equal(s.threat, 9, 'Blitz and Daily retain base drift and beneficial threat scaling');
     }
+    const s = { ...game('normal'), day: 20 };
+    Difficulty.applyChoice(s, { threat: -10, health: -10, rating: 10 });
+    assert.deepEqual([s.threat, s.health, s.rating], [8, 78, 57]);
 });
 
 test('difficulty scales gains and losses, reverses threat semantics and rounds symmetrically', () => {
@@ -94,8 +148,9 @@ test('the first three decisions cannot lose on any stat, including drift and Ins
     }
     const s = { ...game('normal'), mode: 'arcade', day: 3, threat: 99 };
     assert.equal(Difficulty.applyChoice(s, {}), null);
-    assert.equal(s.threat, 99);
+    assert.equal(s.threat, 95);
     s.day = 4;
+    s.threat = 99;
     assert.equal(Difficulty.applyChoice(s, {}), 'arrest');
 });
 
@@ -105,7 +160,7 @@ test('opening shop protection includes the interval after decision three and end
             const c = playing();
             Object.assign(c.s, { difficulty: 'insane', money: 10000000, day, [stat]: 90 });
             c.run(`buyPerk('${perk}')`);
-            assert.equal(c.s[stat], day <= 4 ? 99 : 100);
+            assert.equal(c.s[stat], day <= 4 ? 95 : 100);
             assert.equal(c.b.reason, day <= 4 ? undefined : stat === 'wife' ? 'wife_abroad' : 'too_popular');
         }
     }
@@ -147,8 +202,9 @@ test('inflation affects only the purchased perk and survives serialization', () 
         Difficulty.purchased(s, 'spa', 5);
         s = JSON.parse(JSON.stringify(s));
         assert.equal(Difficulty.price(s, 'spa', 5), level === 'easy' ? 5 : 8);
-        Difficulty.purchased(s, 'spa', Difficulty.price(s, 'spa', 5));
-        assert.equal(Difficulty.price(s, 'spa', 5), level === 'easy' ? 5 : 12);
+        Difficulty.purchased(s, 'spa', 5);
+        assert.equal(Difficulty.price(s, 'spa', 5), level === 'easy' ? 5 : 10);
+        assert.equal(s.purchaseCount.spa, 2);
         assert.equal(Difficulty.price(s, 'clinic', 100), 100);
         assert.equal(Difficulty.price(game(level), 'spa', 5), 5);
     }
@@ -170,7 +226,7 @@ function playing() {
 test('actual answer handler applies modifiers and drift exactly once, then saves', () => {
     const c = playing(); c.s.difficulty = 'hard';
     c.run('handleChoice(0)');
-    assert.deepEqual([c.s.money, c.s.wife, c.s.threat, c.s.health, c.s.rating, c.s.day], [1000080, 42, 24, 91, 53, 2]);
+    assert.deepEqual([c.s.money, c.s.wife, c.s.threat, c.s.health, c.s.rating, c.s.day], [1000080, 45, 20, 91, 54, 2]);
     assert.equal(c.b.saves, 1);
     assert.equal(c.b.reason, undefined);
 });
@@ -183,12 +239,19 @@ test('failed purchases do not inflate prices; successful purchases have no turn 
     c.run("buyPerk('wife_spa'); buyPerk('wife_spa')");
     assert.deepEqual([c.s.money, c.s.wife, c.s.threat, c.s.rating, c.s.day], [3200000, 80, 15, 50, 1]);
     assert.equal(c.s.shopPrices.wife_spa, 1200000);
+    assert.equal(c.s.purchaseCount.wife_spa, 1);
+    assert.equal(c.s.cooldowns.wife_spa, 11);
     assert.equal(c.b.saves, 1);
-    c.s.day = 8;
+    c.s.day = 10;
+    c.run("buyPerk('wife_spa')");
+    assert.equal(c.s.purchaseCount.wife_spa, 1, 'cooldown prevents an early purchase');
+    c.s.day = 11;
     c.run("buyPerk('wife_spa')");
     assert.equal(c.s.money, 2000000);
-    assert.equal(c.s.shopPrices.wife_spa, 1800000);
-    c.s.day = 15;
+    assert.equal(c.s.shopPrices.wife_spa, 1600000);
+    assert.equal(c.s.purchaseCount.wife_spa, 2);
+    assert.equal(c.s.cooldowns.wife_spa, 24);
+    c.s.day = 24;
     c.run("buyPerk('wife_spa')");
     assert.equal(c.s.money, 2000000, 'a maxed perk cannot be purchased');
 });
@@ -199,6 +262,32 @@ test('legacy restore clears the previous mode difficulty and prices', () => {
     c.run('restoreDifficulty({ day: 12 })');
     assert.equal(c.s.difficulty, 'normal');
     assert.equal(Object.keys(c.s.shopPrices).length, 0);
+    assert.ok(Object.values(c.s.purchaseCount).every(count => count === 0));
+});
+
+test('old geometric shop prices migrate to counts and new saves retain exact counts', () => {
+    const c = playing();
+    c.run("restoreDifficulty({day:12,difficulty:'normal',shopPrices:{wife_spa:2700000,assuta_vip:750000},cooldowns:{wife_spa:20}})");
+    assert.equal(c.s.purchaseCount.wife_spa, 3);
+    assert.equal(c.s.purchaseCount.assuta_vip, 1);
+    assert.equal(c.s.purchaseCount.police_bribe, 0);
+    assert.equal(c.run("Difficulty.price(state,'wife_spa',800000)"), 2000000);
+    c.run("restoreDifficulty({day:12,difficulty:'normal',shopPrices:{wife_spa:2000000},purchaseCount:{wife_spa:3}})");
+    assert.equal(c.s.purchaseCount.wife_spa, 3, 'linear prices are never reinterpreted as geometric history');
+});
+
+test('Easy counts purchases but retains base prices and cooldowns', () => {
+    const c = playing();
+    Object.assign(c.s, { difficulty: 'easy', money: 10000000, health: 20 });
+    c.run("buyPerk('assuta_vip')");
+    assert.equal(c.s.cooldowns.assuta_vip, 8);
+    assert.equal(c.s.shopPrices.assuta_vip, 500000);
+    c.s.day = 8;
+    c.run("buyPerk('assuta_vip')");
+    assert.equal(c.s.purchaseCount.assuta_vip, 2);
+    assert.equal(c.s.cooldowns.assuta_vip, 15);
+    assert.equal(c.s.shopPrices.assuta_vip, 500000);
+    assert.equal(c.s.money, 9000000);
 });
 
 test('difficulty changes immediately on day one, confirms a running game and restarts a finished game', async () => {
@@ -251,8 +340,10 @@ test('reset uses mode starting health, while restoring a save preserves its heal
     c.b.setLang = async () => {};
     vm.runInContext(readFileSync('app/game/game-over.js', 'utf8'), c.b);
     for (const [level, mode, health] of [['normal', 'arcade', 90], ['easy', 'arcade', 90], ['normal', 'blitz', 90]]) {
+        c.s.purchaseCount = { wife_spa: 9 };
         await c.run(`resetGame('${level}', '${mode}')`);
         assert.equal(c.s.health, health);
+        assert.equal(Object.keys(c.s.purchaseCount).length, 0);
     }
     c.run("Object.assign(state, {health: 63, difficulty: 'normal', mode: 'arcade'}); restoreDifficulty(state)");
     assert.equal(c.s.health, 63);

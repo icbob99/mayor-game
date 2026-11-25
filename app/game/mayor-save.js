@@ -1,5 +1,6 @@
 import { GuestStorage } from '../data/guest-storage.js';
 import { GameConfig } from './config.js';
+import { Difficulty } from './difficulty.js';
 import { ACHIEVEMENTS_DEF, shopPerkKeys } from './game-state.js';
 import { GameStats } from './statistics.js';
 import { requestGameApi } from '../infrastructure/data-proxy.js';
@@ -35,7 +36,8 @@ const createMayorSave = function (store, token, isCurrent, onAuthExpired) {
             mode: state.mode || 'arcade', daily: state.daily ? JSON.parse(JSON.stringify(state.daily)) : null,
             ...(state.mode === 'daily' ? { eventQueue: state.eventQueue || [],
                 currentEventId: state.currentEventId || null, choiceOrder: state.choiceOrder || [] } : {}),
-            shopPrices: Object.fromEntries(shopPerkKeys.map(id => [id, state.shopPrices?.[id] || GameConfig.current.shop.perks[id].price])),
+            shopPrices: Object.fromEntries(shopPerkKeys.map(id => [id, Difficulty.price(state, id, GameConfig.current.shop.perks[id].price)])),
+            purchaseCount: Object.fromEntries(shopPerkKeys.map(id => [id, Difficulty.purchaseCount(state, id)])),
             cooldowns: Object.fromEntries(shopPerkKeys.map(id => [id, state.cooldowns?.[id] || 0])),
             achievements: counts(Object.fromEntries((state.earnedAchievementsThisGame || []).map(id => [id, 1]))),
             isFinished: Boolean(state.gameOverRecorded), endReason: state.endReason || null, finishedAt: state.finishedAt || null
@@ -194,7 +196,7 @@ const createMayorSave = function (store, token, isCurrent, onAuthExpired) {
             const s = record.state;
             const earned = achievementIds.filter(id => s.achievements[id]);
             return { ...s, ...record.preferences, currentEventIndex: -1, eventQueue: s.mode === 'daily' ? s.eventQueue || [] : [],
-                difficulty: s.difficulty || 'normal', shopPrices: { ...s.shopPrices },
+                difficulty: s.difficulty || 'normal', shopPrices: { ...s.shopPrices }, purchaseCount: s.purchaseCount ? { ...s.purchaseCount } : undefined,
                 cooldowns: { ...s.cooldowns },
                 gameOverRecorded: s.isFinished, earnedAchievementsThisGame: earned, unlockedAchievements: [...earned] };
         },

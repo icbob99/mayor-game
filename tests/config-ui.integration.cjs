@@ -38,7 +38,8 @@ module.exports = async function checkConfig(page, base, instanceId) {
     custom.difficulties.normal.shopPriceMultiplier = 1.25;
     custom.difficulties.normal.maxTurns = 44;
     custom.openingProtectedTurns = 4;
-    custom.arcade = { escalationEvery: 5, escalationDivisor: 5 };
+    custom.arcade = { escalationEvery: 5, escalationDivisor: 5, driftIncrement: 2 };
+    custom.shop.cooldownIncrementDays = 4;
     custom.shop.cooldownDays = 2;
     custom.shop.perks.assuta_vip = { price: 450000, effects: { health: 17 } };
     custom.modes.blitzMaxTurns = 17;
@@ -56,13 +57,20 @@ module.exports = async function checkConfig(page, base, instanceId) {
         assert.equal(await page.evaluate('GameModes.maxTurns(state)'), 44);
         assert.equal(await page.evaluate("GameModes.maxTurns({mode:'blitz'})"), 17);
         assert.equal(await page.evaluate('GameModes.blitzDuration(5)'), 4000);
+        const effects = await page.evaluate(`(() => {
+            const s = {...GameConfig.current.initialStats, difficulty:'normal', mode:'arcade', day:10};
+            Difficulty.applyChoice(s, {health:-10, threat:10});
+            return [s.health,s.threat,s.rating,s.wife];
+        })()`);
+        assert.deepEqual(effects, [75,20,43,62]);
         await page.evaluate("state.health=40; buyPerk('assuta_vip')");
-        assert.deepEqual(await page.evaluate('[state.health,state.money,state.cooldowns.assuta_vip,state.shopPrices.assuta_vip]'), [57,2050000,3,562500]);
+        assert.deepEqual(await page.evaluate('[state.health,state.money,state.cooldowns.assuta_vip,state.shopPrices.assuta_vip,state.purchaseCount.assuta_vip]'), [57,2050000,7,562500,1]);
         await until(() => page.evaluate('Boolean(navigator.serviceWorker.controller)'));
         await page.call('Network.enable');
         await page.call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
         await reload(83);
         assert.equal(await page.evaluate('state.health'), 57);
+        assert.equal(await page.evaluate('state.purchaseCount.assuta_vip'), 1);
         await page.evaluate("LocalEnvironment.storage.setItem('mayorGameConfig', '{broken')");
         await reload(90);
         assert.equal(await page.evaluate('state.health'), 57, 'offline fallback preserves the saved game');

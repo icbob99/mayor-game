@@ -28,8 +28,8 @@ test('server config replaces cache and controls starting stats, scaling, drift a
     assert.equal(c.b.Difficulty.effect(-10, 'threat', 'normal'), -14);
     const state = { ...custom.initialStats, difficulty: 'normal', mode: 'arcade', day: 4 };
     assert.equal(c.b.Difficulty.applyChoice(state, {}), null);
-    assert.equal(state.threat, 10);
-    assert.equal(state.rating, 46);
+    assert.equal(state.threat, 7);
+    assert.equal(state.rating, 48);
     assert.equal(c.b.GameModes.maxTurns(state), 44);
     state.threat = 99;
     assert.equal(c.b.Difficulty.applyChoice(state, { threat: 100 }), null);
@@ -52,6 +52,23 @@ test('network failure uses valid cache, then fallback; invalid server config is 
     assert.equal(c.values.get('mayorGameConfig'), '{broken');
 });
 
+test('progression and shop increments come from the loaded config', async () => {
+    const c = browser(async () => custom);
+    const custom = c.b.GameConfig.fallback;
+    custom.arcade = { escalationEvery: 5, driftIncrement: 2, escalationDivisor: 4 };
+    custom.difficulties.normal.shopPriceMultiplier = 1.25;
+    custom.shop.cooldownDays = 2;
+    custom.shop.cooldownIncrementDays = 4;
+    c.b.GameConfig.use(await c.load());
+    const state = { ...custom.initialStats, day: 10, difficulty: 'normal', mode: 'arcade' };
+    c.b.Difficulty.applyChoice(state, { health: -10, threat: 10 });
+    assert.deepEqual([state.health, state.threat, state.rating, state.wife], [75, 35, 45, 50]);
+    c.b.Difficulty.purchased(state, 'assuta_vip', 500000);
+    c.b.Difficulty.purchased(state, 'assuta_vip', 500000);
+    assert.equal(c.b.Difficulty.price(state, 'assuta_vip', 500000), 750000);
+    assert.equal(c.b.Difficulty.cooldown(state, 'assuta_vip'), 10);
+});
+
 test('storage failure does not replace a valid network configuration with defaults', async () => {
     const c = browser(async () => custom);
     const custom = c.b.GameConfig.fallback;
@@ -68,6 +85,12 @@ test('configuration rejects invalid multipliers, drift and timers before replaci
         config => { config.difficulties.hard.drift = { money: 5 }; },
         config => { config.shop.perks.assuta_vip.effects.health = 1.5; },
         config => { config.arcade.escalationDivisor = 0; },
+        config => { config.arcade.escalationEvery = 0; },
+        config => { config.arcade.driftIncrement = -1; },
+        config => { config.openingProtection.upperStatCeiling = 100; },
+        config => { config.openingProtection.statFloor = 0; },
+        config => { config.openingProtection.penaltyCap = 1.1; },
+        config => { config.shop.cooldownIncrementDays = -1; },
         config => { config.modes.blitzDurations = []; }
     ]) {
         const bad = c.b.GameConfig.fallback;

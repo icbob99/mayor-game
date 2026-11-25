@@ -35,7 +35,8 @@ test('loads an old save without pending events and preserves shop cooldowns and 
 
 test('saves progress without persisting or clearing the live event queue', () => {
     const browserStorage = createMemoryStorage();
-    const progress = { day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50, cooldowns: { wife_spa: 10 } };
+    const progress = { day: 4, money: 1200000, wife: 50, threat: 15, health: 90, rating: 50,
+        cooldowns: { wife_spa: 14 }, purchaseCount: { wife_spa: 2 } };
     const state = { ...progress, eventQueue: [{ eventId: 'burning_trucks', triggerDay: 6 }] };
 
     storage.saveGameState(browserStorage, state);

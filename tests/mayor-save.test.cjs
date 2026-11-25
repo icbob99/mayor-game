@@ -10,7 +10,7 @@ function client(values = new Map()) {
     const b = { GameConfig, crypto: webcrypto, requestGameApi: async () => { throw new TypeError('offline'); } };
     b.window = b;
     vm.createContext(b);
-    for (const file of ['game/statistics', 'game/modes', 'data/guest-storage', 'game/game-state', 'game/mayor-save']) {
+    for (const file of ['game/statistics', 'game/difficulty', 'game/modes', 'data/guest-storage', 'game/game-state', 'game/mayor-save']) {
         vm.runInContext(readFileSync(`app/${file}.js`, 'utf8'), b);
     }
     vm.runInContext('resetStartingStats()', b);
@@ -71,17 +71,21 @@ test('difficulty and inflated prices survive local and cloud restore, while old 
     assert.equal(reloaded.difficulty, 'insane');
     assert.equal(reloaded.shopPrices.wife_spa, 1200000);
     assert.equal(reloaded.shopPrices.assuta_vip, 500000);
+    assert.equal(reloaded.purchaseCount.wife_spa, 1);
+    assert.equal(reloaded.purchaseCount.assuta_vip, 0);
     const remote = client();
     const cloud = { versionGuid: 'cloud', writeTimestamp: stored.writeTimestamp, state: stored.state, stats: stored.stats };
     remote.b.requestGameApi = async path => path.endsWith('/session') ? { gameSessionId: 'writer', save: cloud } : cloud;
     await remote.save.resume();
     assert.equal(remote.save.load().difficulty, 'insane');
     assert.equal(remote.save.load().shopPrices.wife_spa, 1200000);
-    for (const key of ['difficulty', 'shopPrices']) delete stored.state[key];
+    assert.equal(remote.save.load().purchaseCount.wife_spa, 1);
+    for (const key of ['difficulty', 'shopPrices', 'purchaseCount']) delete stored.state[key];
     c.values.set('cloudSave', JSON.stringify(stored));
     const old = client(c.values).save.load();
     assert.equal(old.difficulty, 'normal');
     assert.deepEqual(plain(old.shopPrices), {});
+    assert.equal(old.purchaseCount, undefined, 'legacy saves remain readable for migration by restoreDifficulty');
 });
 
 test('legacy delivery fields are discarded without losing state, statistics or preferences', async () => {

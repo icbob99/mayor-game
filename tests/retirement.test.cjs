@@ -67,8 +67,8 @@ test('final card defeat and final passive drift take priority over retirement', 
 test('a surviving game continues past the threshold until retirement conditions are met', () => {
     const b = eventHarness({...healthy(),day:50,threat:69});
     b.applyChoice(0);
-    assert.equal(b.state.threat,70); assert.equal(b.ending,undefined); assert.equal(b.state.day,51);
-    b.gameLogicEvents[0].choices[0]={threat:-5};
+    assert.equal(b.state.threat,75); assert.equal(b.ending,undefined); assert.equal(b.state.day,51);
+    b.gameLogicEvents[0].choices[0]={threat:-12};
     b.applyChoice(0);
     assert.equal(b.ending,'honorable_retirement'); assert.equal(b.state.day,51);
 });

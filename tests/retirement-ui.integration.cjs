@@ -47,7 +47,7 @@ module.exports = async function checkRetirementUI(page) {
         await page.evaluate("Object.assign(state,{day:50,threat:69});gameLogicEvents[state.currentEventIndex].choices=[{}];applyChoice(0)");
         assert.equal(await page.evaluate('state.gameOverRecorded'),false);
         assert.equal(await page.evaluate('state.day'),51);
-        await page.evaluate("gameLogicEvents[state.currentEventIndex].choices=[{threat:-5}];applyChoice(0)");
+        await page.evaluate("gameLogicEvents[state.currentEventIndex].choices=[{threat:-12}];applyChoice(0)");
         assert.equal(await page.evaluate('state.endReason'),'honorable_retirement');
         await page.evaluate("resetGame('normal','arcade')");
         await page.evaluate("Object.assign(state,{day:50,health:1});gameLogicEvents[state.currentEventIndex].choices=[{health:-100}];applyChoice(0)");

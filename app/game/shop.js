@@ -121,13 +121,13 @@ function buyPerk(key) {
     }
 
     state.money -= cost;
-    Difficulty.purchased(state, key, cost);
+    Difficulty.purchased(state, key, GameConfig.current.shop.perks[key].price);
     for (const [stat, delta] of Object.entries(GameConfig.current.shop.perks[key].effects)) {
         state[stat] = Math.max(0, Math.min(100, state[stat] + delta));
     }
 
     Difficulty.protectOpening(state, state.day - 1);
-    state.cooldowns[key] = state.day + GameConfig.current.shop.cooldownDays;
+    state.cooldowns[key] = state.day + Difficulty.cooldown(state, key);
 
     if (typeof playClickSound === 'function') playClickSound();
     if (typeof playCashSound === 'function') playCashSound();

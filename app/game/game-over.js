@@ -114,6 +114,7 @@ async function resetGame(difficulty = 'normal', mode = state.mode || 'arcade') {
     state.cooldowns = {};
     state.difficulty = Difficulty.forMode(mode, difficulty);
     state.shopPrices = {};
+    state.purchaseCount = {};
     state.unlockedAchievements = [];
     state.earnedAchievementsThisGame = [];
     state.gameOverRecorded = false;

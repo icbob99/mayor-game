@@ -259,6 +259,46 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang'), before)
         self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='config-player'"), [['Config']])
 
+    def test_opening_progression_upgrade_repeat_and_recovery_preserve_existing_data(self):
+        end = SQL_FILES.index('db/seeds/036_opening_progression.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('opening-player','Opening','opening','synthetic',1)")
+        self.db.execute("INSERT INTO game_statuses VALUES ('opening-player','old-save',?,1,1)",
+                        [json.dumps({'day': 12, 'shopPrices': {'wife_spa': 1800000}})])
+        self.db.execute("UPDATE game_config SET value=json_set(value,'$.health',83) WHERE key='initialStats'")
+        self.db.execute("UPDATE game_config SET value=json_set(value,'$.cooldownDays',9) WHERE key='shop'")
+        self.db.execute("UPDATE game_config SET value=json_set(value,'$.escalationEvery',5,'$.escalationDivisor',4) WHERE key='arcade'")
+        def snapshot():
+            tables = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('game_config','db_deployments')")
+            return {name: sorted(self.db.execute('SELECT * FROM "' + name + '"'), key=repr) for (name,) in tables}
+        before_data = snapshot()
+        read_config = lambda: {key: json.loads(value) for key, value in self.db.execute('SELECT key,value FROM game_config')}
+        before_config = read_config()
+        apply(self.db, self.files)
+        after = read_config()
+        self.assertEqual(after['openingProtection'], {'statFloor':5,'threatCeiling':95,'upperStatCeiling':95,'penaltyCap':1})
+        self.assertEqual(after['arcade'], {'escalationEvery':5,'escalationDivisor':4,'driftIncrement':1})
+        self.assertEqual(after['shop']['cooldownIncrementDays'], 3)
+        original_keys = {key: value for key, value in after.items() if key != 'openingProtection'}
+        original_keys['arcade'] = {key: value for key, value in original_keys['arcade'].items() if key != 'driftIncrement'}
+        original_keys['shop'] = {key: value for key, value in original_keys['shop'].items() if key != 'cooldownIncrementDays'}
+        self.assertEqual(original_keys, before_config)
+        self.assertEqual(snapshot(), before_data)
+        self.db.execute("UPDATE game_config SET value=json_set(value,'$.statFloor',7) WHERE key='openingProtection'")
+        self.db.execute("UPDATE game_config SET value=json_set(value,'$.cooldownIncrementDays',4) WHERE key='shop'")
+        tuned = read_config()
+        apply(self.db, self.files)
+        self.db.batch(statements((ROOT / 'db/seeds/036_opening_progression.sql').read_text(encoding='utf-8')))
+        self.assertEqual(read_config(), tuned)
+        self.assertEqual(snapshot(), before_data)
+        # The old Worker tolerates optional fields in saves written by the new client.
+        new_save = json.dumps({'day': 14, 'purchaseCount': {'wife_spa': 2}, 'shopPrices': {'wife_spa': 1600000}})
+        self.db.execute("UPDATE game_statuses SET state_json=?,write_timestamp=2 WHERE account_id='opening-player'", [new_save])
+        after_data = snapshot()
+        apply(self.db, self.files + scripts(ROOT, ('db/rollbacks/036_opening_progression.sql',)))
+        self.assertEqual(read_config(), before_config)
+        self.assertEqual(snapshot(), after_data)
+
     def test_header_titles_upgrade_repeat_and_compensation(self):
         end = SQL_FILES.index('db/seeds/034_header_titles.sql')
         apply(self.db, self.files[:end])

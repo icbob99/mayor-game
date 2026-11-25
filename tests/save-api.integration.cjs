@@ -63,12 +63,16 @@ module.exports = async function checkSaves(base, instanceId) {
     for (const bad of [{ difficulty: 'impossible' }, { mode: 'impossible' },
         { daily: { date: 'bad', used: 0 } }, { daily: { date: '2026-11-21', used: 6 } },
         { eventQueue: [{ eventId: 'followup', triggerDay: -1 }] }, { shopPrices: {} },
-        { shopPrices: { police_bribe: 1, wife_spa: 1, assuta_vip: -1, pr_agency: 1 } }]) {
+        { shopPrices: { police_bribe: 1, wife_spa: 1, assuta_vip: -1, pr_agency: 1 } },
+        { purchaseCount: {} },
+        { purchaseCount: { police_bribe: 0, wife_spa: -1, assuta_vip: 0, pr_agency: 0 } },
+        { purchaseCount: { police_bribe: 0, wife_spa: 1.5, assuta_vip: 0, pr_agency: 0 } }]) {
         assert.equal((await api('/api/game/save', token, { ...body, state: { ...body.state, ...bad } })).status, 400);
     }
     // New state fields round-trip through the real Worker/DB; old snapshots above remain valid.
     const difficultySave = { ...body, writeTimestamp: 105, state: { ...body.state,
         difficulty: 'insane',
+        purchaseCount: { police_bribe: 0, wife_spa: 1, assuta_vip: 0, pr_agency: 0 },
         shopPrices: { police_bribe: 1500000, wife_spa: 1200000, assuta_vip: 500000, pr_agency: 1000000 } } };
     assert.equal((await api('/api/game/save', token, difficultySave)).status, 204);
     assert.deepEqual((await api('/api/game/save', token)).data.state, difficultySave.state);
