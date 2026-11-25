@@ -113,3 +113,16 @@ footer { display: flex; align-items: center; justify-content: center; gap: 8px; 
     .system-actions { gap: 4px; }
     #lang-toggle img { width: 18px; height: 12px; }
 }
+
+#game-over-dialog { max-width: 880px; max-height: calc(100dvh - 2rem); }
+#game-over-icon { font-size: 2rem; margin-bottom: .5rem; }
+#game-over-reason { margin-bottom: 1rem; }
+#newspaper-preview { width: 100%; height: auto; border-radius: 4px; }
+#newspaper-status { margin: 12px 0; color: #cbd5e1; }
+.newspaper-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.newspaper-actions button { flex: 1 1 220px; min-width: 0; padding: 12px; border-radius: 12px; font-weight: 700; }
+.newspaper-actions button:disabled { opacity: .5; cursor: wait; }
+#newspaper-toast { position: sticky; bottom: 0; padding: 12px; border: 1px solid #64748b; border-radius: 12px; background: #0f172a; font-size: .875rem; }
+@media (max-width: 479px) {
+    #game-over-dialog { padding: 16px; }
+}

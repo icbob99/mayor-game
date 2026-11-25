@@ -212,7 +212,7 @@ test('inflation affects only the purchased perk and survives serialization', () 
 });
 
 function playing() {
-    const b = { GameConfig, AccountSession: { canPlay: () => true }, updateUI() {}, updateAuthUI() {}, checkAchievements() {}, stopBlitzTurn() {},
+    const b = { GameConfig, AccountSession: { canPlay: () => true }, updateUI() {}, updateAuthUI() {}, checkAchievements() {}, stopBlitzTurn() {}, clearNewspaper() {},
         saveGuestGame() { b.saves++; }, saves: 0, triggerGameOver(reason) { b.reason = reason; }, alert() {} };
     b.window = b;
     vm.createContext(b);

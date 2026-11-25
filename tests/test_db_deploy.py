@@ -6,6 +6,7 @@ Requires MAYOR_DB_TEST=1 and the mayor-game-test database container.
 import os
 import io
 import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import tempfile
@@ -16,6 +17,39 @@ from db_deploy import BASELINE_LAST, Database, ROOT, SQL_FILES, apply, baseline,
 
 
 class ScriptTests(unittest.TestCase):
+    def test_newspaper_locale_upgrade_preserves_data_and_is_repeatable(self):
+        with sqlite3.connect(':memory:') as db:
+            files = scripts()
+            target = 'db/seeds/040_result_newspaper.sql'
+            for item in files:
+                if item['name'] == target:
+                    break
+                for statement in item['statements']:
+                    db.execute(statement)
+            tables = [row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+            other_tables = {name: db.execute(f'SELECT * FROM "{name}"').fetchall() for name in tables if name != 'game_locale_ui'}
+            before = {lang: json.loads(ui) for lang, ui in db.execute('SELECT lang, ui FROM game_locale_ui')}
+            for statement in item['statements']:
+                db.execute(statement)
+            after = {lang: json.loads(ui) for lang, ui in db.execute('SELECT lang, ui FROM game_locale_ui')}
+            for lang, ui in after.items():
+                self.assertEqual(len(ui['newspaper_headlines']), 10)
+                self.assertEqual(set(ui['newspaper_stamps']), {'victory', 'fled', 'defeat'})
+                self.assertTrue(all(ui['newspaper_headlines'].values()))
+                old = {key: value for key, value in ui.items() if not key.startswith('newspaper_')}
+                expected = before[lang].copy()
+                if lang == 'uk':
+                    for key in ('legend', 'master', 'rookie', 'prisoner', 'henpecked'):
+                        old['titles'].pop(key)
+                        expected['titles'].pop(key)
+                self.assertEqual(old, expected)
+            snapshot = db.execute('SELECT * FROM game_locale_ui').fetchall()
+            for statement in item['statements']:
+                db.execute(statement)
+            self.assertEqual(snapshot, db.execute('SELECT * FROM game_locale_ui').fetchall())
+            for name, rows in other_tables.items():
+                self.assertEqual(rows, db.execute(f'SELECT * FROM "{name}"').fetchall(), name)
+
     def test_stream_uses_returned_base_url_and_baton(self):
         payload = {'baton': 'next-baton', 'base_url': 'https://node.turso.io/',
                    'results': [{'type': 'ok', 'response': {'type': 'close'}}]}

@@ -8,11 +8,16 @@ import { setAudioSetting, toggleAudio } from './audio.js';
 import { authFormBusy, becomeGuest, closeProfileMenu, openAuth, submitAuth } from './auth.js';
 import { toggleDifficulty } from './difficulty.js';
 import { toggleLanguageMenu } from './language.js';
+import { downloadNewspaper, shareNewspaper } from './newspaper.js';
 import { resign, selectMode, toggleModes } from './modes.js';
 import { resolveSaveSync, saveSyncBusy, showSaveSync, updateSaveSyncUI } from './save-sync.js';
 import { renderGuestStats, toggleGuestStats } from './ui.js';
 
 function initializeControls() {
+    if (document.getElementById('newspaper-section')) {
+        document.getElementById('btn-share-result').addEventListener('click', shareNewspaper);
+        document.getElementById('btn-download-newspaper').addEventListener('click', downloadNewspaper);
+    }
     document.getElementById('btn-achievements').addEventListener('click', event => { toggleAchievements(true); });
     document.getElementById('btn-audio').addEventListener('click', event => { toggleAudio(); });
     document.getElementById('lang-toggle').addEventListener('click', event => { toggleLanguageMenu(); });

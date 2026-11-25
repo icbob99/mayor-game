@@ -11,6 +11,7 @@ import { inviteGuest, updateAuthUI } from '../ui/auth.js';
 import { setLang } from '../ui/language.js';
 import { stopBlitzTurn } from '../ui/modes.js';
 import { saveGuestGame, updateUI } from '../ui/ui.js';
+import { clearNewspaper, renderNewspaper } from '../ui/newspaper.js';
 
 function getFinalTitle(reasonType) {
     if (reasonType === 'honorable_retirement') return currentTexts.ui.titles.honorable_retirement;
@@ -95,6 +96,7 @@ function renderGameOver(reasonType = state.endReason) {
     document.getElementById('game-over-icon').innerText = icons[reasonType] || '💀';
 
     screen.classList.remove('hidden');
+    renderNewspaper(state, currentTexts.ui, getFinalTitle(reasonType));
 }
 
 
@@ -103,6 +105,7 @@ async function resetGame(difficulty = 'normal', mode = state.mode || 'arcade') {
     if (!GameModes.available(mode) || (mode === 'daily' && GameModes.remaining(state) === 0)) { updateUI(); return; }
     stopBlitzTurn();
     document.getElementById('game-over-screen').classList.add('hidden');
+    clearNewspaper();
 
     resetStartingStats();
     state.day = 1;
