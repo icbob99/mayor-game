@@ -5,7 +5,7 @@ const fallback = {
     openingProtection: { statFloor: 5, threatCeiling: 95, upperStatCeiling: 95, penaltyCap: 1 },
     difficulties: {
         easy: { gain: 1.2, loss: 0.8, drift: {}, shopPriceMultiplier: 1, maxTurns: 60, bankruptcy: false, upperBounds: false },
-        normal: { gain: 1, loss: 1, drift: { threat: 1, rating: -1 }, shopPriceMultiplier: 1.5, maxTurns: 50, bankruptcy: false, upperBounds: false },
+        normal: { gain: 1, loss: 1, drift: { threat: 1, rating: -1, wife: 0, health: 0 }, shopPriceMultiplier: 1.5, maxTurns: 50, bankruptcy: false, upperBounds: false },
         hard: { gain: 0.8, loss: 1.3, drift: { threat: 2, wife: -1, rating: -1 }, shopPriceMultiplier: 1.5, maxTurns: 40, bankruptcy: true, upperBounds: false },
         insane: { gain: 0.6, loss: 1.6, drift: { threat: 4, wife: -2, rating: -2 }, shopPriceMultiplier: 1.5, maxTurns: 30, bankruptcy: true, upperBounds: true }
     },
