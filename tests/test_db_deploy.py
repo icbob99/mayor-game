@@ -261,6 +261,7 @@ class DeploymentTests(unittest.TestCase):
 
     def test_opening_progression_upgrade_repeat_and_recovery_preserve_existing_data(self):
         end = SQL_FILES.index('db/seeds/036_opening_progression.sql')
+        files = self.files[:end + 1]
         apply(self.db, self.files[:end])
         self.db.execute("INSERT INTO accounts VALUES ('opening-player','Opening','opening','synthetic',1)")
         self.db.execute("INSERT INTO game_statuses VALUES ('opening-player','old-save',?,1,1)",
@@ -274,7 +275,7 @@ class DeploymentTests(unittest.TestCase):
         before_data = snapshot()
         read_config = lambda: {key: json.loads(value) for key, value in self.db.execute('SELECT key,value FROM game_config')}
         before_config = read_config()
-        apply(self.db, self.files)
+        apply(self.db, files)
         after = read_config()
         self.assertEqual(after['openingProtection'], {'statFloor':5,'threatCeiling':95,'upperStatCeiling':95,'penaltyCap':1})
         self.assertEqual(after['arcade'], {'escalationEvery':5,'escalationDivisor':4,'driftIncrement':1})
@@ -287,7 +288,7 @@ class DeploymentTests(unittest.TestCase):
         self.db.execute("UPDATE game_config SET value=json_set(value,'$.statFloor',7) WHERE key='openingProtection'")
         self.db.execute("UPDATE game_config SET value=json_set(value,'$.cooldownIncrementDays',4) WHERE key='shop'")
         tuned = read_config()
-        apply(self.db, self.files)
+        apply(self.db, files)
         self.db.batch(statements((ROOT / 'db/seeds/036_opening_progression.sql').read_text(encoding='utf-8')))
         self.assertEqual(read_config(), tuned)
         self.assertEqual(snapshot(), before_data)
@@ -295,9 +296,42 @@ class DeploymentTests(unittest.TestCase):
         new_save = json.dumps({'day': 14, 'purchaseCount': {'wife_spa': 2}, 'shopPrices': {'wife_spa': 1600000}})
         self.db.execute("UPDATE game_statuses SET state_json=?,write_timestamp=2 WHERE account_id='opening-player'", [new_save])
         after_data = snapshot()
-        apply(self.db, self.files + scripts(ROOT, ('db/rollbacks/036_opening_progression.sql',)))
+        apply(self.db, files + scripts(ROOT, ('db/rollbacks/036_opening_progression.sql',)))
         self.assertEqual(read_config(), before_config)
         self.assertEqual(snapshot(), after_data)
+
+    def test_manual_balance_upgrade_repeat_and_compensation(self):
+        end = SQL_FILES.index('db/seeds/037_manual_lock_balance.sql')
+        files = self.files[:end + 1]
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('manual-player','Manual','manual','synthetic',1)")
+        self.db.execute("INSERT INTO game_statuses VALUES ('manual-player','saved','{\"day\":12,\"health\":63}',1,1)")
+        tables = [r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name <> 'db_deployments'")]
+        snapshot = lambda: {t: self.db.execute('SELECT * FROM "' + t + '" ORDER BY rowid') for t in tables}
+        before = snapshot()
+        apply(self.db, files)
+        after = snapshot()
+        changed_rows = changed_values = 0
+        for old, new in zip(before['game_choices'], after['game_choices']):
+            self.assertEqual(old[:2], new[:2], 'choice identity is unchanged')
+            self.assertEqual(old[7:], new[7:], 'follow-up links and delays are unchanged')
+            changed_rows += old != new
+            changed_values += sum(a != b for a, b in zip(old[2:7], new[2:7]))
+        self.assertEqual(len(after['game_choices']), 123)
+        self.assertEqual((changed_rows, changed_values), (119, 331))
+        effects = lambda event, choice: self.db.execute('SELECT money,wife,health,threat,rating FROM game_choices WHERE event_id=? AND choice_index=?', [event, choice])[0]
+        self.assertEqual(effects('bench_tender', 2), [0, -15, 0, -5, 15])
+        self.assertEqual(effects('lawyer_visit', 2), [0, 15, -10, 15, 15])
+        self.assertEqual(effects('shabbat_blackmail', 2), [0, 15, 5, 0, 5])
+        self.assertEqual(effects('shitty_burger', 1), [0, 0, 0, 0, 0])
+        for table in tables:
+            if table != 'game_choices':
+                self.assertEqual(after[table], before[table], table)
+        apply(self.db, files)
+        self.db.batch(statements((ROOT / 'db/seeds/037_manual_lock_balance.sql').read_text(encoding='utf-8')))
+        self.assertEqual(snapshot(), after)
+        apply(self.db, files + scripts(ROOT, ('db/rollbacks/037_manual_lock_balance.sql',)))
+        self.assertEqual(snapshot(), before)
 
     def test_header_titles_upgrade_repeat_and_compensation(self):
         end = SQL_FILES.index('db/seeds/034_header_titles.sql')

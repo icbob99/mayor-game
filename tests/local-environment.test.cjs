@@ -53,7 +53,10 @@ async function openPage(port) {
     return {
         call, ws,
         async click(selector) {
-            const point = await this.evaluate(`(() => { const el=document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({block:'center'}); const r=el.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
+            const point = await this.evaluate(`(() => { const el=document.querySelector(${JSON.stringify(selector)}); el.scrollIntoView({block:'center'}); const r=el.getBoundingClientRect();
+                window.lastTestClick = {selector:${JSON.stringify(selector)},expected:r.toJSON()};
+                document.addEventListener('click', event => { window.lastTestClick.actual={id:event.target.id,tag:event.target.tagName,x:event.clientX,y:event.clientY,matched:el.contains(event.target)}; }, {once:true,capture:true});
+                return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
             await call('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
             await call('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
         },
@@ -366,7 +369,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
             } catch (error) {
                 const shot = await page.call('Page.captureScreenshot', { format: 'png' });
                 writeFileSync(path.join(tmpdir(), 'mayor-restart-failure.png'), Buffer.from(shot.data, 'base64'));
-                throw new Error(`${error.message}: ${await page.evaluate("JSON.stringify({mode:state.mode,day:state.day,ended:state.gameOverRecorded,canPlay:AccountSession.canPlay(),height:innerHeight,width:innerWidth,disabled:document.getElementById('btn-restart').disabled,rect:document.getElementById('btn-restart').getBoundingClientRect().toJSON(),dialogs:[...document.querySelectorAll('dialog[open]')].map(x=>x.id)})")}`);
+                throw new Error(`${error.message}: ${await page.evaluate("JSON.stringify({click:lastTestClick,mode:state.mode,day:state.day,ended:state.gameOverRecorded,canPlay:AccountSession.canPlay(),height:innerHeight,width:innerWidth,disabled:document.getElementById('btn-restart').disabled,rect:document.getElementById('btn-restart').getBoundingClientRect().toJSON(),dialogs:[...document.querySelectorAll('dialog[open]')].map(x=>x.id)})")}`);
             }
         }
         await page.click('#profile-toggle');
