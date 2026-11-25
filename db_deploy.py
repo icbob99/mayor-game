@@ -57,6 +57,7 @@ SQL_FILES = (
     'db/seeds/036_opening_progression.sql',
     'db/seeds/037_manual_lock_balance.sql',
     'db/seeds/038_author_balance_review.sql',
+    'db/seeds/039_adopt_win5_balance.sql',
 )
 BASELINE_LAST = 'db/migrations/003_account_schema.sql'
 HISTORY_SCHEMA = 'db/migrations/004_deployment_history.sql'

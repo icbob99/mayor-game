@@ -126,10 +126,11 @@ test('starting health respects the resolved difficulty, including forced-hard Bl
     assert.equal(Difficulty.initialHealth('blitz', 'normal'), 90);
 });
 
-test('Normal clinic perk still restores 30 health without modifiers or drift', () => {
+test('Normal clinic perk restores its configured health without modifiers or drift', () => {
     const c = playing(); c.s.health = 40;
+    const perk = GameConfig.current.shop.perks.assuta_vip;
     c.run("buyPerk('assuta_vip')");
-    assert.deepEqual([c.s.health, c.s.money, c.s.threat, c.s.rating, c.s.day], [70, 500000, 15, 50, 1]);
+    assert.deepEqual([c.s.health, c.s.money, c.s.threat, c.s.rating, c.s.day], [40 + perk.effects.health, 1000000 - perk.price, 15, 50, 1]);
 });
 
 test('the first three decisions cannot lose on any stat, including drift and Insane upper bounds', () => {
@@ -233,12 +234,14 @@ test('actual answer handler applies modifiers and drift exactly once, then saves
 
 test('failed purchases do not inflate prices; successful purchases have no turn drift', () => {
     const c = playing(); c.s.difficulty = 'hard'; c.s.money = 100;
+    const perk = GameConfig.current.shop.perks.wife_spa;
+    const secondPrice = Math.round(perk.price * 1.5);
     c.run("buyPerk('wife_spa')");
     assert.equal(c.s.shopPrices.wife_spa, undefined);
     c.s.money = 4000000;
     c.run("buyPerk('wife_spa'); buyPerk('wife_spa')");
-    assert.deepEqual([c.s.money, c.s.wife, c.s.threat, c.s.rating, c.s.day], [3200000, 80, 15, 50, 1]);
-    assert.equal(c.s.shopPrices.wife_spa, 1200000);
+    assert.deepEqual([c.s.money, c.s.wife, c.s.threat, c.s.rating, c.s.day], [4000000 - perk.price, 50 + perk.effects.wife, 15, 50, 1]);
+    assert.equal(c.s.shopPrices.wife_spa, secondPrice);
     assert.equal(c.s.purchaseCount.wife_spa, 1);
     assert.equal(c.s.cooldowns.wife_spa, 11);
     assert.equal(c.b.saves, 1);
@@ -247,13 +250,13 @@ test('failed purchases do not inflate prices; successful purchases have no turn 
     assert.equal(c.s.purchaseCount.wife_spa, 1, 'cooldown prevents an early purchase');
     c.s.day = 11;
     c.run("buyPerk('wife_spa')");
-    assert.equal(c.s.money, 2000000);
-    assert.equal(c.s.shopPrices.wife_spa, 1600000);
+    assert.equal(c.s.money, 4000000 - perk.price - secondPrice);
+    assert.equal(c.s.shopPrices.wife_spa, perk.price * 2);
     assert.equal(c.s.purchaseCount.wife_spa, 2);
     assert.equal(c.s.cooldowns.wife_spa, 24);
-    c.s.day = 24;
+    c.s.day = 24; c.s.wife = 100;
     c.run("buyPerk('wife_spa')");
-    assert.equal(c.s.money, 2000000, 'a maxed perk cannot be purchased');
+    assert.equal(c.s.money, 4000000 - perk.price - secondPrice, 'a maxed perk cannot be purchased');
 });
 
 test('legacy restore clears the previous mode difficulty and prices', () => {
@@ -267,12 +270,13 @@ test('legacy restore clears the previous mode difficulty and prices', () => {
 
 test('old geometric shop prices migrate to counts and new saves retain exact counts', () => {
     const c = playing();
-    c.run("restoreDifficulty({day:12,difficulty:'normal',shopPrices:{wife_spa:2700000,assuta_vip:750000},cooldowns:{wife_spa:20}})");
+    const perks = GameConfig.current.shop.perks;
+    c.run(`restoreDifficulty({day:12,difficulty:'normal',shopPrices:{wife_spa:${Math.round(perks.wife_spa.price * 1.5 ** 3)},assuta_vip:${Math.round(perks.assuta_vip.price * 1.5)}},cooldowns:{wife_spa:20}})`);
     assert.equal(c.s.purchaseCount.wife_spa, 3);
     assert.equal(c.s.purchaseCount.assuta_vip, 1);
     assert.equal(c.s.purchaseCount.police_bribe, 0);
-    assert.equal(c.run("Difficulty.price(state,'wife_spa',800000)"), 2000000);
-    c.run("restoreDifficulty({day:12,difficulty:'normal',shopPrices:{wife_spa:2000000},purchaseCount:{wife_spa:3}})");
+    assert.equal(c.run(`Difficulty.price(state,'wife_spa',${perks.wife_spa.price})`), Math.round(perks.wife_spa.price * 2.5));
+    c.run(`restoreDifficulty({day:12,difficulty:'normal',shopPrices:{wife_spa:${Math.round(perks.wife_spa.price * 2.5)}},purchaseCount:{wife_spa:3}})`);
     assert.equal(c.s.purchaseCount.wife_spa, 3, 'linear prices are never reinterpreted as geometric history');
 });
 
@@ -281,13 +285,13 @@ test('Easy counts purchases but retains base prices and cooldowns', () => {
     Object.assign(c.s, { difficulty: 'easy', money: 10000000, health: 20 });
     c.run("buyPerk('assuta_vip')");
     assert.equal(c.s.cooldowns.assuta_vip, 8);
-    assert.equal(c.s.shopPrices.assuta_vip, 500000);
+    assert.equal(c.s.shopPrices.assuta_vip, GameConfig.current.shop.perks.assuta_vip.price);
     c.s.day = 8;
     c.run("buyPerk('assuta_vip')");
     assert.equal(c.s.purchaseCount.assuta_vip, 2);
     assert.equal(c.s.cooldowns.assuta_vip, 15);
-    assert.equal(c.s.shopPrices.assuta_vip, 500000);
-    assert.equal(c.s.money, 9000000);
+    assert.equal(c.s.shopPrices.assuta_vip, GameConfig.current.shop.perks.assuta_vip.price);
+    assert.equal(c.s.money, 10000000 - 2 * GameConfig.current.shop.perks.assuta_vip.price);
 });
 
 test('difficulty changes immediately on day one, confirms a running game and restarts a finished game', async () => {

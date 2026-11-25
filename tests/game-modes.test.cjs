@@ -64,13 +64,14 @@ test('mode confirmation cancellation preserves game and daily archive; retiremen
 });
 
 test('resuming a legacy Daily archive restores its purchases rather than the current Arcade counters', async () => {
+    const price = GameConfig.current.shop.perks.wife_spa.price;
     const state = { mode: 'arcade', difficulty: 'normal', day: 1, purchaseCount: { wife_spa: 0 },
         daily: { date: Modes.dateKey(), used: 0, game: { mode: 'daily', difficulty: 'normal', day: 12,
-            shopPrices: { wife_spa: 2700000 }, cooldowns: { wife_spa: 20 } } } };
+            shopPrices: { wife_spa: Math.round(price * 1.5 ** 3) }, cooldowns: { wife_spa: 20 } } } };
     const b = modeUI(state);
     await b.selectMode('daily');
     assert.equal(state.purchaseCount.wife_spa, 3);
-    assert.equal(b.Difficulty.price(state, 'wife_spa', 800000), 2000000);
+    assert.equal(b.Difficulty.price(state, 'wife_spa', price), Math.round(price * 2.5));
     assert.equal(state.cooldowns.wife_spa, 20);
 });
 

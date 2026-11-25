@@ -11,10 +11,10 @@ const fallback = {
     },
     arcade: { escalationEvery: 10, escalationDivisor: 10, driftIncrement: 1 },
     shop: { cooldownDays: 7, cooldownIncrementDays: 3, perks: {
-        police_bribe: { price: 1500000, effects: { threat: -20 } },
-        wife_spa: { price: 800000, effects: { wife: 30 } },
-        assuta_vip: { price: 500000, effects: { health: 30 } },
-        pr_agency: { price: 1000000, effects: { rating: 25 } }
+        police_bribe: { price: 1700000, effects: { threat: -21 } },
+        wife_spa: { price: 1050000, effects: { wife: 29 } },
+        assuta_vip: { price: 400000, effects: { health: 29 } },
+        pr_agency: { price: 1200000, effects: { rating: 24 } }
     } },
     modes: { dailyEnabled: false, dailyTurns: 5, blitzDifficulty: 'hard', blitzMaxTurns: 25,
         blitzStepTurns: 10, blitzDurations: [10000, 7000, 5000, 3000, 2000] },

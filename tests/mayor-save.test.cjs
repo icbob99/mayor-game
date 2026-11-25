@@ -63,14 +63,15 @@ test('daily game and queue restore; resuming a finished daily archive cannot cou
 });
 
 test('difficulty and inflated prices survive local and cloud restore, while old saves default to normal', async () => {
+    const spaPrice = Math.round(GameConfig.current.shop.perks.wife_spa.price * 1.5);
     const c = client();
-    Object.assign(c.state, { difficulty: 'insane', shopPrices: { wife_spa: 1200000 } });
+    Object.assign(c.state, { difficulty: 'insane', shopPrices: { wife_spa: spaPrice } });
     c.save.save(c.state);
     const stored = JSON.parse(c.values.get('cloudSave'));
     const reloaded = client(c.values).save.load();
     assert.equal(reloaded.difficulty, 'insane');
-    assert.equal(reloaded.shopPrices.wife_spa, 1200000);
-    assert.equal(reloaded.shopPrices.assuta_vip, 500000);
+    assert.equal(reloaded.shopPrices.wife_spa, spaPrice);
+    assert.equal(reloaded.shopPrices.assuta_vip, GameConfig.current.shop.perks.assuta_vip.price);
     assert.equal(reloaded.purchaseCount.wife_spa, 1);
     assert.equal(reloaded.purchaseCount.assuta_vip, 0);
     const remote = client();
@@ -78,7 +79,7 @@ test('difficulty and inflated prices survive local and cloud restore, while old 
     remote.b.requestGameApi = async path => path.endsWith('/session') ? { gameSessionId: 'writer', save: cloud } : cloud;
     await remote.save.resume();
     assert.equal(remote.save.load().difficulty, 'insane');
-    assert.equal(remote.save.load().shopPrices.wife_spa, 1200000);
+    assert.equal(remote.save.load().shopPrices.wife_spa, spaPrice);
     assert.equal(remote.save.load().purchaseCount.wife_spa, 1);
     for (const key of ['difficulty', 'shopPrices', 'purchaseCount']) delete stored.state[key];
     c.values.set('cloudSave', JSON.stringify(stored));
