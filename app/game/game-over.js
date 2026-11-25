@@ -1,14 +1,14 @@
 ﻿function getFinalTitle(reasonType) {
     if (reasonType === 'honorable_retirement') return currentTexts.ui.titles.honorable_retirement;
-    if (reasonType === 'resignation') return currentTexts.ui.titles[state.money >= 5000000 ? 'resignation_peak' : 'resignation'];
+    if (reasonType === 'resignation') return currentTexts.ui.titles[state.money >= GameConfig.current.titles.resignationPeakMoney ? 'resignation_peak' : 'resignation'];
     if (reasonType === 'indecision') return currentTexts.ui.titles.indecision;
     if (reasonType === 'arrest') return currentTexts.ui.titles.prisoner;
     if (reasonType === 'wife_left') return currentTexts.ui.titles.henpecked;
     if (['bankruptcy', 'too_popular', 'wife_abroad'].includes(reasonType)) return currentTexts.ui.titles[reasonType];
 
-    if (state.money >= 10000000) {
+    if (state.money >= GameConfig.current.titles.legendMoney) {
         return currentTexts.ui.titles.legend;
-    } else if (state.money >= 3000000) {
+    } else if (state.money >= GameConfig.current.titles.masterMoney) {
         return currentTexts.ui.titles.master;
     } else {
         return currentTexts.ui.titles.rookie;
@@ -90,11 +90,7 @@ async function resetGame(difficulty = 'normal', mode = state.mode || 'arcade') {
     stopBlitzTurn();
     document.getElementById('game-over-screen').classList.add('hidden');
 
-    state.money = 1000000;
-    state.wife = 50;
-    state.threat = 15;
-    state.health = Difficulty.initialHealth(mode, difficulty);
-    state.rating = 50;
+    resetStartingStats();
     state.day = 1;
     state.mode = mode;
     state.eventQueue = [];

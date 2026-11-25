@@ -71,6 +71,9 @@ def main():
             results = data.get('results', [])
             if len(results) != 6 or any(item.get('type') != 'ok' for item in results):
                 raise RuntimeError('Game data failed to load')
+            config = request_json(game_url + '/api/config', headers={'X-Dev-Instance': instance_id})
+            if not config.get('initialStats') or not config.get('difficulties'):
+                raise RuntimeError('Game configuration failed to load')
 
         wait_ready(check_game, 'Game server')
     except (Exception, KeyboardInterrupt):

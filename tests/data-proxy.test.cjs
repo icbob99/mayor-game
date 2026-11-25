@@ -42,3 +42,18 @@ test('proxy propagates HTTP and network failures', async () => {
     const error = new Error('Connection lost');
     await assert.rejects(request(async () => { throw error; }), actual => actual === error);
 });
+
+test('config uses the api prefix in both production and Docker', async () => {
+    for (const local of [false, true]) {
+        const fetch = async (url, options) => {
+            assert.equal(url, local ? '/api/config' : 'https://mayor-game-api.icbob99.workers.dev/api/config');
+            assert.equal(options.method, 'GET');
+            return Response.json({ initialStats: { health: 83 } });
+        };
+        const result = await vm.runInNewContext(source + '\nfetchGameConfig()', {
+            fetch: local ? () => assert.fail('Bypassed Docker wrapper') : fetch,
+            LocalEnvironment: local ? { fetch } : undefined, AbortSignal
+        });
+        assert.equal(result.initialStats.health, 83);
+    }
+});

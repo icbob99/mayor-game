@@ -2,6 +2,7 @@ import { pipeline } from './database.js';
 import { handleAuth } from './auth.js';
 import { handleSave } from './saves.js';
 import { handleProfile } from './profile.js';
+import { readGameConfig } from './config-storage.js';
 
 const allowedOrigins = ['https://icbob99.github.io'];
 
@@ -21,6 +22,13 @@ export default {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
 
         const url = new URL(request.url);
+        if (url.pathname === '/api/config' && request.method === 'GET') {
+            try {
+                return Response.json(await readGameConfig(env), { headers: { ...headers, 'Cache-Control': 'no-store' } });
+            } catch {
+                return Response.json({ error: 'config_unavailable' }, { status: 503, headers });
+            }
+        }
         if (url.pathname.startsWith('/api/auth/')) return handleAuth(request, env, headers);
         if (url.pathname.startsWith('/api/profile/')) return handleProfile(request, env, headers);
         if (url.pathname.startsWith('/api/game/')) return handleSave(request, env, headers);

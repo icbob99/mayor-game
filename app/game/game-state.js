@@ -1,9 +1,9 @@
 ﻿let state = {
-    money: 1000000,
-    wife: 50,
-    threat: 15,
-    health: 90,
-    rating: 50,
+    money: null,
+    wife: null,
+    threat: null,
+    health: null,
+    rating: null,
     day: 1,
     lang: 'en',
     currentEventIndex: -1,
@@ -26,14 +26,11 @@ let gameLocales = {};
 let currentTexts = null;
 let languageRequestId = 0;
 let currentChoiceOrder = [];
-const shopPerkPrices = {
-    police_bribe: 1500000,
-    wife_spa: 800000,
-    assuta_vip: 500000,
-    pr_agency: 1000000
-};
-const shopPerkKeys = Object.keys(shopPerkPrices);
-const shopPerkCooldownDays = 7;
+const shopPerkKeys = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
+
+function resetStartingStats() {
+    Object.assign(state, GameConfig.current.initialStats);
+}
 
 function restoreDifficulty(saved) {
     // Old saves use normal rules; the day determines whether switching requires a restart.
@@ -55,10 +52,10 @@ const LANGUAGE_OPTIONS = [
     { id: 'he', label: 'עברית', flag: 'assets/flags/il.webp' }
 ];
 const ACHIEVEMENTS_DEF = [
-    { id: 'offshore_king', icon: '💎', req: s => s.money >= 5000000 },
+    { id: 'offshore_king', icon: '💎', req: s => s.money >= GameConfig.current.achievements.offshoreMoney },
     { id: 'untouchable', icon: '🕵️‍♂️', req: s => s.threat === 0 },
     { id: 'happy_wife', icon: '👠', req: s => s.wife >= 100 },
-    { id: 'survivor', icon: '⏳', req: s => s.day >= 30 },
-    { id: 'unsinkable', icon: '🦾', req: s => s.gameOverRecorded && s.endReason === 'honorable_retirement' && s.health > 0 && s.health <= 20 }
+    { id: 'survivor', icon: '⏳', req: s => s.day >= GameConfig.current.achievements.survivorDays },
+    { id: 'unsinkable', icon: '🦾', req: s => s.gameOverRecorded && s.endReason === 'honorable_retirement' && s.health > 0 && s.health <= GameConfig.current.achievements.unsinkableHealth }
 ];
 

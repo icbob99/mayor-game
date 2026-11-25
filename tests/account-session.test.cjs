@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
@@ -8,6 +10,7 @@ function browser(initial = {}) {
     const listeners = new Map(), timers = new Map();
     let now = 10000000;
     const b = {
+        GameConfig,
         crypto: require('node:crypto').webcrypto,
         Date: { now: () => now },
         localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, String(value)), removeItem: key => values.delete(key) },
@@ -24,7 +27,7 @@ function browser(initial = {}) {
     vm.runInContext(readFileSync('app/game/statistics.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/modes.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
-    vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
+    vm.runInContext(readFileSync('app/game/game-state.js', 'utf8') + '\nresetStartingStats()', b);
     vm.runInContext(readFileSync('app/game/mayor-save.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/account-session.js', 'utf8'), b);
     return { ...b, advance: ms => { now += ms; }, values, listeners, timers };

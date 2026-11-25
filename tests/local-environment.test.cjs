@@ -107,6 +107,7 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
     await require('./audio-ui.integration.cjs')(page);
+    await require('./config-ui.integration.cjs')(page, base, firstId);
     assert.equal(await page.evaluate('state.health'), 90, 'fresh Normal game uses reference initial health');
     await page.evaluate("selectDifficulty('easy')");
     assert.equal(await page.evaluate('state.health'), 90, 'Easy retains default starting health');
@@ -599,8 +600,12 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await reopened.evaluate('toggleModes(true)');
     assert.equal(await reopened.evaluate("GameModes.settings.dailyEnabled || Boolean(document.querySelector('[data-mode=daily]'))"), false);
     await reopened.evaluate('toggleModes(false); GameModes.settings.dailyEnabled=true');
-    // Exercise the retained optional mode without changing the released default.
-    await reopened.call('Page.addScriptToEvaluateOnNewDocument', { source: "document.addEventListener('DOMContentLoaded',()=>{GameModes.settings.dailyEnabled=true})" });
+    // Enable the optional mode in the disposable DB so reload reads the same configuration.
+    const dailyConfig = await fetch('http://127.0.0.1:8082/v2/pipeline', { method: 'POST', body: JSON.stringify({ requests: [
+        { type: 'execute', stmt: { sql: "UPDATE game_config SET value=json_set(value,'$.dailyEnabled',json('true')) WHERE key='modes'" } },
+        { type: 'close' }
+    ] }) });
+    assert.equal((await dailyConfig.json()).results[0].type, 'ok');
     await reopened.evaluate("openAuth('register')");
     await reopened.evaluate(`document.getElementById('auth-nickname').value='${nickname}-modes'; document.getElementById('auth-password').value='modes-test'`);
     await reopened.click('#auth-submit');

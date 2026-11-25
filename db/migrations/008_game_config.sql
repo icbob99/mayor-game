@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS game_config (key TEXT PRIMARY KEY, value TEXT);

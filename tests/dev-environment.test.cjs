@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
@@ -99,6 +101,7 @@ test('another tab reset prevents stale guest writes without erasing new progress
     const b = browser({ mayorDevInstance: 'new' });
     await b.LocalEnvironment.ready;
     vm.runInContext(readFileSync('app/game/statistics.js', 'utf8'), b);
+    b.GameConfig = GameConfig;
     vm.runInContext(readFileSync('app/game/modes.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/guest-session.js', 'utf8'), b);
@@ -115,6 +118,7 @@ test('reset between a guest generation check and write cannot overwrite or delet
     const b = browser({ mayorDevInstance: 'new' });
     await b.LocalEnvironment.ready;
     vm.runInContext(readFileSync('app/game/statistics.js', 'utf8'), b);
+    b.GameConfig = GameConfig;
     vm.runInContext(readFileSync('app/game/modes.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/data/guest-storage.js', 'utf8'), b);
     vm.runInContext(readFileSync('app/game/guest-session.js', 'utf8'), b);

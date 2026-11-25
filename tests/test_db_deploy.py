@@ -241,6 +241,24 @@ class DeploymentTests(unittest.TestCase):
                          [(lang, json.loads(ui), json.loads(alerts)) for lang, ui, alerts in before])
         self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='header-player'"), [['Header']])
 
+    def test_game_config_upgrade_repeat_and_compensation(self):
+        end = SQL_FILES.index('db/migrations/008_game_config.sql')
+        apply(self.db, self.files[:end])
+        self.db.execute("INSERT INTO accounts VALUES ('config-player','Config','config','synthetic',1)")
+        before = self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang')
+        apply(self.db, self.files)
+        values = dict(self.db.execute('SELECT key,value FROM game_config'))
+        self.assertEqual(json.loads(values['initialStats']), {'money':1000000,'wife':50,'threat':15,'health':90,'rating':50})
+        self.assertEqual(json.loads(values['difficulties'])['hard']['loss'], 1.3)
+        self.db.execute("UPDATE game_config SET value=json_set(value,'$.health',83) WHERE key='initialStats'")
+        apply(self.db, self.files)
+        self.db.batch(statements((ROOT / 'db/seeds/035_game_config.sql').read_text(encoding='utf-8')))
+        self.assertEqual(self.db.execute("SELECT json_extract(value,'$.health') FROM game_config WHERE key='initialStats'"), [[83]])
+        apply(self.db, self.files + scripts(ROOT, ('db/rollbacks/008_game_config.sql',)))
+        self.assertEqual(self.db.execute("SELECT name FROM sqlite_master WHERE name='game_config'"), [])
+        self.assertEqual(self.db.execute('SELECT lang,ui,alerts FROM game_locale_ui ORDER BY lang'), before)
+        self.assertEqual(self.db.execute("SELECT nickname FROM accounts WHERE id='config-player'"), [['Config']])
+
     def test_header_titles_upgrade_repeat_and_compensation(self):
         end = SQL_FILES.index('db/seeds/034_header_titles.sql')
         apply(self.db, self.files[:end])

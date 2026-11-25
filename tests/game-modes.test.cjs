@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const Modes = require('../app/game/modes.js');

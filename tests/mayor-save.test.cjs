@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
@@ -5,12 +7,13 @@ const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 
 function client(values = new Map()) {
-    const b = { crypto: webcrypto, requestGameApi: async () => { throw new TypeError('offline'); } };
+    const b = { GameConfig, crypto: webcrypto, requestGameApi: async () => { throw new TypeError('offline'); } };
     b.window = b;
     vm.createContext(b);
     for (const file of ['game/statistics', 'game/modes', 'data/guest-storage', 'game/game-state', 'game/mayor-save']) {
         vm.runInContext(readFileSync(`app/${file}.js`, 'utf8'), b);
     }
+    vm.runInContext('resetStartingStats()', b);
     const store = { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
     const save = b.createMayorSave(store, () => 'token', () => true, () => {});
     const state = vm.runInContext('state', b);

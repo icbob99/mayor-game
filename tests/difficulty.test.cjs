@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const Difficulty = require('../app/game/difficulty.js');
@@ -7,7 +9,7 @@ const { readFileSync } = require('node:fs');
 const game = difficulty => ({ difficulty, money: 1000000, wife: 50, health: 90, threat: 15, rating: 50, shopPrices: {} });
 
 test('Blitz always uses hard difficulty, including restored saves', () => {
-    const b = { GameModes: require('../app/game/modes.js'), Difficulty };
+    const b = { GameConfig, GameModes: require('../app/game/modes.js'), Difficulty };
     vm.createContext(b);
     vm.runInContext(readFileSync('app/game/game-state.js', 'utf8'), b);
     for (const level of Object.keys(Difficulty.levels)) {
@@ -153,12 +155,12 @@ test('inflation affects only the purchased perk and survives serialization', () 
 });
 
 function playing() {
-    const b = { AccountSession: { canPlay: () => true }, updateUI() {}, updateAuthUI() {}, checkAchievements() {}, stopBlitzTurn() {},
+    const b = { GameConfig, AccountSession: { canPlay: () => true }, updateUI() {}, updateAuthUI() {}, checkAchievements() {}, stopBlitzTurn() {},
         saveGuestGame() { b.saves++; }, saves: 0, triggerGameOver(reason) { b.reason = reason; }, alert() {} };
     b.window = b;
     vm.createContext(b);
     for (const file of ['modes', 'game-state', 'difficulty', 'events', 'shop']) vm.runInContext(readFileSync(`app/game/${file}.js`, 'utf8'), b);
-    vm.runInContext(`loadNextEvent = () => {}; toggleShop = () => {};
+    vm.runInContext(`resetStartingStats(); loadNextEvent = () => {}; toggleShop = () => {};
         gameLogicEvents = [{ choices: [{ money: 100, wife: -5, threat: 5, health: 1, rating: 5 }] }];
         state.currentEventIndex = 0;
         currentTexts = { ui: { perks: Object.fromEntries(shopPerkKeys.map(key => [key, {}])) } };`, b);

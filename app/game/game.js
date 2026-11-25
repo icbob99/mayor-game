@@ -7,7 +7,6 @@ function renderStartupStatus() {
 }
 
 window.onload = async () => {
-    state.health = Difficulty.initialHealth(state.mode, state.difficulty);
     state.lang = detectInitialLanguage(navigator.language);
     initializeLanguageSelector();
     initializeHeaderControls();
@@ -15,6 +14,9 @@ window.onload = async () => {
     try {
         if (typeof LocalEnvironment !== 'undefined') await LocalEnvironment.ready;
         initializeAudio();
+        const [data, config] = await Promise.all([loadGameData(), loadGameConfig()]);
+        GameConfig.use(config);
+        resetStartingStats();
         await AccountSession.init();
         if (AccountSession.isMayor()) {
             const saved = AccountSession.loadGame();
@@ -24,7 +26,6 @@ window.onload = async () => {
         await setLang(state.lang);
         AudioSettings.migrateLegacy(state.audioMuted);
         startBgMusic();
-        const data = await loadGameData();
         gameLogicEvents = data.events;
         gameLocales = data.locales;
         if (!gameLocales[state.lang]) state.lang = 'en';

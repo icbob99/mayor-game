@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const Stats = require('../app/game/statistics.js');
@@ -19,6 +21,7 @@ test('statistics offers only enabled modes and preserves totals and the selected
             return elements.get(id);
         } }
     });
+    b.GameConfig = GameConfig;
     for (const file of ['app/game/modes.js', 'app/ui/ui.js']) vm.runInContext(readFileSync(file, 'utf8'), b);
     for (const isMayor of [false, true]) {
         b.AccountSession.isMayor = () => isMayor;

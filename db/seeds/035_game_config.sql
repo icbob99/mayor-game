@@ -1,0 +1,10 @@
+-- Initial live balance. Keep existing operator settings when replayed.
+INSERT INTO game_config (key, value) VALUES ('initialStats', '{"money":1000000,"wife":50,"threat":15,"health":90,"rating":50}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('openingProtectedTurns', '3') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('difficulties', '{"easy":{"gain":1.2,"loss":0.8,"drift":{},"shopPriceMultiplier":1,"maxTurns":60,"bankruptcy":false,"upperBounds":false},"normal":{"gain":1,"loss":1,"drift":{"threat":1,"rating":-1},"shopPriceMultiplier":1.5,"maxTurns":50,"bankruptcy":false,"upperBounds":false},"hard":{"gain":0.8,"loss":1.3,"drift":{"threat":2,"wife":-1,"rating":-1},"shopPriceMultiplier":1.5,"maxTurns":40,"bankruptcy":true,"upperBounds":false},"insane":{"gain":0.6,"loss":1.6,"drift":{"threat":4,"wife":-2,"rating":-2},"shopPriceMultiplier":1.5,"maxTurns":30,"bankruptcy":true,"upperBounds":true}}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('arcade', '{"escalationEvery":10,"escalationDivisor":10}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('shop', '{"cooldownDays":7,"perks":{"police_bribe":{"price":1500000,"effects":{"threat":-20}},"wife_spa":{"price":800000,"effects":{"wife":30}},"assuta_vip":{"price":500000,"effects":{"health":30}},"pr_agency":{"price":1000000,"effects":{"rating":25}}}}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('modes', '{"dailyEnabled":false,"dailyTurns":5,"blitzDifficulty":"hard","blitzMaxTurns":25,"blitzStepTurns":10,"blitzDurations":[10000,7000,5000,3000,2000]}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('retirement', '{"threatBelow":70,"upperStatsBelow":70,"scoreMultiplier":1.5}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('achievements', '{"offshoreMoney":5000000,"survivorDays":30,"unsinkableHealth":20}') ON CONFLICT(key) DO NOTHING;
+INSERT INTO game_config (key, value) VALUES ('titles', '{"resignationPeakMoney":5000000,"legendMoney":10000000,"masterMoney":3000000}') ON CONFLICT(key) DO NOTHING;

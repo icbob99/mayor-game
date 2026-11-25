@@ -28,7 +28,7 @@ function renderShop() {
             return;
         }
 
-        const cost = Difficulty.price(state, key, shopPerkPrices[key]);
+        const cost = Difficulty.price(state, key, GameConfig.current.shop.perks[key].price);
         const canAfford = state.money >= cost;
         const item = document.createElement('div');
         item.className = 'flex items-center justify-between gap-3 p-3 bg-slate-900/80 border border-slate-700/60 rounded-xl';
@@ -51,12 +51,7 @@ function renderShop() {
         const readyDay = state.cooldowns[key] || 0;
         const isCoolingDown = state.day < readyDay;
         const daysLeft = readyDay - state.day;
-        const isMaxed = (
-            (key === 'police_bribe' && state.threat === 0) ||
-            (key === 'wife_spa' && state.wife === 100) ||
-            (key === 'assuta_vip' && state.health === 100) ||
-            (key === 'pr_agency' && state.rating === 100)
-        );
+        const isMaxed = isPerkMaxed(key);
 
         const button = document.createElement('button');
         button.type = 'button';
@@ -84,6 +79,11 @@ function renderShop() {
     });
 }
 
+function isPerkMaxed(key) {
+    return Object.entries(GameConfig.current.shop.perks[key].effects)
+        .every(([stat, delta]) => delta === 0 || (delta > 0 ? state[stat] >= 100 : state[stat] <= 0));
+}
+
 function buyPerk(key) {
     if (state.gameOverRecorded || state.mode === 'blitz') return;
     if (!AccountSession.canPlay()) { updateAuthUI(); return; }
@@ -101,15 +101,9 @@ function buyPerk(key) {
     const readyDay = state.cooldowns[key] || 0;
     if (state.day < readyDay) return;
 
-    const isMaxed = (
-        (key === 'police_bribe' && state.threat === 0) ||
-        (key === 'wife_spa' && state.wife === 100) ||
-        (key === 'assuta_vip' && state.health === 100) ||
-        (key === 'pr_agency' && state.rating === 100)
-    );
-    if (isMaxed) return;
+    if (isPerkMaxed(key)) return;
 
-    const cost = Difficulty.price(state, key, shopPerkPrices[key]);
+    const cost = Difficulty.price(state, key, GameConfig.current.shop.perks[key].price);
     if (state.money < cost) {
         alert(currentTexts.ui.shop_not_enough);
         return;
@@ -117,18 +111,12 @@ function buyPerk(key) {
 
     state.money -= cost;
     Difficulty.purchased(state, key, cost);
-    if (key === 'police_bribe') {
-        state.threat = Math.max(0, state.threat - 20);
-    } else if (key === 'wife_spa') {
-        state.wife = Math.min(100, state.wife + 30);
-    } else if (key === 'assuta_vip') {
-        state.health = Math.min(100, state.health + 30);
-    } else if (key === 'pr_agency') {
-        state.rating = Math.min(100, state.rating + 25);
+    for (const [stat, delta] of Object.entries(GameConfig.current.shop.perks[key].effects)) {
+        state[stat] = Math.max(0, Math.min(100, state[stat] + delta));
     }
 
     Difficulty.protectOpening(state, state.day - 1);
-    state.cooldowns[key] = state.day + shopPerkCooldownDays;
+    state.cooldowns[key] = state.day + GameConfig.current.shop.cooldownDays;
 
     if (typeof playClickSound === 'function') playClickSound();
     if (typeof playCashSound === 'function') playCashSound();

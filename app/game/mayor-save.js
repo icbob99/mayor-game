@@ -30,7 +30,7 @@
                 mode: state.mode || 'arcade', daily: state.daily ? JSON.parse(JSON.stringify(state.daily)) : null,
                 ...(state.mode === 'daily' ? { eventQueue: state.eventQueue || [],
                     currentEventId: state.currentEventId || null, choiceOrder: state.choiceOrder || [] } : {}),
-                shopPrices: Object.fromEntries(shopPerkKeys.map(id => [id, state.shopPrices?.[id] || shopPerkPrices[id]])),
+                shopPrices: Object.fromEntries(shopPerkKeys.map(id => [id, state.shopPrices?.[id] || GameConfig.current.shop.perks[id].price])),
                 cooldowns: Object.fromEntries(shopPerkKeys.map(id => [id, state.cooldowns?.[id] || 0])),
                 achievements: counts(Object.fromEntries((state.earnedAchievementsThisGame || []).map(id => [id, 1]))),
                 isFinished: Boolean(state.gameOverRecorded), endReason: state.endReason || null, finishedAt: state.finishedAt || null

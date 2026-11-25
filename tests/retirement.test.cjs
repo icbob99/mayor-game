@@ -1,3 +1,5 @@
+const GameConfig = require('../app/game/config.js');
+GameConfig.use(GameConfig.fallback);
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
@@ -73,7 +75,7 @@ test('a surviving game continues past the threshold until retirement conditions 
 
 test('ending awards Unsinkable before persistence and never counts a restored ending twice', () => {
     const elements = new Map(); let records = 0, saved;
-    const b = {GameModes:Modes, console, stopBlitzTurn(){},updateUI(){},inviteGuest(){},
+    const b = {GameConfig, GameModes:Modes, console, stopBlitzTurn(){},updateUI(){},inviteGuest(){},
         testTexts:{ui:{titles:{honorable_retirement:'Eternal Mayor'},achievements:{unsinkable:{name:'Unsinkable'}},end_victory:'Retired',end_score:'Score',end_score_bonus:'Capital x1.5'},alerts:{}},
         AccountSession:{isMayor:()=>false},
         GuestSession:{recordGameOver(s){records++;saved=JSON.parse(JSON.stringify(s));return {gamesPlayed:1};}},
