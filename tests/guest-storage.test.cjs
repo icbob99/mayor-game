@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const storage = require('../app/data/guest-storage.js');
-const Stats = require('../app/game/statistics.js');
+const storage = require('../app/data/guest-storage.js').GuestStorage;
+const Stats = require('../app/game/statistics.js').GameStats;
 
 test('daily guest save keeps its queue, finished state and daily allowance', () => {
     const browserStorage = createMemoryStorage();

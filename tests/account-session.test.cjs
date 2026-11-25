@@ -1,8 +1,8 @@
-const GameConfig = require('../app/game/config.js');
+const GameConfig = require('../app/game/config.js').GameConfig;
 GameConfig.use(GameConfig.fallback);
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { readFileSync } = require('node:fs');
+const { readUnit: readFileSync } = require('./unit-source.cjs');
 const vm = require('node:vm');
 
 function browser(initial = {}) {
@@ -156,7 +156,7 @@ test('failed signup after a guest game ends does not restore its deleted save', 
         requestGameApi: async () => { throw Object.assign(new Error('Conflict'), { code: 'nickname_taken' }); }
     });
     vm.runInContext(readFileSync('app/ui/auth.js', 'utf8'), b.window);
-    vm.runInContext('state = window.state; currentTexts = window.currentTexts', b.window);
+    vm.runInContext('Object.assign(state, window.state); currentTexts = window.currentTexts', b.window);
     b.window.updateAuthUI = () => {};
     vm.runInContext("authFormKind = 'register'", b.window);
     await b.window.submitAuth({ preventDefault() {} });

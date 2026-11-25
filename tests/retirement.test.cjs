@@ -1,11 +1,11 @@
-const GameConfig = require('../app/game/config.js');
+const GameConfig = require('../app/game/config.js').GameConfig;
 GameConfig.use(GameConfig.fallback);
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
-const { readFileSync } = require('node:fs');
-const Modes = require('../app/game/modes.js');
-const Difficulty = require('../app/game/difficulty.js');
+const { readUnit: readFileSync } = require('./unit-source.cjs');
+const Modes = require('../app/game/modes.js').GameModes;
+const Difficulty = require('../app/game/difficulty.js').Difficulty;
 const healthy = (level = 'normal', mode = 'arcade') => ({ day: 1, difficulty: level, mode, money: 1000001, health: 90, wife: 50, rating: 50, threat: 15 });
 
 test('retirement thresholds apply after the final decision, with no cap for hidden Daily', () => {

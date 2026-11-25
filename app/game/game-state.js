@@ -1,4 +1,8 @@
-﻿let state = {
+import { GameConfig } from './config.js';
+import { Difficulty } from './difficulty.js';
+import { GameModes } from './modes.js';
+
+const state = {
     money: null,
     wife: null,
     threat: null,
@@ -24,7 +28,6 @@
 let gameLogicEvents = [];
 let gameLocales = {};
 let currentTexts = null;
-let languageRequestId = 0;
 let currentChoiceOrder = [];
 const shopPerkKeys = ['police_bribe', 'wife_spa', 'assuta_vip', 'pr_agency'];
 
@@ -59,3 +62,9 @@ const ACHIEVEMENTS_DEF = [
     { id: 'unsinkable', icon: '🦾', req: s => s.gameOverRecorded && s.endReason === 'honorable_retirement' && s.health > 0 && s.health <= GameConfig.current.achievements.unsinkableHealth }
 ];
 
+
+function setGameData(data) { gameLogicEvents = data.events; gameLocales = data.locales; }
+function setCurrentTexts(texts) { currentTexts = texts; }
+function setCurrentChoiceOrder(order) { currentChoiceOrder = order; }
+
+export { ACHIEVEMENTS_DEF, LANGUAGE_OPTIONS, currentChoiceOrder, currentTexts, gameLocales, gameLogicEvents, resetStartingStats, restoreDifficulty, setCurrentChoiceOrder, setCurrentTexts, setGameData, shopPerkKeys, state };

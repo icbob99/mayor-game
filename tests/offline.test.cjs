@@ -51,6 +51,27 @@ test('offline shell respects the GitHub Pages subpath and online files replace t
     assert.equal(await (await w.request(w.scope + '?from=home')).text(), 'new release');
 });
 
+test('first installation caches transitive ES imports once, including circular dependencies', async () => {
+    const w = worker(), calls = new Map();
+    const sources = {
+        'index.html': '<script type="module" src="app/main.js"></script>',
+        'app/main.js': "import { start } from './game/start.js';\nstart();",
+        'app/game/start.js': "import { state } from './state.js';\nimport '../ui.js';",
+        'app/game/state.js': 'export const state = {};',
+        'app/ui.js': "import './game/start.js';\nimport { state } from './game/state.js';"
+    };
+    w.context.fetch = async url => {
+        calls.set(url, (calls.get(url) || 0) + 1);
+        return new Response(sources[url.slice(w.scope.length)] || 'flag');
+    };
+    await w.install();
+    w.context.fetch = async () => { throw new TypeError('offline'); };
+    for (const [file, source] of Object.entries(sources)) {
+        assert.equal(calls.get(w.scope + file), 1, file);
+        assert.equal(await (await w.request(w.scope + file)).text(), source, file);
+    }
+});
+
 test('only successful shared game data is cached, never account requests or writes', async () => {
     const w = worker();
     const url = 'https://mayor-game-api.icbob99.workers.dev/api/game-data';

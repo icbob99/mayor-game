@@ -1,12 +1,21 @@
-let gameDataLoadFailed = false;
+import { loadGameConfig } from '../data/config-storage.js';
+import { loadGameData } from '../data/dal.js';
+import { AccountSession } from './account-session.js';
+import { AudioSettings } from './audio-settings.js';
+import { GameConfig } from './config.js';
+import { restoreCurrentEvent } from './events.js';
+import { resetGame, triggerGameOver } from './game-over.js';
+import { gameLocales, resetStartingStats, restoreDifficulty, setGameData, state } from './game-state.js';
+import { GuestSession } from './guest-session.js';
+import { GameModes } from './modes.js';
+import { LocalEnvironment } from '../infrastructure/environment.js';
+import { initializeAudio, startBgMusic } from '../ui/audio.js';
+import { detectInitialLanguage, getStartupTexts } from '../ui/language-utils.js';
+import { initializeLanguageSelector, setLang } from '../ui/language.js';
+import { showStartupFailure } from '../ui/startup.js';
+import { initializeHeaderControls, saveGuestGame } from '../ui/ui.js';
 
-function renderStartupStatus() {
-    const texts = getStartupTexts(state.lang);
-    document.getElementById('event-title').innerText = gameDataLoadFailed ? texts.loadFailed : texts.loading;
-    document.getElementById('event-desc').innerText = gameDataLoadFailed ? texts.reload : '';
-}
-
-window.onload = async () => {
+async function startGame() {
     state.lang = detectInitialLanguage(navigator.language);
     initializeLanguageSelector();
     initializeHeaderControls();
@@ -26,8 +35,7 @@ window.onload = async () => {
         await setLang(state.lang);
         AudioSettings.migrateLegacy(state.audioMuted);
         startBgMusic();
-        gameLogicEvents = data.events;
-        gameLocales = data.locales;
+        setGameData(data);
         if (!gameLocales[state.lang]) state.lang = 'en';
         await setLang(state.lang);
         if (!GameModes.available(state.mode)) await resetGame(state.difficulty, 'arcade');
@@ -35,8 +43,9 @@ window.onload = async () => {
         else restoreCurrentEvent();
         saveGuestGame();
     } catch (error) {
-        gameDataLoadFailed = true;
         console.error(getStartupTexts(state.lang).loadFailed, error);
-        renderStartupStatus();
+        showStartupFailure();
     }
-};
+}
+
+export { startGame };

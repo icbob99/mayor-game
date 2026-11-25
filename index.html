@@ -18,16 +18,16 @@
         <div id="game-nav" class="max-w-5xl mx-auto flex justify-between items-center gap-2 mb-3">
             <h1 class="text-sm font-bold text-slate-400">🏛️ <span id="game-title">Mayor: Chronicles of Embezzlement</span><span id="game-title-short">Mayor</span></h1>
             <div class="system-actions">
-            <button id="btn-achievements" onclick="toggleAchievements(true)"
+            <button id="btn-achievements"
                 class="bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition"
                 aria-label="Achievements">🏆</button>
-            <button id="btn-audio" onclick="toggleAudio()" aria-haspopup="dialog" aria-controls="audio-modal"
+            <button id="btn-audio" aria-haspopup="dialog" aria-controls="audio-modal"
                 class="rounded-lg font-bold bg-slate-700 hover:bg-slate-600 text-white transition" aria-expanded="false">
                 <span id="audio-icon" aria-hidden="true">🔊</span><span id="audio-status" class="sr-only"></span>
             </button>
             <!-- Language switcher -->
             <div id="lang-selector" class="relative text-xs">
-                <button id="lang-toggle" type="button" onclick="toggleLanguageMenu()"
+                <button id="lang-toggle" type="button"
                     class="flex items-center gap-2 p-1.5 rounded font-bold bg-slate-700 hover:bg-slate-600 text-white transition"
                     title="Change language" aria-label="Change language" aria-haspopup="listbox" aria-expanded="false">
                     <img id="lang-flag" src="assets/flags/gb.svg" alt="English" class="w-6 h-4 object-cover rounded-sm">
@@ -46,7 +46,7 @@
                 <div id="label-money" class="text-slate-400 text-xs">Money / Offshore</div>
                 <div class="money-value"><span aria-hidden="true">💰</span><bdi id="stat-money" class="text-green-400 font-bold">1.5M ₪</bdi></div>
             </div>
-            <button id="btn-shop" onclick="toggleShop(true)"
+            <button id="btn-shop"
                 class="bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-sm transition shadow">
                 <span aria-hidden="true">🛒</span> <span id="label-btn-shop"></span>
             </button>
@@ -82,24 +82,23 @@
                 <span aria-hidden="true">👤</span><bdi id="auth-account" class="font-bold"></bdi><span aria-hidden="true">▾</span>
             </summary>
             <div id="profile-menu" class="bg-slate-800 border border-slate-600 rounded-lg shadow-xl">
-                <button id="btn-login" onclick="closeProfileMenu(); openAuth('login')" class="px-3 py-2 rounded bg-indigo-600"></button>
-                <button id="btn-register" onclick="closeProfileMenu(); openAuth('register')" class="px-3 py-2 rounded bg-slate-700"></button>
-                <button id="btn-become-guest" onclick="closeProfileMenu(); becomeGuest()" hidden class="px-3 py-2 rounded bg-slate-700"></button>
+                <button id="btn-login" class="px-3 py-2 rounded bg-indigo-600"></button>
+                <button id="btn-register" class="px-3 py-2 rounded bg-slate-700"></button>
+                <button id="btn-become-guest" hidden class="px-3 py-2 rounded bg-slate-700"></button>
             </div>
         </details>
-        <button id="btn-difficulty" onclick="toggleDifficulty(true)" aria-haspopup="dialog"
+        <button id="btn-difficulty" aria-haspopup="dialog"
             class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg"></button>
-        <button id="btn-mode" onclick="toggleModes(true)" aria-haspopup="dialog"
+        <button id="btn-mode" aria-haspopup="dialog"
             class="bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold"></button>
     </section>
     <div id="auth-notice" hidden role="status" class="max-w-xl mx-auto p-3 text-center text-amber-300">
         <span id="auth-notice-text"></span>
-        <button id="btn-auth-continue" onclick="AccountSession.activity()" class="underline ms-2"></button>
+        <button id="btn-auth-continue" class="underline ms-2"></button>
     </div>
 
-    <dialog id="auth-dialog" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-sm backdrop:bg-black/70"
-        oncancel="if (authFormBusy) event.preventDefault()">
-        <form id="auth-form" onsubmit="submitAuth(event)" class="space-y-4">
+    <dialog id="auth-dialog" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-sm backdrop:bg-black/70">
+        <form id="auth-form" class="space-y-4">
             <h2 id="auth-title" class="text-xl font-bold"></h2>
             <label class="block"><span id="auth-nickname-label"></span>
                 <input id="auth-nickname" name="nickname" autocomplete="username" required maxlength="128" class="block w-full mt-1 rounded bg-slate-700 p-2">
@@ -110,42 +109,41 @@
             <p id="auth-error" role="alert" class="text-red-300"></p>
             <div class="flex gap-3">
                 <button id="auth-submit" type="submit" class="rounded bg-indigo-600 px-4 py-2"></button>
-                <button id="auth-cancel" type="button" onclick="document.getElementById('auth-dialog').close()" class="rounded bg-slate-700 px-4 py-2"></button>
+                <button id="auth-cancel" type="button" class="rounded bg-slate-700 px-4 py-2"></button>
             </div>
         </form>
     </dialog>
     <dialog id="auth-invite" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-sm backdrop:bg-black/70">
         <p id="auth-invite-text" class="mb-4"></p>
-        <button id="auth-invite-yes" onclick="openAuth('register')" class="rounded bg-indigo-600 px-4 py-2"></button>
-        <button id="auth-invite-no" onclick="document.getElementById('auth-invite').close()" class="rounded bg-slate-700 px-4 py-2"></button>
+        <button id="auth-invite-yes" class="rounded bg-indigo-600 px-4 py-2"></button>
+        <button id="auth-invite-no" class="rounded bg-slate-700 px-4 py-2"></button>
     </dialog>
 
     <div id="save-sync-notice" hidden role="status" class="max-w-xl mx-auto p-3 text-center text-amber-300">
         <span id="save-sync-notice-text"></span>
-        <button id="save-sync-review" onclick="showSaveSync()" class="underline ms-2"></button>
+        <button id="save-sync-review" class="underline ms-2"></button>
     </div>
-    <dialog id="save-sync-dialog" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-lg backdrop:bg-black/70"
-        oncancel="if (saveSyncBusy) event.preventDefault()" onclose="updateSaveSyncUI()">
+    <dialog id="save-sync-dialog" class="bg-slate-800 text-white rounded-2xl p-6 w-full max-w-lg backdrop:bg-black/70">
         <h2 id="save-sync-title" class="text-xl font-bold mb-3"></h2>
         <p id="save-sync-description" class="mb-4"></p>
         <div class="grid gap-3 sm:grid-cols-2 mb-4">
             <div id="save-sync-local-card" class="rounded bg-slate-700 p-3">
                 <h3 id="save-sync-local-title" class="font-bold"></h3>
                 <p id="save-sync-local-summary" class="whitespace-pre-line my-2"></p>
-                <button id="save-sync-local" onclick="resolveSaveSync('local')" class="rounded bg-indigo-600 px-3 py-2"></button>
+                <button id="save-sync-local" class="rounded bg-indigo-600 px-3 py-2"></button>
             </div>
             <div id="save-sync-cloud-card" class="rounded bg-slate-700 p-3">
                 <h3 id="save-sync-cloud-title" class="font-bold"></h3>
                 <p id="save-sync-cloud-summary" class="whitespace-pre-line my-2"></p>
-                <button id="save-sync-cloud" onclick="resolveSaveSync('cloud')" class="rounded bg-indigo-600 px-3 py-2"></button>
+                <button id="save-sync-cloud" class="rounded bg-indigo-600 px-3 py-2"></button>
             </div>
         </div>
         <p id="save-sync-error" role="alert" class="text-red-300 mb-3"></p>
-        <button id="save-sync-confirm" onclick="resolveSaveSync()" class="rounded bg-indigo-600 px-4 py-2"></button>
-        <button id="save-sync-cancel" onclick="document.getElementById('save-sync-dialog').close()" class="rounded bg-slate-700 px-4 py-2"></button>
+        <button id="save-sync-confirm" class="rounded bg-indigo-600 px-4 py-2"></button>
+        <button id="save-sync-cancel" class="rounded bg-slate-700 px-4 py-2"></button>
     </dialog>
 
-    <button id="daily-reminder" hidden onclick="selectMode('daily')" class="mx-auto text-sm text-indigo-300 underline"></button>
+    <button id="daily-reminder" hidden class="mx-auto text-sm text-indigo-300 underline"></button>
     <!-- Main game block: Day card -->
     <main class="max-w-xl w-full mx-auto p-4">
         <div id="event-card" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl relative overflow-hidden">
@@ -154,7 +152,7 @@
                     Day 1
                 </div>
                 <span id="daily-turns" hidden class="text-xs text-slate-300"></span>
-                <button id="btn-resign" onclick="resign()" class="text-xs text-slate-300 hover:text-white px-2 py-1 rounded border border-slate-600"></button>
+                <button id="btn-resign" class="text-xs text-slate-300 hover:text-white px-2 py-1 rounded border border-slate-600"></button>
                 <!-- Avatar block -->
                 <div id="event-avatar"
                     class="text-3xl bg-slate-700/60 p-2 rounded-xl border border-slate-600/50 shadow-inner">
@@ -206,60 +204,60 @@
             </div>
 
             <p id="daily-end-closed" hidden class="mb-3 text-amber-300 text-sm"></p>
-            <button id="btn-end-mode" onclick="toggleModes(true)" aria-haspopup="dialog"
+            <button id="btn-end-mode" aria-haspopup="dialog"
                 class="mb-3 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl"></button>
-            <button id="btn-end-difficulty" onclick="toggleDifficulty(true)" aria-haspopup="dialog"
+            <button id="btn-end-difficulty" aria-haspopup="dialog"
                 class="mb-3 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl"></button>
-            <button id="btn-restart" onclick="resetGame(state.difficulty)"
+            <button id="btn-restart"
                 class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition cursor-pointer shadow-lg">
 
             </button>
         </div>
     </div>
 
-    <dialog id="audio-modal" aria-labelledby="audio-title" onclick="if (event.target === this) toggleAudio(false)"
+    <dialog id="audio-modal" aria-labelledby="audio-title"
         class="bg-slate-800 text-white rounded-2xl p-5 w-[calc(100%_-_2rem)] max-w-sm border border-slate-600 backdrop:bg-black/70">
         <div class="flex items-center justify-between gap-3 mb-5">
             <h2 id="audio-title" class="text-xl font-bold"></h2>
-            <button id="audio-dismiss" type="button" onclick="toggleAudio(false)" class="text-2xl text-slate-400 hover:text-white">×</button>
+            <button id="audio-dismiss" type="button" class="text-2xl text-slate-400 hover:text-white">×</button>
         </div>
         <fieldset class="rounded-xl bg-slate-700/60 p-3 mb-4">
             <legend id="audio-music-label" class="font-bold px-1"></legend>
             <div class="flex items-center justify-between gap-3 mb-3">
-                <button id="audio-music-toggle" type="button" onclick="setAudioSetting('musicEnabled', !AudioSettings.get().musicEnabled)" class="rounded-lg bg-slate-600 px-3 py-2 text-sm font-bold"></button>
+                <button id="audio-music-toggle" type="button" class="rounded-lg bg-slate-600 px-3 py-2 text-sm font-bold"></button>
                 <output id="audio-music-percent" for="audio-music-volume" class="tabular-nums"></output>
             </div>
-            <input id="audio-music-volume" type="range" min="0" max="100" step="1" value="25" oninput="setAudioSetting('musicVolume', this.valueAsNumber)" class="w-full accent-indigo-400">
+            <input id="audio-music-volume" type="range" min="0" max="100" step="1" value="25" class="w-full accent-indigo-400">
         </fieldset>
         <fieldset class="rounded-xl bg-slate-700/60 p-3 mb-5">
             <legend id="audio-sfx-label" class="font-bold px-1"></legend>
             <div class="flex items-center justify-between gap-3 mb-3">
-                <button id="audio-sfx-toggle" type="button" onclick="setAudioSetting('sfxEnabled', !AudioSettings.get().sfxEnabled)" class="rounded-lg bg-slate-600 px-3 py-2 text-sm font-bold"></button>
+                <button id="audio-sfx-toggle" type="button" class="rounded-lg bg-slate-600 px-3 py-2 text-sm font-bold"></button>
                 <output id="audio-sfx-percent" for="audio-sfx-volume" class="tabular-nums"></output>
             </div>
-            <input id="audio-sfx-volume" type="range" min="0" max="100" step="1" value="70" oninput="setAudioSetting('sfxVolume', this.valueAsNumber)" class="w-full accent-indigo-400">
+            <input id="audio-sfx-volume" type="range" min="0" max="100" step="1" value="70" class="w-full accent-indigo-400">
         </fieldset>
-        <button id="audio-close" type="button" onclick="toggleAudio(false)" class="rounded-lg bg-indigo-600 px-4 py-2 font-bold hover:bg-indigo-500"></button>
+        <button id="audio-close" type="button" class="rounded-lg bg-indigo-600 px-4 py-2 font-bold hover:bg-indigo-500"></button>
     </dialog>
 
     <!-- Difficulty uses a native dialog for focus trapping, Escape and modal stacking. -->
-    <dialog id="difficulty-modal" aria-labelledby="difficulty-title" onclick="if (event.target === this) toggleDifficulty(false)"
+    <dialog id="difficulty-modal" aria-labelledby="difficulty-title"
         class="fixed inset-0 m-0 w-full h-full max-w-none max-h-none bg-transparent text-white p-4 backdrop:bg-slate-950/80 backdrop:backdrop-blur-md">
         <div class="bg-slate-800 border border-slate-700 max-w-md w-full max-h-full overflow-y-auto rounded-2xl p-6 shadow-2xl">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                 <h2 id="difficulty-title" class="text-xl font-bold"></h2>
-                <button id="difficulty-dismiss" onclick="toggleDifficulty(false)" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
+                <button id="difficulty-dismiss" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
             </div>
             <div id="difficulty-options" class="grid gap-3"></div>
         </div>
     </dialog>
 
-    <dialog id="mode-modal" aria-labelledby="mode-title" onclick="if (event.target === this) toggleModes(false)"
+    <dialog id="mode-modal" aria-labelledby="mode-title"
         class="fixed inset-0 m-0 w-full h-full max-w-none max-h-none bg-transparent text-white p-4 backdrop:bg-slate-950/80 backdrop:backdrop-blur-md">
         <div class="bg-slate-800 border border-slate-700 max-w-md w-full max-h-full overflow-y-auto rounded-2xl p-6 shadow-2xl">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                 <h2 id="mode-title" class="text-xl font-bold"></h2>
-                <button id="mode-dismiss" onclick="toggleModes(false)" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
+                <button id="mode-dismiss" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
             </div>
             <div id="mode-options" class="grid gap-3"></div>
         </div>
@@ -267,12 +265,11 @@
 
     <!-- Shop Modal -->
     <div id="shop-modal" role="dialog" aria-modal="true" aria-labelledby="shop-title"
-        onclick="if (event.target === this) toggleShop(false)"
         class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
         <div class="bg-slate-800 border border-slate-700 max-w-lg w-full rounded-2xl p-6 shadow-2xl relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                 <h3 id="shop-title" class="text-xl font-bold text-white flex items-center gap-2">🛒 </h3>
-                <button id="shop-dismiss-btn" onclick="toggleShop(false)" aria-label="Close shop"
+                <button id="shop-dismiss-btn" aria-label="Close shop"
                     class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
             </div>
 
@@ -281,7 +278,7 @@
             </div>
 
             <div class="mt-6 pt-3 border-t border-slate-700 flex justify-end">
-                <button onclick="toggleShop(false)" id="shop-close-btn"
+                <button id="shop-close-btn"
                     class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-5 rounded-xl transition cursor-pointer">
 
                 </button>
@@ -291,12 +288,11 @@
 
     <!-- Achievements Modal -->
     <div id="achievements-modal" role="dialog" aria-modal="true" aria-labelledby="achievements-title"
-        onclick="if (event.target === this) toggleAchievements(false)"
         class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
         <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                 <h3 id="achievements-title" class="text-xl font-bold text-white flex items-center gap-2">🏆 </h3>
-                <button id="achievements-dismiss-btn" onclick="toggleAchievements(false)" aria-label="Close achievements"
+                <button id="achievements-dismiss-btn" aria-label="Close achievements"
                     class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
             </div>
             <div id="achievements-list" class="space-y-3 max-h-[60vh] overflow-y-auto"></div>
@@ -306,23 +302,22 @@
     <!-- Footer -->
     <footer class="text-center p-4 text-xs text-slate-500 border-t border-slate-800">
         <div>Mayor: Chronicles of Embezzlement</div>
-        <button id="btn-guest-stats" onclick="toggleGuestStats(true)"
+        <button id="btn-guest-stats"
             class="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
             aria-label="Guest statistics">📜</button>
     </footer>
 
     <!-- Guest statistics modal -->
     <div id="guest-stats-modal" role="dialog" aria-modal="true" aria-labelledby="guest-stats-title"
-        onclick="if (event.target === this) toggleGuestStats(false)"
         class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-40">
         <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                 <h3 id="guest-stats-title" class="text-xl font-bold text-white">📜 Guest statistics</h3>
-                <button id="guest-stats-dismiss-btn" onclick="toggleGuestStats(false)" aria-label="Close statistics"
+                <button id="guest-stats-dismiss-btn" aria-label="Close statistics"
                     class="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer">✕</button>
             </div>
             <div class="space-y-3 text-sm">
-                <select id="stats-mode" onchange="renderGuestStats()" class="bg-slate-700 rounded p-2 w-full"></select>
+                <select id="stats-mode" class="bg-slate-700 rounded p-2 w-full"></select>
                 <div class="flex justify-between"><span id="stats-resignations-label" class="text-slate-400"></span><strong id="stats-resignations">0</strong></div>
                 <div class="flex justify-between"><span id="guest-stats-games-label" class="text-slate-400">Games played</span><strong id="guest-stats-games">0</strong></div>
                 <div class="flex justify-between"><span id="guest-stats-money-label" class="text-slate-400">Maximum money</span><strong id="guest-stats-money" class="text-emerald-400">0 ₪</strong></div>
@@ -332,7 +327,7 @@
                 </div>
             </div>
             <div class="mt-6 pt-3 border-t border-slate-700 flex justify-end">
-                <button onclick="toggleGuestStats(false)" id="guest-stats-close-btn"
+                <button id="guest-stats-close-btn"
                     class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-5 rounded-xl transition cursor-pointer">
                     Close
                 </button>
@@ -341,36 +336,7 @@
     </div>
 
     <!-- Load data and game logic -->
-    <script src="app/infrastructure/offline.js"></script>
-    <script src="app/infrastructure/music-player.js"></script>
-    <script src="app/game/audio-settings.js"></script>
-    <script src="app/ui/audio.js"></script>
-    <script src="app/infrastructure/data-proxy.js"></script>
-    <script src="app/infrastructure/browser-session.js"></script>
-    <script src="app/data/dal.js"></script>
-    <script src="app/game/config.js"></script>
-    <script src="app/data/config-storage.js"></script>
-    <script src="app/game/statistics.js"></script>
-    <script src="app/game/modes.js"></script>
-    <script src="app/data/guest-storage.js"></script>
-    <script src="app/ui/language-utils.js"></script>
-    <script src="app/game/guest-session.js"></script>
-    <script src="app/game/mayor-save.js"></script>
-    <script src="app/game/account-session.js"></script>
-    <script src="app/game/game-state.js"></script>
-    <script src="app/game/difficulty.js"></script>
-    <script src="app/game/choice-order.js"></script>
-    <script src="app/ui/language.js"></script>
-    <script src="app/ui/auth.js"></script>
-    <script src="app/ui/save-sync.js"></script>
-    <script src="app/ui/ui.js"></script>
-    <script src="app/ui/difficulty.js"></script>
-    <script src="app/ui/modes.js"></script>
-    <script src="app/game/shop.js"></script>
-    <script src="app/game/achievements.js"></script>
-    <script src="app/game/events.js"></script>
-    <script src="app/game/game-over.js"></script>
-    <script src="app/game/game.js"></script>
+    <script type="module" src="app/main.js"></script>
 </body>
 
 </html>

@@ -6,6 +6,7 @@ const { promisify } = require('node:util');
 const { mkdtempSync, readFileSync, existsSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
+const { moduleExpression } = require('./browser-modules.cjs');
 const run = promisify(execFile);
 const root = path.resolve(__dirname, '..');
 const base = 'http://localhost:8788';
@@ -57,7 +58,7 @@ async function openPage(port) {
             await call('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
         },
         async evaluate(expression) {
-            const result = await call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+            const result = await call('Runtime.evaluate', { expression: moduleExpression(expression), returnByValue: true, awaitPromise: true });
             if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
             return result.result.value;
         }
@@ -106,6 +107,12 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
         throw new Error(`${error.message}: ${details}`);
     }
     assert.equal(await page.evaluate("Object.keys(gameLocales).sort().join(',')"), 'en,he,ru,uk');
+    assert.deepEqual(await page.evaluate("[...document.scripts].filter(s=>s.src.includes('/app/')).map(s=>({type:s.type,path:new URL(s.src).pathname}))"),
+        [{ type: 'module', path: '/app/main.js' }], 'one application entry point');
+    const globalProbe = await page.call('Runtime.evaluate', { expression: "[typeof state,typeof GameConfig,typeof AccountSession,typeof setLang]", returnByValue: true });
+    assert.deepEqual(globalProbe.result.value, ['undefined','undefined','undefined','undefined'], 'game APIs are module-scoped');
+    assert.equal(await page.evaluate("[...document.querySelectorAll('*')].some(el=>[...el.attributes].some(a=>/^on/.test(a.name)))"), false,
+        'controls no longer depend on global inline handlers');
     await require('./audio-ui.integration.cjs')(page);
     await require('./config-ui.integration.cjs')(page, base, firstId);
     assert.equal(await page.evaluate('state.health'), 90, 'fresh Normal game uses reference initial health');
@@ -116,12 +123,12 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     await require('./layout-checks.cjs')(page);
     async function showNoEffectChoice(tab) {
         // These flows test delivery and statistics, not randomly selected card rewards.
-        await tab.evaluate("showEventAtIndex(gameLogicEvents.findIndex(e=>e.id==='shitty_burger')); currentChoiceOrder=[1,0,2]; renderCurrentEvent()");
+        await tab.evaluate("showEventAtIndex(gameLogicEvents.findIndex(e=>e.id==='shitty_burger')); setCurrentChoiceOrder([1,0,2]); renderCurrentEvent()");
     }
     async function offlineReloadAndPlay() {
         assert.equal(await page.evaluate('Boolean(navigator.serviceWorker.controller)'), true,
             'the first successful load has an active offline worker');
-        assert.equal(await page.evaluate("caches.open('mayor-offline:/:v1').then(c => c.match(location.origin + '/index.html')).then(r => r.redirected)"), false,
+        assert.equal(await page.evaluate("caches.keys().then(names => caches.open(names.find(name => name.startsWith('mayor-offline:/:')))).then(c => c.match(location.origin + '/index.html')).then(r => r.redirected)"), false,
             'cached HTML must be usable for navigation after an index.html redirect');
         const progress = await page.evaluate('JSON.stringify({day:state.day,money:state.money})');
         await page.call('Network.enable');
@@ -769,6 +776,6 @@ test('Docker stand boots the real game, preserves reloads, and resets DB and ope
     const api = await fetch(base + '/api/game-data', { headers: { 'X-Dev-Instance': secondId } });
     const data = await api.json();
     assert.equal(data.results[0].response.result.rows.length, 41);
-    assert.equal(await reopened.evaluate("caches.open('mayor-offline:/:v1').then(c => c.keys()).then(keys => keys.filter(r => r.url.endsWith('/api/game-data')).length)"), 1,
+    assert.equal(await reopened.evaluate("caches.keys().then(names => caches.open(names.find(name => name.startsWith('mayor-offline:/:')))).then(c => c.keys()).then(keys => keys.filter(r => r.url.endsWith('/api/game-data')).length)"), 1,
         'a rebuilt stand replaces cached content instead of accumulating generations');
 });

@@ -15,3 +15,5 @@ const offlineReady = (async () => {
         if (navigator.serviceWorker.controller) done();
     });
 })().catch(() => {});
+
+export { offlineReady };

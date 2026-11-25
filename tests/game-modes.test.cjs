@@ -1,16 +1,16 @@
-const GameConfig = require('../app/game/config.js');
+const GameConfig = require('../app/game/config.js').GameConfig;
 GameConfig.use(GameConfig.fallback);
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const Modes = require('../app/game/modes.js');
+const Modes = require('../app/game/modes.js').GameModes;
 const vm = require('node:vm');
-const { readFileSync } = require('node:fs');
+const { readUnit: readFileSync } = require('./unit-source.cjs');
 const { webcrypto } = require('node:crypto');
 beforeEach(() => { Modes.settings.dailyEnabled = true; });
 
 function modeUI(state) {
     const element = { close() {}, classList: { add() {}, contains() { return true; } }, style: {} };
-    const b = { state, GameModes: Modes, Difficulty: require('../app/game/difficulty.js'), crypto: webcrypto, performance,
+    const b = { state, GameModes: Modes, Difficulty: require('../app/game/difficulty.js').Difficulty, crypto: webcrypto, performance,
         currentTexts: { ui: { modes: { restart: 'reset?', pauseDaily: 'pause?', confirmResign: 'resign?' } } },
         AccountSession: { canPlay: () => true, isMayor: () => true },
         document: { hidden: false, querySelector: () => null, querySelectorAll: () => [], getElementById: () => element, addEventListener() {} },

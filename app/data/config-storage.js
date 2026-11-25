@@ -1,3 +1,7 @@
+import { GameConfig } from '../game/config.js';
+import { fetchGameConfig } from '../infrastructure/data-proxy.js';
+import { LocalEnvironment } from '../infrastructure/environment.js';
+
 async function loadGameConfig() {
     let storage;
     try { storage = typeof LocalEnvironment !== 'undefined' ? LocalEnvironment.storage : localStorage; }
@@ -20,3 +24,5 @@ async function loadGameConfig() {
     catch { /* A full or blocked cache must not override valid server settings. */ }
     return config;
 }
+
+export { loadGameConfig };

@@ -1,3 +1,6 @@
+import { LocalEnvironment } from './environment.js';
+import { offlineReady } from './offline.js';
+
 const GAME_DATA_URL = 'https://mayor-game-api.icbob99.workers.dev/api/game-data';
 
 async function fetchGameConfig() {
@@ -28,3 +31,5 @@ async function requestGameApi(path, { method = 'GET', body, token } = {}) {
     if (response.status === 204) return;
     return response.json();
 }
+
+export { fetchGameConfig, fetchRawGameData, requestGameApi };

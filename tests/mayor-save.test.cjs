@@ -1,8 +1,8 @@
-const GameConfig = require('../app/game/config.js');
+const GameConfig = require('../app/game/config.js').GameConfig;
 GameConfig.use(GameConfig.fallback);
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { readFileSync } = require('node:fs');
+const { readUnit: readFileSync } = require('./unit-source.cjs');
 const vm = require('node:vm');
 const { webcrypto } = require('node:crypto');
 

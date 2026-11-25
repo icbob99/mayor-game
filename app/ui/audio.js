@@ -1,3 +1,8 @@
+import { AudioSettings } from '../game/audio-settings.js';
+import { currentTexts, state } from '../game/game-state.js';
+import { createMusicPlayer } from '../infrastructure/music-player.js';
+import { syncBlitzPause } from './modes.js';
+
 // File-based music and the original synthesized SFX use independent volume buses.
 let audioCtx = null;
 let musicBus = null;
@@ -189,3 +194,5 @@ function playLoseSound() {
     osc.start();
     osc.stop(audioCtx.currentTime + 0.4);
 }
+
+export { audioCtx, initAudio, initializeAudio, musicPlayer, playCashSound, playClickSound, playLoseSound, playSirenSound, setAudioSetting, startBgMusic, toggleAudio, updateAudioButton };

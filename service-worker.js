@@ -1,7 +1,7 @@
 // Network first: deployments and content edits remain visible without clearing browser data.
 const base = new URL(self.registration.scope);
 const cachePrefix = `mayor-offline:${base.pathname}:`;
-const cacheName = cachePrefix + 'v1';
+const cacheName = cachePrefix + 'v2';
 const indexUrl = new URL('index.html', base).href;
 const tailwindUrl = 'https://cdn.tailwindcss.com/';
 const cloudDataUrl = 'https://mayor-game-api.icbob99.workers.dev/api/game-data';
@@ -18,11 +18,22 @@ self.addEventListener('install', event => {
         for (const flag of ['gb.svg', 'ru.svg', 'ua.svg', 'il.webp']) {
             urls.add(new URL(`assets/flags/${flag}`, base).href);
         }
-        await Promise.all([...urls].map(async url => {
+        const visited = new Set();
+        async function cacheAsset(url) {
+            if (visited.has(url)) return;
+            visited.add(url);
             const response = await fetch(url, { cache: 'reload', mode: url === tailwindUrl ? 'no-cors' : 'cors' });
             if (!response.ok && response.type !== 'opaque') throw new Error('Offline asset unavailable');
+            // App modules use static, relative imports. Follow the graph once, including cycles.
+            const asset = new URL(url);
+            if (asset.origin === base.origin && asset.pathname.startsWith(base.pathname + 'app/') && asset.pathname.endsWith('.js')) {
+                const source = await response.clone().text();
+                const dependencies = [...source.matchAll(/^import\s+(?:[^;\n]+?\s+from\s+)?['"]([^'"]+)['"];?/gm)];
+                await Promise.all(dependencies.map(match => cacheAsset(new URL(match[1], url).href)));
+            }
             await cache.put(url, response);
-        }));
+        }
+        await Promise.all([...urls].map(cacheAsset));
         // Static hosts redirect index.html to /. Navigation cannot replay a redirected response.
         await cache.put(indexUrl, new Response(page.body, page));
     })());

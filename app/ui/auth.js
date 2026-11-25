@@ -1,3 +1,14 @@
+import { AccountSession } from '../game/account-session.js';
+import { restoreCurrentEvent } from '../game/events.js';
+import { resetGame, triggerGameOver } from '../game/game-over.js';
+import { currentTexts, restoreDifficulty, state } from '../game/game-state.js';
+import { GuestSession } from '../game/guest-session.js';
+import { GameModes } from '../game/modes.js';
+import { setLang } from './language.js';
+import { renderModes } from './modes.js';
+import { updateSaveSyncUI } from './save-sync.js';
+import { saveGuestGame } from './ui.js';
+
 let authFormKind = 'login';
 let authFormBusy = false;
 
@@ -119,3 +130,5 @@ async function becomeGuest() {
 function inviteGuest(count) {
     if (AccountSession.shouldInvite(count)) document.getElementById('auth-invite').showModal();
 }
+
+export { authFormBusy, authText, becomeGuest, closeProfileMenu, inviteGuest, openAuth, restoreMayor, submitAuth, updateAuthUI };

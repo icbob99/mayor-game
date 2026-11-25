@@ -1,4 +1,15 @@
-﻿function toggleShop(show) {
+import { AccountSession } from './account-session.js';
+import { checkAchievements } from './achievements.js';
+import { GameConfig } from './config.js';
+import { Difficulty } from './difficulty.js';
+import { triggerGameOver } from './game-over.js';
+import { currentTexts, shopPerkKeys, state } from './game-state.js';
+import { playCashSound, playClickSound } from '../ui/audio.js';
+import { updateAuthUI } from '../ui/auth.js';
+import { gameErrorText } from '../ui/language.js';
+import { saveGuestGame, updateUI } from '../ui/ui.js';
+
+function toggleShop(show) {
     if (show && state.mode === 'blitz') return;
     const modal = document.getElementById('shop-modal');
     if (!modal) return;
@@ -131,3 +142,4 @@ function buyPerk(key) {
     saveGuestGame();
 }
 
+export { buyPerk, renderShop, toggleShop };

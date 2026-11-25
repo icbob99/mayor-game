@@ -1,3 +1,5 @@
+import { fetchRawGameData } from '../infrastructure/data-proxy.js';
+
 async function loadGameData() {
     const { results } = await fetchRawGameData();
     if (!Array.isArray(results) || results.length !== 6) {
@@ -71,3 +73,5 @@ async function loadGameData() {
     }
     return { events, locales };
 }
+
+export { loadGameData };

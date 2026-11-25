@@ -1,4 +1,18 @@
-﻿function getFinalTitle(reasonType) {
+import { AccountSession } from './account-session.js';
+import { checkAchievements } from './achievements.js';
+import { GameConfig } from './config.js';
+import { Difficulty } from './difficulty.js';
+import { loadNextEvent } from './events.js';
+import { currentTexts, resetStartingStats, state } from './game-state.js';
+import { GuestSession } from './guest-session.js';
+import { GameModes } from './modes.js';
+import { playSirenSound } from '../ui/audio.js';
+import { inviteGuest, updateAuthUI } from '../ui/auth.js';
+import { setLang } from '../ui/language.js';
+import { stopBlitzTurn } from '../ui/modes.js';
+import { saveGuestGame, updateUI } from '../ui/ui.js';
+
+function getFinalTitle(reasonType) {
     if (reasonType === 'honorable_retirement') return currentTexts.ui.titles.honorable_retirement;
     if (reasonType === 'resignation') return currentTexts.ui.titles[state.money >= GameConfig.current.titles.resignationPeakMoney ? 'resignation_peak' : 'resignation'];
     if (reasonType === 'indecision') return currentTexts.ui.titles.indecision;
@@ -110,3 +124,5 @@ async function resetGame(difficulty = 'normal', mode = state.mode || 'arcade') {
     loadNextEvent();
     saveGuestGame();
 }
+
+export { getFinalTitle, renderGameOver, resetGame, triggerGameOver };

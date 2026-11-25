@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
-const Stats = require('../app/game/statistics.js');
+const Stats = require('../app/game/statistics.js').GameStats;
 
 // Runs inside the existing disposable Docker test, against the actual Worker and libSQL.
 module.exports = async function checkSaves(base, instanceId) {

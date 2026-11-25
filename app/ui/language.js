@@ -1,8 +1,16 @@
-﻿async function setLang(lang) {
+import { renderCurrentEvent } from '../game/events.js';
+import { renderGameOver } from '../game/game-over.js';
+import { LANGUAGE_OPTIONS, currentTexts, gameLocales, setCurrentTexts, state } from '../game/game-state.js';
+import { getStartupTexts, getTextDirection } from './language-utils.js';
+import { renderStartupStatus } from './startup.js';
+import { saveGuestGame, updateUI } from './ui.js';
+
+let languageRequestId = 0;
+async function setLang(lang) {
     const requestId = ++languageRequestId;
     state.lang = lang;
     document.documentElement.lang = lang;
-    document.documentElement.dir = (lang === 'he') ? 'rtl' : 'ltr';
+    document.documentElement.dir = getTextDirection(lang);
 
     const buttons = document.querySelectorAll('#lang-menu button');
     buttons.forEach(btn => {
@@ -37,7 +45,7 @@
             return;
         }
         if (requestId !== languageRequestId) return;
-        currentTexts = texts;
+        setCurrentTexts(texts);
     saveGuestGame();
     } catch (error) {
         if (requestId !== languageRequestId) return;
@@ -69,12 +77,17 @@ function initializeLanguageSelector() {
     const menu = document.getElementById('lang-menu');
     if (!menu) return;
     menu.innerHTML = LANGUAGE_OPTIONS.map(option => `
-        <button id="btn-${option.id}" type="button" onclick="setLang('${option.id}')"
+        <button id="btn-${option.id}" type="button" data-language="${option.id}"
             class="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-white hover:bg-slate-600 transition"
             role="option" aria-label="${option.label}">
             <img src="${option.flag}" alt="" class="w-6 h-4 object-cover rounded-sm">
             <span>${option.label}</span>
         </button>
     `).join('');
+    menu.addEventListener('click', event => {
+        const button = event.target.closest('[data-language]');
+        if (button) void setLang(button.dataset.language);
+    });
 }
 
+export { gameErrorText, initializeLanguageSelector, setLang, toggleLanguageMenu };

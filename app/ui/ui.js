@@ -1,3 +1,14 @@
+import { AccountSession } from '../game/account-session.js';
+import { renderAchievements } from '../game/achievements.js';
+import { ACHIEVEMENTS_DEF, currentTexts, state } from '../game/game-state.js';
+import { GuestSession } from '../game/guest-session.js';
+import { GameModes } from '../game/modes.js';
+import { renderShop } from '../game/shop.js';
+import { GameStats } from '../game/statistics.js';
+import { updateAudioButton } from './audio.js';
+import { closeProfileMenu, updateAuthUI } from './auth.js';
+import { renderDifficulty } from './difficulty.js';
+
 function updateUI() {
     if (!currentTexts) return;
     updateAuthUI();
@@ -131,3 +142,4 @@ function renderGuestStats() {
     });
 }
 
+export { initializeHeaderControls, renderGuestStats, saveGuestGame, toggleGuestStats, updateUI };

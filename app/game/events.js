@@ -1,4 +1,18 @@
-﻿function renderCurrentEvent() {
+import { AccountSession } from './account-session.js';
+import { checkAchievements } from './achievements.js';
+import { shuffleChoiceOrder } from './choice-order.js';
+import { Difficulty } from './difficulty.js';
+import { triggerGameOver } from './game-over.js';
+import { currentChoiceOrder, currentTexts, gameLogicEvents, setCurrentChoiceOrder, state } from './game-state.js';
+import { GuestSession } from './guest-session.js';
+import { GameModes } from './modes.js';
+import { initAudio, playCashSound, playClickSound, playLoseSound, startBgMusic } from '../ui/audio.js';
+import { updateAuthUI } from '../ui/auth.js';
+import { gameErrorText } from '../ui/language.js';
+import { blitzClock, renderModes, startBlitzTurn, stopBlitzTurn } from '../ui/modes.js';
+import { saveGuestGame, updateUI } from '../ui/ui.js';
+
+function renderCurrentEvent() {
     if (!currentTexts || state.currentEventIndex === -1) return;
     const logicEvent = gameLogicEvents[state.currentEventIndex];
     const textEvent = currentTexts.events[logicEvent.id];
@@ -29,8 +43,8 @@
 function showEventAtIndex(eventIndex, order) {
     state.currentEventIndex = eventIndex;
     const choices = gameLogicEvents[eventIndex]?.choices || [];
-    currentChoiceOrder = order?.length === choices.length && new Set(order).size === choices.length &&
-        order.every(i => Number.isInteger(i) && i >= 0 && i < choices.length) ? order : shuffleChoiceOrder(choices.length);
+    setCurrentChoiceOrder(order?.length === choices.length && new Set(order).size === choices.length &&
+        order.every(i => Number.isInteger(i) && i >= 0 && i < choices.length) ? order : shuffleChoiceOrder(choices.length));
     state.currentEventId = gameLogicEvents[eventIndex].id;
     state.choiceOrder = [...currentChoiceOrder];
     renderCurrentEvent();
@@ -94,3 +108,5 @@ function loadNextEvent() {
     } while ((nextIndex === state.currentEventIndex || gameLogicEvents[nextIndex].isFollowUp) && gameLogicEvents.length > 1);
     showEventAtIndex(nextIndex);
 }
+
+export { applyChoice, handleChoice, loadNextEvent, renderCurrentEvent, restoreCurrentEvent, showEventAtIndex };

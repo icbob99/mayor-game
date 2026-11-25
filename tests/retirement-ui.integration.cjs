@@ -40,15 +40,21 @@ module.exports = async function checkRetirementUI(page) {
     assert.equal(await page.evaluate('state.endReason'),'honorable_retirement');
     assert.equal(await page.evaluate('GameModes.mayorScore(state)'),3000002);
     assert.equal(await page.evaluate('JSON.stringify(GuestSession.getStats())'),stats);
-    await page.evaluate("resetGame('normal','arcade')");
-    await page.evaluate("Object.assign(state,{day:50,threat:69});gameLogicEvents[state.currentEventIndex].choices=[{}];applyChoice(0)");
-    assert.equal(await page.evaluate('state.gameOverRecorded'),false);
-    assert.equal(await page.evaluate('state.day'),51);
-    await page.evaluate("gameLogicEvents[state.currentEventIndex].choices=[{threat:-5}];applyChoice(0)");
-    assert.equal(await page.evaluate('state.endReason'),'honorable_retirement');
-    await page.evaluate("resetGame('normal','arcade')");
-    await page.evaluate("Object.assign(state,{day:50,health:1});gameLogicEvents[state.currentEventIndex].choices=[{health:-100}];applyChoice(0)");
-    assert.equal(await page.evaluate('state.endReason'),'heart_attack');
-    assert.equal(await page.evaluate("document.getElementById('end-score-bonus').hidden"),true);
+    // These probes replace random cards; restore them before the opening/balance checks.
+    const choices = await page.evaluate('gameLogicEvents.map(event => event.choices)');
+    try {
+        await page.evaluate("resetGame('normal','arcade')");
+        await page.evaluate("Object.assign(state,{day:50,threat:69});gameLogicEvents[state.currentEventIndex].choices=[{}];applyChoice(0)");
+        assert.equal(await page.evaluate('state.gameOverRecorded'),false);
+        assert.equal(await page.evaluate('state.day'),51);
+        await page.evaluate("gameLogicEvents[state.currentEventIndex].choices=[{threat:-5}];applyChoice(0)");
+        assert.equal(await page.evaluate('state.endReason'),'honorable_retirement');
+        await page.evaluate("resetGame('normal','arcade')");
+        await page.evaluate("Object.assign(state,{day:50,health:1});gameLogicEvents[state.currentEventIndex].choices=[{health:-100}];applyChoice(0)");
+        assert.equal(await page.evaluate('state.endReason'),'heart_attack');
+        assert.equal(await page.evaluate("document.getElementById('end-score-bonus').hidden"),true);
+    } finally {
+        await page.evaluate(`gameLogicEvents.forEach((event, index) => { event.choices = ${JSON.stringify(choices)}[index]; })`);
+    }
     await page.call('Emulation.clearDeviceMetricsOverride');
 };

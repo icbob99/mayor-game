@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { readFileSync } = require('node:fs');
+const { readUnit: readFileSync } = require('./unit-source.cjs');
 const path = require('node:path');
 const vm = require('node:vm');
 

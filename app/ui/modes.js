@@ -1,3 +1,13 @@
+import { AccountSession } from '../game/account-session.js';
+import { Difficulty } from '../game/difficulty.js';
+import { restoreCurrentEvent } from '../game/events.js';
+import { resetGame, triggerGameOver } from '../game/game-over.js';
+import { currentTexts, state } from '../game/game-state.js';
+import { GuestSession } from '../game/guest-session.js';
+import { GameModes } from '../game/modes.js';
+import { startBgMusic } from './audio.js';
+import { saveGuestGame, updateUI } from './ui.js';
+
 const modeIcons = { arcade: '🎮', daily: '📅', blitz: '⚡' };
 const blitzClock = GameModes.createClock(() => triggerGameOver('indecision'));
 let blitzFrame = null;
@@ -132,12 +142,14 @@ function refreshDailyDate() {
     const next = new Date(); next.setHours(24, 0, 0, 50);
     dailyMidnight = setTimeout(refreshDailyDate, Math.max(50, next.getTime() - Date.now()));
 }
-document.addEventListener('visibilitychange', () => { syncBlitzPause(); if (!document.hidden) refreshDailyDate(); });
-window.addEventListener('focus', refreshDailyDate);
-window.addEventListener('load', () => {
+function initializeModes() {
+    document.addEventListener('visibilitychange', () => { syncBlitzPause(); if (!document.hidden) refreshDailyDate(); });
+    window.addEventListener('focus', refreshDailyDate);
     const observer = new MutationObserver(syncBlitzPause);
     for (const el of document.querySelectorAll('dialog, [role="dialog"], #game-over-screen')) {
         observer.observe(el, { attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
     }
     refreshDailyDate();
-});
+}
+
+export { blitzClock, confirmGameAction, initializeModes, refreshDailyDate, renderModes, resign, selectMode, startBlitzTurn, stopBlitzTurn, syncBlitzPause, toggleModes };

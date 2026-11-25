@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const {randomUUID} = require('node:crypto');
-const Stats = require('../app/game/statistics.js');
+const Stats = require('../app/game/statistics.js').GameStats;
 
 module.exports = async function checkRetirement(base, instanceId) {
     const api=async(route,token,body,method=body?'PUT':'GET')=>{

@@ -1,3 +1,7 @@
+import { AccountSession } from '../game/account-session.js';
+import { currentTexts, state } from '../game/game-state.js';
+import { authText, restoreMayor, updateAuthUI } from './auth.js';
+
 let saveSyncBusy = false;
 let saveSyncShown = null;
 
@@ -72,3 +76,5 @@ async function resolveSaveSync(source) {
         updateAuthUI();
     }
 }
+
+export { resolveSaveSync, saveSyncBusy, showSaveSync, updateSaveSyncUI };

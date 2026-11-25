@@ -1,10 +1,10 @@
-const GameConfig = require('../app/game/config.js');
+const GameConfig = require('../app/game/config.js').GameConfig;
 GameConfig.use(GameConfig.fallback);
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const Stats = require('../app/game/statistics.js');
+const Stats = require('../app/game/statistics.js').GameStats;
 const vm = require('node:vm');
-const { readFileSync } = require('node:fs');
+const { readUnit: readFileSync } = require('./unit-source.cjs');
 
 test('statistics offers only enabled modes and preserves totals and the selected mode', () => {
     const elements = new Map();

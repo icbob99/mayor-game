@@ -1,4 +1,8 @@
-﻿function toggleAchievements(show) {
+import { ACHIEVEMENTS_DEF, currentTexts, state } from './game-state.js';
+import { playCashSound } from '../ui/audio.js';
+import { gameErrorText } from '../ui/language.js';
+
+function toggleAchievements(show) {
     const modal = document.getElementById('achievements-modal');
     if (!modal) return;
 
@@ -80,3 +84,4 @@ function checkAchievements() {
     });
 }
 
+export { checkAchievements, renderAchievements, toggleAchievements };

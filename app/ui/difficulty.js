@@ -1,3 +1,11 @@
+import { AccountSession } from '../game/account-session.js';
+import { Difficulty } from '../game/difficulty.js';
+import { resetGame } from '../game/game-over.js';
+import { currentTexts, state } from '../game/game-state.js';
+import { GameModes } from '../game/modes.js';
+import { confirmGameAction } from './modes.js';
+import { saveGuestGame, updateUI } from './ui.js';
+
 const difficultyIcons = { easy: '🌱', normal: '⚖️', hard: '🔥', insane: '💀' };
 
 function renderDifficulty() {
@@ -51,3 +59,5 @@ async function selectDifficulty(value) {
         updateUI();
     }
 }
+
+export { renderDifficulty, selectDifficulty, toggleDifficulty };
